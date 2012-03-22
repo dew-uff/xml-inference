@@ -11,6 +11,7 @@ import org.jdesktop.application.ResourceMap;
 import org.jdesktop.application.SingleFrameApplication;
 import org.jdesktop.application.FrameView;
 
+import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.io.Serializer;
 import br.ufrj.ppgi.main.XMLInference;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
@@ -43,6 +44,7 @@ public class XMLInferenceView extends FrameView {
     private JButton xmlLoaderButton;
     private JButton environmentLoaderButton;
     private JButton queryButton;
+    private JButton knowledgeBaseButton;
     private JSeparator jSeparator1;
     private JTextField queryTextField;
     private JTextArea resultTextArea;
@@ -112,6 +114,16 @@ public class XMLInferenceView extends FrameView {
     }
 	
 	@Action
+    public void knowledgeBase() {
+		FileManager fileManager = new FileManager();
+		String rules = fileManager.readRules();
+		String facts = fileManager.readFacts();
+		String theory = rules + facts;
+		resultTextArea.setText(theory);
+    }
+	
+	
+	@Action
     public void query() {
 		String query = queryTextField.getText();
 		long startTime = System.nanoTime();
@@ -133,6 +145,7 @@ public class XMLInferenceView extends FrameView {
         xmlLoaderButton = new JButton();
         environmentLoaderButton = new JButton();
         queryButton = new JButton();
+        knowledgeBaseButton = new JButton();
         queryTextField = new JTextField();
         resultTextArea = new JTextArea();
         menuBar = new JMenuBar();
@@ -169,6 +182,11 @@ public class XMLInferenceView extends FrameView {
         environmentLoaderButton.setName(resourceMap.getString("environmentLoaderButton.name"));
         environmentLoaderButton.setText("  Carregar Ambiente  ");
         
+        knowledgeBaseButton.setAction(actionMap.get("knowledgeBase"));
+        knowledgeBaseButton.setToolTipText(resourceMap.getString("knowledgeBaseButton.toolTipText")); 
+        knowledgeBaseButton.setName(resourceMap.getString("knowledgeBaseButton.name"));
+        knowledgeBaseButton.setText("  Exibir Dados Prolog  ");
+        
         queryButton.setAction(actionMap.get("query")); 
         queryButton.setToolTipText(resourceMap.getString("queryButton.toolTipText"));
         queryButton.setName(resourceMap.getString("queryButton.name")); 
@@ -183,7 +201,8 @@ public class XMLInferenceView extends FrameView {
         		.addComponent(schemaLoaderButton, GroupLayout.Alignment.LEADING)
         		.addComponent(manualRulesButton, GroupLayout.Alignment.CENTER)		
         		.addComponent(xmlLoaderButton, GroupLayout.Alignment.TRAILING)
-        		.addComponent(environmentLoaderButton, GroupLayout.Alignment.CENTER)
+        		.addComponent(environmentLoaderButton, GroupLayout.Alignment.LEADING)
+        		.addComponent(knowledgeBaseButton, GroupLayout.Alignment.TRAILING)
         		.addComponent(jSeparator1, GroupLayout.PREFERRED_SIZE, 500, GroupLayout.PREFERRED_SIZE)
         		.addComponent(queryTextField, GroupLayout.Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 420, GroupLayout.PREFERRED_SIZE)
         		.addComponent(queryButton, GroupLayout.Alignment.TRAILING)
@@ -198,7 +217,8 @@ public class XMLInferenceView extends FrameView {
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(20));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-        		.addComponent(environmentLoaderButton));
+        		.addComponent(environmentLoaderButton)
+        		.addComponent(knowledgeBaseButton));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(20));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
