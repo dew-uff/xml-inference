@@ -32,10 +32,10 @@ public class EnvironmentLoaderView extends JFrame{
 	private Component environmentLoaderButton;
     private JButton loadEnvironmentButton;
     private JPanel mainPanel;
-    private JList lista;  
+    private JList<String> lista;  
     private JPanel listPanel;  
     private JScrollPane scroll;  
-    private DefaultListModel listModel;
+    private DefaultListModel<String> listModel;
     
     
     public EnvironmentLoaderView(Component component1, Component component2, Component component3) {
@@ -53,7 +53,7 @@ public class EnvironmentLoaderView extends JFrame{
     
     @Action
     public void loadEnvironment() {
-    	String name = (String) lista.getSelectedValue();
+    	String name = lista.getSelectedValue();
     	
     	try {
     		HashMap<String, String> rulesHashMap = serializer.read();
@@ -75,9 +75,9 @@ public class EnvironmentLoaderView extends JFrame{
     private void initComponents() {
         mainPanel = new JPanel();
         loadEnvironmentButton = new JButton();
-        listModel = new DefaultListModel();  
+        listModel = new DefaultListModel<String>();  
         listPanel = new JPanel();        
-        lista = new JList(listModel);
+        lista = new JList<String>(listModel);
         lista.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         lista.setVisibleRowCount(-1);  
         scroll = new JScrollPane(lista);

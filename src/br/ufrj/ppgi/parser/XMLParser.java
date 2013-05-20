@@ -14,12 +14,26 @@ import org.w3c.dom.NodeList;
 
 import br.ufrj.ppgi.io.FileManager;
 
+import javax.xml.parsers.SAXParserFactory; 
+import javax.xml.parsers.SAXParser; 
+
+import br.ufrj.ppgi.parser.DefaultHandleSAX;
+
+
 public class XMLParser extends DocumentParser{
 	private static int contadorIdPai = 0;
+	private long totalTime = 0;
+	private Boolean bClearData = false;
 	
 	public void executeParse(HashMap<String, File> fileList){
 		HashMap<String, Document> documentList = parserHandler(fileList);
 		Set<String> keyNames = documentList.keySet();
+		
+		 if  ( getClearData() )
+         {
+         	FileManager arquivo = new FileManager();
+         	arquivo.clearDataFacts();
+         }
     	
 		long tempoInicial = System.currentTimeMillis();
 		
@@ -32,8 +46,45 @@ public class XMLParser extends DocumentParser{
     	}
     	
     	long tempoFinal = System.currentTimeMillis();  
+    	setTotalTime((tempoFinal - tempoInicial) / 1000);
     	  
-    	System.out.printf("Tempo em segundos: " + (tempoFinal - tempoInicial) / 1000);
+    	System.out.printf("Tempo em segundos: " + getTotalTime());
+	}
+        
+        public void executeParseSax(HashMap<String, File> fileList){
+            Set<String> keyNames = fileList.keySet();
+            
+            if  ( getClearData() )
+            {
+            	FileManager arquivo = new FileManager();
+            	arquivo.clearDataFacts();
+            }
+            
+            long tempoInicial = System.currentTimeMillis();
+            
+            DefaultHandleSAX handler = new DefaultHandleSAX();
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            
+                       
+            for(String name : keyNames){
+                try{
+                     SAXParser saxParser = factory.newSAXParser();
+                     String path = fileList.get(name).getAbsolutePath();
+                     saxParser.parse( new File(path), handler ); 
+                }catch (Throwable t) {
+                    t.printStackTrace();
+                }
+                contadorIdPai++;
+               /* String stringProlog = process(documentList.get(name));
+                //System.out.println(stringProlog);
+                FileManager fileManager = new FileManager();
+                fileManager.writeFacts(stringProlog);*/
+            }
+
+            long tempoFinal = System.currentTimeMillis();  
+            setTotalTime((tempoFinal - tempoInicial) / 1000);
+
+            System.out.printf("Tempo em segundos: " + getTotalTime());
 	}
 	
 	private String process(Document doc){
@@ -177,4 +228,23 @@ public class XMLParser extends DocumentParser{
 		}
 		return factsList;
 	}
+
+	public long getTotalTime() {
+		return totalTime;
+	}
+
+	public void setTotalTime(long totalTime) {
+		this.totalTime = totalTime;
+	}
+
+	public void setClearData(Boolean checkClearDataSelected) {
+		bClearData = checkClearDataSelected;
+	}
+
+	public Boolean getClearData() {
+		return bClearData;
+	}
+        
+        
+
 }

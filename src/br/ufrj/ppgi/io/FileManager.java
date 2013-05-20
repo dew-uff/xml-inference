@@ -1,6 +1,7 @@
 package br.ufrj.ppgi.io;
 
 import java.io.BufferedReader;
+
 import java.io.File;  
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.util.ArrayList;
 
 public class FileManager {
 	private static final String FACTS_FILE_NAME = "BaseFatos.pl";
@@ -50,7 +52,7 @@ public class FileManager {
 	}
 	
 	public void writeRules(String text){	
-		File file = new File(RULES_FILE_NAME);
+		File file = new File(RULES_FILE_NAME);		
 		FileWriter fw;
 		try {
 			fw = new FileWriter(file, true);
@@ -76,6 +78,8 @@ public class FileManager {
 			System.out.print("Erro :" + erro2.toString());  
 		}
 	}
+        
+        
 	
 	public String readRules(){
 		File file = new File(RULES_FILE_NAME);
@@ -106,6 +110,36 @@ public class FileManager {
 		}
 		
 		return texto;
+	}
+	
+	public ArrayList<String> readRulesList(){
+		File file = new File(RULES_FILE_NAME);
+		ArrayList<String> rulesArray = new ArrayList<String>();		
+		
+		try {    
+			FileReader arquivo = new FileReader(file);  
+			BufferedReader ler = new BufferedReader(arquivo);  
+			 
+			boolean fim = false;  
+			  
+			while (!fim) {  
+				String linha = ler.readLine();  
+				if (linha == null)  
+					fim = true;
+				else
+					rulesArray.add(linha);
+					
+			}  
+			 
+			ler.close();  
+			arquivo.close();  
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
+		return rulesArray;
 	}
 	
 	public String readFacts(){
@@ -155,4 +189,20 @@ public class FileManager {
 			System.out.println(ioe.getMessage());
 		}
 	}
+
+	public void clearDataFacts() {
+		// TODO Auto-generated method stub
+		try{
+			RandomAccessFile file = new RandomAccessFile(FACTS_FILE_NAME, PERMISSION);
+			file.setLength(0);
+			file.close();
+		}
+		catch(FileNotFoundException fnfe){
+			System.out.println(fnfe.getMessage());
+		}
+		catch(IOException ioe){
+			System.out.println(ioe.getMessage());
+		}
+	}	
+	
 }

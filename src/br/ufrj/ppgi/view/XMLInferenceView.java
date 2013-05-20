@@ -1,6 +1,7 @@
 package br.ufrj.ppgi.view;
 
 import java.awt.Dimension;
+
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
@@ -17,9 +18,14 @@ import br.ufrj.ppgi.main.XMLInference;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
 import br.ufrj.ppgi.view.EnvironmentLoaderView;
 
+
+import wrapper.WrapperSchema;
+//
+
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.GroupLayout;
@@ -36,17 +42,16 @@ import javax.swing.SwingConstants;
 public class XMLInferenceView extends FrameView {
 	private static final String SCHEMA = "XSD";
 	private static final String XML = "XML";
-	private static final String ACTIONSCHEMA = "translateSchema";
-	private static final String ACTIONXML = "translateXML";
-	
     private JButton schemaLoaderButton;
     private JButton manualRulesButton;
     private JButton xmlLoaderButton;
     private JButton environmentLoaderButton;
-    private JButton queryButton;
+    private JButton queryButtonProlog;
+    private JButton queryButtonXpath;
     private JButton knowledgeBaseButton;
     private JSeparator jSeparator1;
     private JTextField queryTextField;
+    private JTextField queryTextFieldXPath;
     private JTextArea resultTextArea;
     private JPanel mainPanel;
     private JMenuBar menuBar;  
@@ -56,6 +61,8 @@ public class XMLInferenceView extends FrameView {
     private JFrame xmlSchemaLoaderView;
     private JFrame manualRulesView;
     private JFrame environmentLoaderView;
+    private JLabel labelQueryXPath;
+    private JLabel labelQueryProlog;
 	
     public XMLInferenceView(SingleFrameApplication app) {
         super(app);
@@ -75,7 +82,7 @@ public class XMLInferenceView extends FrameView {
 	@Action
     public void loadAutomaticRules() {
 		if(xmlSchemaLoaderView == null){
-			xmlSchemaLoaderView = new XMLLoaderView(manualRulesButton, SCHEMA, ACTIONSCHEMA);
+			xmlSchemaLoaderView = new XMLSchemaLoaderView(manualRulesButton, SCHEMA);
 			xmlSchemaLoaderView.setSize(new Dimension(250, 350));
 			xmlSchemaLoaderView.setResizable(false);
 			xmlSchemaLoaderView.setLocationRelativeTo(null);
@@ -96,7 +103,7 @@ public class XMLInferenceView extends FrameView {
 	@Action
     public void loadXMLDocument() {
 		if(xmlLoaderView == null){
-			xmlLoaderView = new XMLLoaderView(queryButton, XML, ACTIONXML);
+			xmlLoaderView = new XMLLoaderView(queryButtonProlog, XML);
 			xmlLoaderView.setSize(new Dimension(250, 350));
 			xmlLoaderView.setResizable(false);
 			xmlLoaderView.setLocationRelativeTo(null);
@@ -135,6 +142,24 @@ public class XMLInferenceView extends FrameView {
 		System.out.println(estimatedTime*Math.pow(10, -9));
     }
 
+	@Action
+    public void queryXPath() {
+		String query = queryTextFieldXPath.getText();
+		long startTime = System.nanoTime();
+		/*PrologQueryProcessor prologQueryProcessor = new PrologQueryProcessor(query); 
+		resultTextArea.setText(prologQueryProcessor.getResult());*/
+		/*WrapperProlog wrapperProlog = new WrapperProlog();
+		wrapperProlog.executeQuery(query);*/
+		WrapperSchema wrapperSchema = new WrapperSchema();
+		wrapperSchema.executeQuery(query);
+		resultTextArea.setText(wrapperSchema.getResult());
+		long stopTime = System.nanoTime();
+		long estimatedTime = stopTime - startTime;
+		//System.out.println(estimatedTime);
+		System.out.println(estimatedTime*Math.pow(10, -9));
+    }
+
+	
     private void initComponents() {
     	ResourceMap resourceMap;
     	ActionMap actionMap;
@@ -144,15 +169,19 @@ public class XMLInferenceView extends FrameView {
         manualRulesButton = new JButton();
         xmlLoaderButton = new JButton();
         environmentLoaderButton = new JButton();
-        queryButton = new JButton();
+        queryButtonProlog = new JButton();
         knowledgeBaseButton = new JButton();
         queryTextField = new JTextField();
+        queryTextFieldXPath = new JTextField();
         resultTextArea = new JTextArea();
         menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu();
         JMenuItem exitMenuItem = new JMenuItem();
         JMenu helpMenu = new JMenu();
         JMenuItem aboutMenuItem = new JMenuItem();
+        labelQueryXPath = new JLabel();
+        labelQueryProlog = new JLabel();
+        queryButtonXpath = new JButton();
         
         textAreaScroll = new JScrollPane(resultTextArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         resultTextArea.setEditable(false);
@@ -187,10 +216,16 @@ public class XMLInferenceView extends FrameView {
         knowledgeBaseButton.setName(resourceMap.getString("knowledgeBaseButton.name"));
         knowledgeBaseButton.setText("  Exibir Dados Prolog  ");
         
-        queryButton.setAction(actionMap.get("query")); 
-        queryButton.setToolTipText(resourceMap.getString("queryButton.toolTipText"));
-        queryButton.setName(resourceMap.getString("queryButton.name")); 
-        queryButton.setText("Consultar");
+        queryButtonProlog.setAction(actionMap.get("query")); 
+        queryButtonProlog.setToolTipText(resourceMap.getString("queryButtonProlog.toolTipText"));
+        queryButtonProlog.setName(resourceMap.getString("queryButtonProlog.name")); 
+        queryButtonProlog.setText("Consultar");
+        
+        queryButtonXpath.setAction(actionMap.get("queryXPath")); 
+        queryButtonXpath.setToolTipText(resourceMap.getString("queryButtonXpath.toolTipText"));
+        queryButtonXpath.setName(resourceMap.getString("queryButtonXpath.name")); 
+        queryButtonXpath.setText("Consultar");
+        
         
         GroupLayout mainPanelLayout = new GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
@@ -204,8 +239,12 @@ public class XMLInferenceView extends FrameView {
         		.addComponent(environmentLoaderButton, GroupLayout.Alignment.LEADING)
         		.addComponent(knowledgeBaseButton, GroupLayout.Alignment.TRAILING)
         		.addComponent(jSeparator1, GroupLayout.PREFERRED_SIZE, 500, GroupLayout.PREFERRED_SIZE)
-        		.addComponent(queryTextField, GroupLayout.Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 420, GroupLayout.PREFERRED_SIZE)
-        		.addComponent(queryButton, GroupLayout.Alignment.TRAILING)
+        		.addComponent(labelQueryProlog,  GroupLayout.Alignment.LEADING)
+        		.addComponent(queryTextField, GroupLayout.Alignment.CENTER, GroupLayout.PREFERRED_SIZE, 340, GroupLayout.PREFERRED_SIZE)
+        		.addComponent(labelQueryXPath, GroupLayout.Alignment.LEADING)
+        		.addComponent(queryTextFieldXPath, GroupLayout.Alignment.CENTER, GroupLayout.DEFAULT_SIZE, 340, GroupLayout.PREFERRED_SIZE)
+        		.addComponent(queryButtonProlog, GroupLayout.Alignment.TRAILING)
+        		.addComponent(queryButtonXpath, GroupLayout.Alignment.TRAILING)
         		.addComponent(textAreaScroll, GroupLayout.DEFAULT_SIZE, 500, GroupLayout.DEFAULT_SIZE));
         mainPanelLayout.setHorizontalGroup(hGroup);
         
@@ -224,14 +263,27 @@ public class XMLInferenceView extends FrameView {
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(jSeparator1));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
+        		.addComponent(labelQueryProlog, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         		.addComponent(queryTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-        		.addComponent(queryButton, GroupLayout.Alignment.CENTER));
+        		.addComponent(queryButtonProlog, GroupLayout.Alignment.CENTER));
+
+        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
+        		.addGap(5));
+
+        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
+        		.addComponent(labelQueryXPath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+        		.addComponent(queryTextFieldXPath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+        		.addComponent(queryButtonXpath, GroupLayout.Alignment.TRAILING)
+        		);
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(20));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(textAreaScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 300, javax.swing.GroupLayout.DEFAULT_SIZE));		
         mainPanelLayout.setVerticalGroup(vGroup);    
-
+        
+        labelQueryXPath.setText("Consulta xpath:");
+        labelQueryProlog.setText("Consulta prolog:");
+        
         fileMenu.setText(resourceMap.getString("fileMenu.text")); 
         exitMenuItem.setAction(actionMap.get("quit")); 
         fileMenu.add(exitMenuItem);
@@ -250,7 +302,7 @@ public class XMLInferenceView extends FrameView {
         
         //manualRulesButton.setEnabled(false);
         //xmlLoaderButton.setEnabled(false);
-        queryButton.setEnabled(false);
+ //Rafael Pinheiro       queryButtonProlog.setEnabled(false);
         
         Serializer serializer = new Serializer();
         

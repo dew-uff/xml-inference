@@ -5,7 +5,6 @@ import java.awt.Window;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
 
-import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.view.XMLInferenceView;
 
 public class XMLInference extends SingleFrameApplication {
@@ -26,7 +25,7 @@ public class XMLInference extends SingleFrameApplication {
     }
     
     @Override protected void shutdown(){
-    	FileManager fileManager = new FileManager();
-    	fileManager.clearFiles();
+    	/*FileManager fileManager = new FileManager();
+    	fileManager.clearFiles();*/
     }
 }

@@ -15,23 +15,17 @@ import org.jdesktop.application.ResourceMap;
 import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.main.XMLInference;
 import br.ufrj.ppgi.parser.SchemaParser;
-import br.ufrj.ppgi.parser.XMLParser;
-
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JPanel;
 import javax.swing.GroupLayout;
 import javax.swing.ActionMap;
 import javax.swing.ListSelectionModel;
 
-public class XMLLoaderView extends JFrame{
+public class XMLSchemaLoaderView extends JFrame{
 	private static final long serialVersionUID = 1L;
 
 	private ResourceMap resourceMap;
@@ -46,23 +40,16 @@ public class XMLLoaderView extends JFrame{
     private JScrollPane scroll;  
     private DefaultListModel<String> listModel;
     private FileManager fileManager;
-    private JLabel	labelParserType;
-    private JRadioButton	rbParserSAX;
-    private JRadioButton	rbParserDOM;
-    private JCheckBox		ckClearData;
-	public String nameSet;
+    public String nameSet;
 	
-    public XMLLoaderView(Component component, String extension) {
+    public XMLSchemaLoaderView(Component component, String extension) {
         super();
         
         this.component = component;
         this.extension = extension;
-                
+        
         initComponents();
-        processButton.setEnabled(false);
-        rbParserSAX.setSelected(true);
-        rbParserDOM.setSelected(false);
-        ckClearData.setSelected(false);
+        processButton.setEnabled(false);        
     }
 
     @Action
@@ -90,27 +77,6 @@ public class XMLLoaderView extends JFrame{
     	dispose();
     }
     
-    @Action
-    public void translateXML() {
-    	XMLParser xmlParser = new XMLParser();
-    	xmlParser.setClearData(isCheckClearDataSelected());
-    	
-    	if ( isParserSAXSelected())
-    		xmlParser.executeParseSax(fileList);
-    	else
-    		xmlParser.executeParse(fileList);
-    	
-    	JOptionPane.showMessageDialog(mainPanel, "Base de fatos gerada com sucesso.\n" 
-    												+ "Tempo de execução: "
-    												+ xmlParser.getTotalTime() + " segundo(s)");
-
-    	component.setEnabled(true);
-    	listModel.clear();
-    	fileList.clear();   	
-    	
-    	dispose();
-    }
-
     private void initComponents() {
     	fileManager = new FileManager();   	
         mainPanel = new JPanel();
@@ -126,42 +92,21 @@ public class XMLLoaderView extends JFrame{
         listPanel.add(scroll);
         lista.addMouseListener(mouseListener);
         
-        labelParserType = new JLabel();
-        rbParserSAX = new JRadioButton();
-        rbParserDOM = new JRadioButton();
-        ckClearData = new JCheckBox();
-        
-        labelParserType.setText("Parser:");
-        rbParserSAX.setText("SAX");
-        rbParserDOM.setText("DOM");
-        ckClearData.setText("Limpar dados anteriores");
-        
-        rbParserSAX.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                OnClickRBSAX(evt);
-            }
-        });
-        
-        rbParserDOM.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                OnClickRBDOM(evt);
-            }
-        });
-        
+               
         mainPanel.setName("mainPanel"); 
-        setTitle("Base de fatos");
-        resourceMap = Application.getInstance(XMLInference.class).getContext().getResourceMap(XMLLoaderView.class);
-        ActionMap actionMap = Application.getInstance(XMLInference.class).getContext().getActionMap(XMLLoaderView.class, this);
+        setTitle("Base de regras");
+        resourceMap = Application.getInstance(XMLInference.class).getContext().getResourceMap(XMLSchemaLoaderView.class);
+        ActionMap actionMap = Application.getInstance(XMLInference.class).getContext().getActionMap(XMLSchemaLoaderView.class, this);
         
         loadButton.setAction(actionMap.get("xmlLoader")); 
         loadButton.setToolTipText(resourceMap.getString("loadButton.toolTipText")); 
         loadButton.setText("Carregar documentos " + extension); 
-        loadButton.setName("loadButton"); 
+        loadButton.setName("loadButton1"); 
         
-        processButton.setAction(actionMap.get("translateXML")); 
-        processButton.setToolTipText(resourceMap.getString("processButton.toolTipText_1")); 
+        processButton.setAction(actionMap.get("translateSchema")); 
+        processButton.setToolTipText(resourceMap.getString("processButton.toolTipText")); 
         processButton.setText(resourceMap.getString("processButton.text")); 
-        processButton.setName("processButton"); 
+        processButton.setName("processButton1"); 
        
         GroupLayout mainPanelLayout = new GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
@@ -169,18 +114,10 @@ public class XMLLoaderView extends JFrame{
         mainPanelLayout.setAutoCreateContainerGaps(true);
       
         GroupLayout.SequentialGroup hGroup = mainPanelLayout.createSequentialGroup();
-        hGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+        hGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(loadButton, GroupLayout.Alignment.CENTER)
         		.addComponent(listPanel, GroupLayout.DEFAULT_SIZE, 150, GroupLayout.DEFAULT_SIZE)
-        		.addGroup(mainPanelLayout.createSequentialGroup()
-        				.addGap(30,30,30)
-        				.addComponent(labelParserType)
-        				.addGap(20,20,20)
-        				.addComponent(rbParserSAX)
-        				.addGap(20,20,20)
-        				.addComponent(rbParserDOM))
-        				.addComponent(ckClearData, GroupLayout.Alignment.CENTER)
-        				.addComponent(processButton, GroupLayout.Alignment.CENTER));
+        		.addComponent(processButton, GroupLayout.Alignment.CENTER));
         mainPanelLayout.setHorizontalGroup(hGroup);
         
         GroupLayout.SequentialGroup vGroup = mainPanelLayout.createSequentialGroup();
@@ -191,17 +128,6 @@ public class XMLLoaderView extends JFrame{
         		.addComponent(listPanel, GroupLayout.DEFAULT_SIZE, 150, GroupLayout.DEFAULT_SIZE));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
         		.addGap(20, 20, 20));
-        
-        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-        		.addComponent(labelParserType)
-        		.addComponent(rbParserSAX)
-        		.addComponent(rbParserDOM)
-        		.addGap(40, 40, 40));
-        
-        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-        		.addComponent(ckClearData)
-        		.addGap(40, 40, 40));
-        
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
         		.addComponent(processButton, GroupLayout.Alignment.CENTER));
         mainPanelLayout.setVerticalGroup(vGroup);
@@ -211,32 +137,6 @@ public class XMLLoaderView extends JFrame{
         pack();
     }
     
-    @Action
-    private void OnClickRBSAX(java.awt.event.ActionEvent evt)
-    {    
-    	if ( !rbParserSAX.isSelected() )
-    		rbParserSAX.setSelected(true);
-    	rbParserDOM.setSelected(false);
-    }
-    
-    @Action
-    private void OnClickRBDOM(java.awt.event.ActionEvent evt)
-    {    
-    	if ( !rbParserDOM.isSelected() )
-    		rbParserDOM.setSelected(true);
-    	rbParserSAX.setSelected(false);
-    }
-    
-    private Boolean isParserSAXSelected()
-    {
-    	return rbParserSAX.isSelected();
-    }
-    
-        
-    private Boolean isCheckClearDataSelected()
-    {
-    	return ckClearData.isSelected();
-    }
     
     MouseListener mouseListener = new MouseAdapter() {
         public void mouseClicked(MouseEvent e) {

@@ -31,7 +31,7 @@ public class SchemaParser extends DocumentParser{
 	
 	
 	public void executeParse(HashMap<String, File> fileList, String nameSet){
-		HashMap<String, Document> documentList = parserHandler(fileList);
+		HashMap<String, Document> documentList = DocumentParser.getInstance().parserHandler(fileList);
 		Set<String> keyNames = documentList.keySet();
 		
 		StringBuffer translation = new StringBuffer();
@@ -211,10 +211,16 @@ public class SchemaParser extends DocumentParser{
 		
 		for(int k=0; k < nlElements.getLength(); k++) {
 			Element e = (Element) nlElements.item(k);
-			if((e.getAttributeNode("type").getNodeValue().equals(parentName))){
-				ruleHead = (e.getAttributeNode("name").getNodeValue().toLowerCase());
-				break;
-			}
+                        if ( e.getAttributeNode("type") != null)
+                        {
+                            if ( e.getAttributeNode("type").getNodeValue() != null )
+                            {
+                                if((e.getAttributeNode("type").getNodeValue().equals(parentName))){
+                                        ruleHead = (e.getAttributeNode("name").getNodeValue().toLowerCase());
+                                        break;
+                                }
+                            }
+                        }
 		}
 		return ruleHead;
 	}

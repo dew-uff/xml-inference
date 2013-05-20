@@ -14,6 +14,35 @@ import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 public class DocumentParser {
+	
+	private static DocumentParser document = null;
+	private HashMap<String, Document> documentList;
+	
+	public synchronized static DocumentParser getInstance() {
+		if ( document == null )
+			document = new DocumentParser();
+		
+		return document;
+	}
+	
+	public void destroyInstance() {
+		document = null;
+	}
+	
+	
+	public HashMap<String, Document> getDocumentList(){
+		if ( documentList == null )
+		{
+			
+		}
+		
+		return documentList;
+	}
+	
+	public void setDocumentList(HashMap<String, Document> documentList){
+		this.documentList = documentList;
+	}	
+	
 	protected HashMap<String, Document> parserHandler(HashMap<String, File> fileList) {
     	Set<String> keyNames = fileList.keySet();
     	HashMap<String, Document> documentList = new HashMap<String, Document>();
@@ -21,6 +50,8 @@ public class DocumentParser {
     		Document doc = parser(fileList.get(name));
     		documentList.put(name, doc);
     	}
+    	
+    	setDocumentList(documentList);
     	
     	return documentList;
 	}
@@ -34,10 +65,12 @@ public class DocumentParser {
 		Document myDoc = null;
 		
 		try {
-			builder = dbf.newDocumentBuilder();
+			dbf.setNamespaceAware(true);
+			builder = dbf.newDocumentBuilder();			
 		
 			ParserErrorHandler handler = new ParserErrorHandler();
 			builder.setErrorHandler(handler);
+			
 			
 			myDoc = builder.parse(file);
 		} catch (ParserConfigurationException e) {
