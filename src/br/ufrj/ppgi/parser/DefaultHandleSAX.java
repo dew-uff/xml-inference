@@ -160,7 +160,7 @@ public class DefaultHandleSAX extends DefaultHandler {
 
                         strFato += "xml/elementoMisto(id" + 
                                    elementoTopo.getId() + ",'" 
-                                    + conteudo + "').\n";
+                                    + conteudo.replace("\'", "´") + "').\n";
                     }
                     
                     if ( elementoTopo.getIdPai() > 0 )
@@ -180,13 +180,13 @@ public class DefaultHandleSAX extends DefaultHandler {
                             strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
                                     elementoTopo.getIdPai() + ", id" +
                                     elementoTopo.getId() + ", '" 
-                                     + elementoTopo.geConteudoElemento(0) + "').\n";
+                                     + elementoTopo.geConteudoElemento(0).replace("\'", "´") + "').\n";
                         }
                         else
                         {
                             strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                                       elementoTopo.getIdPai() + ",'" 
-                                        + elementoTopo.geConteudoElemento(0) + "').\n";
+                                      elementoTopo.getIdPai() + ",'" 
+                                      + elementoTopo.geConteudoElemento(0).replace("\'", "´") + "').\n";
                         }
                     }
                  }
