@@ -5,16 +5,22 @@ import alice.tuprolog.SolveInfo;
 import alice.tuprolog.Theory;
 
 import br.ufrj.ppgi.io.FileManager;
+import jpl.*;
+
+import java.util.Hashtable;
 
 public class PrologQueryProcessor {
 	
 	private String resultString;
-	
+	public PrologQueryProcessor()
+	{
+		 
+	}
 	public PrologQueryProcessor(String query){
 		FileManager fileManager = new FileManager();
 		String rules = fileManager.readRules();
 		String facts = fileManager.readFacts();
-		String theory = facts + rules;
+		String theory =facts + rules;
 		Prolog engine = new Prolog();
 
 		try {
@@ -28,11 +34,12 @@ public class PrologQueryProcessor {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			resultString = "CONSULTA INVÁLIDA!!!";
+			resultString = "CONSULTA INVÃ�LIDA!!!";
 		}
 	}
 	
 	public String getResult(){
 		return this.resultString;
 	}
+	
 }
