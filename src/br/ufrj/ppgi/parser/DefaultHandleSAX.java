@@ -4,6 +4,13 @@
  */
 package br.ufrj.ppgi.parser;
 import br.ufrj.ppgi.io.FileManager;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Stack;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -13,24 +20,74 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Rafael Pinheiro
  */
 public class DefaultHandleSAX extends DefaultHandler {
+	private static final String PATHCONFIG = "config.txt";
     private String strFato;
     private static int contadorIdPai = 0;
     private Stack<ElementSax> pilha = new Stack<ElementSax>();
     private FileManager arquivo;
     private String strConteudo = "";
-    
+    private Boolean bResetLastId = false;
+        
     public DefaultHandleSAX() {
         super(); 
         arquivo = new FileManager();
         contadorIdPai = 0;
     }
     
+    public void setResetLastId(Boolean _bResetLastId)
+    {
+    	bResetLastId = _bResetLastId;
+    }
+    
+    private void escreverId(Integer contadorId)
+    {
+    	File file = new File(PATHCONFIG);   
+    	FileWriter fw;
+		try {
+			fw = new FileWriter(file);
+			fw.write(contadorId.toString());
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+    }
+    
+    private Integer obterId()
+    {
+    	File file = new File(PATHCONFIG);   
+    	FileReader fr;
+		try {
+			fr = new FileReader(file);  
+			BufferedReader br = new BufferedReader(fr);  
+    	    String linha = br.readLine();
+    	    br.close();
+    	    fr.close();
+    	    return Integer.parseInt(linha);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		return 0;
+    }
+    
     @Override
     public void startDocument() {
-        }
+    	if ( bResetLastId )
+    	{
+    		contadorIdPai = 0;
+    	}
+    	else
+    	{
+    		contadorIdPai = obterId();
+    	}
+    	
+    	
+    }
 
     @Override
         public void endDocument() {
+    		escreverId(contadorIdPai);
         }
         
     private void processarAtributos(Attributes atts )

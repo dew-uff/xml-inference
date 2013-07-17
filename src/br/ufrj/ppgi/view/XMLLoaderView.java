@@ -50,6 +50,7 @@ public class XMLLoaderView extends JFrame{
     private JRadioButton	rbParserSAX;
     private JRadioButton	rbParserDOM;
     private JCheckBox		ckClearData;
+    private JCheckBox		ckResetLastId;
 	public String nameSet;
 	
     public XMLLoaderView(Component component, String extension) {
@@ -63,6 +64,7 @@ public class XMLLoaderView extends JFrame{
         rbParserSAX.setSelected(true);
         rbParserDOM.setSelected(false);
         ckClearData.setSelected(false);
+        ckResetLastId.setSelected(false);
     }
 
     @Action
@@ -94,6 +96,7 @@ public class XMLLoaderView extends JFrame{
     public void translateXML() {
     	XMLParser xmlParser = new XMLParser();
     	xmlParser.setClearData(isCheckClearDataSelected());
+    	xmlParser.setResetLastId(isCheckResetLastId());
     	
     	if ( isParserSAXSelected())
     		xmlParser.executeParseSax(fileList);
@@ -130,11 +133,13 @@ public class XMLLoaderView extends JFrame{
         rbParserSAX = new JRadioButton();
         rbParserDOM = new JRadioButton();
         ckClearData = new JCheckBox();
+        ckResetLastId = new JCheckBox();
         
         labelParserType.setText("Parser:");
         rbParserSAX.setText("SAX");
         rbParserDOM.setText("DOM");
         ckClearData.setText("Limpar dados anteriores");
+        ckResetLastId.setText("Resetar ultimo ID gerado");
         
         rbParserSAX.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -180,6 +185,7 @@ public class XMLLoaderView extends JFrame{
         				.addGap(20,20,20)
         				.addComponent(rbParserDOM))
         				.addComponent(ckClearData, GroupLayout.Alignment.CENTER)
+        				.addComponent(ckResetLastId, GroupLayout.Alignment.CENTER)
         				.addComponent(processButton, GroupLayout.Alignment.CENTER));
         mainPanelLayout.setHorizontalGroup(hGroup);
         
@@ -200,7 +206,12 @@ public class XMLLoaderView extends JFrame{
         
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
         		.addComponent(ckClearData)
+        		.addGap(20, 20, 20));
+        
+        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+        		.addComponent(ckResetLastId)
         		.addGap(40, 40, 40));
+
         
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
         		.addComponent(processButton, GroupLayout.Alignment.CENTER));
@@ -236,6 +247,11 @@ public class XMLLoaderView extends JFrame{
     private Boolean isCheckClearDataSelected()
     {
     	return ckClearData.isSelected();
+    }
+    
+    private Boolean isCheckResetLastId()
+    {
+    	return ckResetLastId.isSelected();
     }
     
     MouseListener mouseListener = new MouseAdapter() {

@@ -24,6 +24,7 @@ public class XMLParser extends DocumentParser{
 	private static int contadorIdPai = 0;
 	private long totalTime = 0;
 	private Boolean bClearData = false;
+	private Boolean bResetLastId = false;
 	
 	public void executeParse(HashMap<String, File> fileList){
 		HashMap<String, Document> documentList = parserHandler(fileList);
@@ -63,6 +64,7 @@ public class XMLParser extends DocumentParser{
             long tempoInicial = System.currentTimeMillis();
             
             DefaultHandleSAX handler = new DefaultHandleSAX();
+            handler.setResetLastId(bResetLastId);
             SAXParserFactory factory = SAXParserFactory.newInstance();
             
                        
@@ -172,14 +174,14 @@ public class XMLParser extends DocumentParser{
 		
 		if(isNotEmpty){
 			if((hasElementChild == false) && (hasAttribute == false) && hasTextChild){
-				factsList.set(index, content + ("'" + node.getFirstChild().getNodeValue().toLowerCase().replace("'", "´").replace("\t", "").replace("\n", "") + "'). \n"));
+				factsList.set(index, content + ("'" + node.getFirstChild().getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n"));
 				
 			} else if((hasElementChild == false) && hasAttribute && hasTextChild){
 				NamedNodeMap attributeList = node.getAttributes();
 				
 				contadorIdPai++;
 				idProprio = contadorIdPai;
-				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", '" + node.getFirstChild().getNodeValue().toLowerCase().replace("'", "´").replace("\t", "").replace("\n", "") + "'). \n"));
+				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", '" + node.getFirstChild().getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
 					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().toLowerCase().replace("'", "´").replace("\t", "").replace("\n", "") + "'). \n");
@@ -195,7 +197,7 @@ public class XMLParser extends DocumentParser{
 					NamedNodeMap attributeList = node.getAttributes();
 					
 					for(int j=0; j < attributeList.getLength(); j++){
-						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().toLowerCase().replace("'", "´").replace("\t", "").replace("\n", "") + "'). \n");
+						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n");
 					}
 				}
 			}
@@ -209,7 +211,7 @@ public class XMLParser extends DocumentParser{
 				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", ''). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
-					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().toLowerCase().replace("'", "´").replace("\t", "").replace("\n", "") + "'). \n");
+					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n");
 				}
 			}
 			else{
@@ -240,7 +242,10 @@ public class XMLParser extends DocumentParser{
 	public void setClearData(Boolean checkClearDataSelected) {
 		bClearData = checkClearDataSelected;
 	}
-
+	
+	public void setResetLastId(Boolean checkResetLastId){
+		bResetLastId = checkResetLastId;
+	}
 	public Boolean getClearData() {
 		return bClearData;
 	}
