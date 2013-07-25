@@ -100,7 +100,8 @@ public class XMLParser extends DocumentParser{
 			NamedNodeMap attributeList = raiz.getAttributes();
 			
 			for(int j=0; j < attributeList.getLength(); j++){
-				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "(id"+contadorIdPai+", '" + attributeList.item(j).getNodeValue().toLowerCase().replace("'", "Â´").replace("\t", "").replace("\n", "") + "'). \n");
+				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "(id"+contadorIdPai+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 			}
 		}
 		
@@ -174,17 +175,20 @@ public class XMLParser extends DocumentParser{
 		
 		if(isNotEmpty){
 			if((hasElementChild == false) && (hasAttribute == false) && hasTextChild){
-				factsList.set(index, content + ("'" + node.getFirstChild().getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n"));
+				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				factsList.set(index, content + ("'" + node.getFirstChild().getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 			} else if((hasElementChild == false) && hasAttribute && hasTextChild){
 				NamedNodeMap attributeList = node.getAttributes();
 				
 				contadorIdPai++;
 				idProprio = contadorIdPai;
-				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", '" + node.getFirstChild().getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n"));
+				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", '" + node.getFirstChild().getNodeValue()/*.replace("'", "''").replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
-					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().toLowerCase().replace("'", "Â´").replace("\t", "").replace("\n", "") + "'). \n");
+					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 				}
 				
 			} else if(hasElementChild){
@@ -197,7 +201,8 @@ public class XMLParser extends DocumentParser{
 					NamedNodeMap attributeList = node.getAttributes();
 					
 					for(int j=0; j < attributeList.getLength(); j++){
-						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n");
+						//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 					}
 				}
 			}
@@ -211,7 +216,8 @@ public class XMLParser extends DocumentParser{
 				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", ''). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
-					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "''").replace("\t", "").replace("\n", "") + "'). \n");
+					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 				}
 			}
 			else{
