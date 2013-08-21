@@ -4,6 +4,7 @@
  */
 package br.ufrj.ppgi.parser;
 import br.ufrj.ppgi.io.FileManager;
+import br.ufrj.ppgi.parser.ElementoXML.TipoElemento;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Stack;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -20,13 +22,17 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Rafael Pinheiro
  */
 public class DefaultHandleSAX extends DefaultHandler {
+	
 	private static final String PATHCONFIG = "config.txt";
     private String strFato;
     private static int contadorIdPai = 0;
-    private Stack<ElementSax> pilha = new Stack<ElementSax>();
+    private Stack<ElementoXML> pilha = new Stack<ElementoXML>();
     private FileManager arquivo;
     private String strConteudo = "";
     private Boolean bResetLastId = false;
+    private ElementoXML elementoRaiz = null;
+    private Boolean bElementoAberto = false;
+    private ElementoXML elementoAtual;
         
     public DefaultHandleSAX() {
         super(); 
@@ -86,137 +92,159 @@ public class DefaultHandleSAX extends DefaultHandler {
     }
 
     @Override
-        public void endDocument() {
-    		escreverId(contadorIdPai);
-        }
+    public void endDocument() {
+		escreverId(contadorIdPai);
+    }
         
     private void processarAtributos(Attributes atts )
     {
         for( int i = 0; i < atts.getLength(); i++ )
         {
+        	ElementoXML novoElemento = new ElementoXML();
+        	novoElemento.setTipo(ElementoXML.TipoElemento.ATRIBUTO);
             String atributo = atts.getQName(i);
             if (atributo.contains(":"))
             	atributo = atributo.replace(":", "_");
             
-            ElementSax elementoPai = pilha.lastElement();
-            elementoPai.possuiAtributo(true);
-            String fatoAtributo = atributo.toLowerCase() + "(id" + elementoPai.getId() + ",'";
-            fatoAtributo += atts.getValue(i) + "').\n";
+            novoElemento.setNome(atributo);
+            
+            getElementoAtual().adicionarFilho(novoElemento);
+            novoElemento.setPai(getElementoAtual());
+            novoElemento.setId(++contadorIdPai);
+
+            ElementoXML conteudo = new ElementoXML();
+            conteudo.setId(++contadorIdPai);
+            conteudo.setConteudo(atts.getValue(i));
+            conteudo.setPai(novoElemento);
+            conteudo.setTipo(ElementoXML.TipoElemento.TEXTO);
+            
+            novoElemento.adicionarFilho(conteudo);
+            
+            /*
+            
+            ElementoXML elementoPai = pilha.lastElement();
+            //elementoPai.possuiAtributo(true);
+            String fatoAtributo = atributo.toLowerCase() + "(" + elementoPai.getId() + ",'";
+            fatoAtributo +=  + "').\n";
             System.out.println(fatoAtributo);
-            arquivo.writeFacts(fatoAtributo);           
+            arquivo.writeFacts(fatoAtributo);           */
         }
     }
     
+    public String getUltimoElementoPilha(){
+    	ElementoXML elementoAtual = (ElementoXML)pilha.lastElement();
+    	return elementoAtual.getNome();
+    }
+    
+    public ElementoXML getElementoAtual(){
+    	return elementoAtual;
+    }
+    
+    
+    public void apontarPai(){
+    	elementoAtual = elementoAtual.getPai();
+    }
+    
     @Override
-        public void startElement (String uri, String localName, String qName, Attributes atts) {
-            if ( pilha.size() > 0 )
-    		{
-		    	ElementSax ultimoElemento = pilha.lastElement();
-		        ultimoElemento.setConteudoElemento(strConteudo);
-		        strConteudo = "";
+    public void startElement (String uri, String localName, String qName, Attributes atts) {
+    	
+    	ElementoXML novoElemento = new ElementoXML();
+    	novoElemento.setTipo(ElementoXML.TipoElemento.FILHO);
+    	novoElemento.setNome(qName);
+    	novoElemento.setId(++contadorIdPai);
+    	if ( pilha.size() == 0){ //elemento Raiz
+    		novoElemento.setPai(null);
+    		pilha.push(novoElemento);
+    		elementoAtual = novoElemento;
+    		strConteudo += elementoAtual.getNome().toLowerCase();
+	    	strConteudo += "(" + elementoAtual.getId() + ").\n";
+    		return;
+    	}
+    	else{
+    		novoElemento.setPai(getElementoAtual());
+    	}    	
+    	
+    	if ( elementoRaiz == null ){
+    		pilha.push(novoElemento);
+    		elementoRaiz = novoElemento;
+    	}   
+    	
+    	getElementoAtual().adicionarFilho(novoElemento);
+    	elementoAtual = novoElemento;    		
+        
+        processarAtributos( atts);
+    }
+
+    @Override
+     public void endElement (String uri, String localName, String qName) throws SAXException {
+    		if ( elementoRaiz != null && elementoRaiz.getNome().equals(qName) ){
+    			strConteudo = "";
+    			strConteudo += elementoRaiz.getNome().toLowerCase();
+    	    	strConteudo += "(" + elementoRaiz.getPai().getId() + ", " + elementoRaiz.getId() + ").\n";
+    	    	if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
+    	    		strConteudo += elementoRaiz.getNome().toLowerCase();
+        	    	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo() + "').\n";
+    	    	}
+    	    	
+    	    	pilha.pop();
+    	    	escreverElementoNoArquivo(elementoRaiz);
+    	    	elementoRaiz = null;
+    	    	System.out.println(strConteudo);
+        		strConteudo = "";
     		}
-    		
-            ElementSax novoElemento = new ElementSax();
-            if ( pilha.size() == 0 )
-                novoElemento.setIdPai(-1);
-            else
-            {
-                novoElemento.setIdPai(pilha.lastElement().getId());
-                pilha.lastElement().setFilho(true);
-            }
-            
-            novoElemento.setId(++contadorIdPai);
-            novoElemento.setNomeElemento(qName);
-            pilha.push(novoElemento);
-            
-            processarAtributos( atts);
-        }
-
-    @Override
-        public void endElement (String uri, String localName, String qName) throws SAXException {
-            ElementSax elementoTopo = pilha.pop();
-            if ( !strConteudo.isEmpty() )
-            {
-            	elementoTopo.setConteudoElemento(strConteudo);
-            	strConteudo = "";
-            }
-            
-            if ( elementoTopo.getQuantidadeConteudo() == 0 )
-            {
-                if ( elementoTopo.getIdPai() > 0 )
-                {
-                    strFato = "";
-                    strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                               elementoTopo.getIdPai()+ ", id" + 
-                               elementoTopo.getId() + ").\n";
-                }
-                else
-                {
-                    if ( elementoTopo.getIdPai() == -1 )
-                    {
-                        strFato = "";
-                        strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                                   elementoTopo.getId() + ").\n";
-                    }
-                }
-            }
-            else
-            {
-            
-                if ( elementoTopo.ehFilho() )//elemento misto
-                {
-                    strFato = "";
-                    for ( int i = 0 ; i < elementoTopo.getQuantidadeConteudo(); i++ )
-                    {
-                        String conteudo = elementoTopo.geConteudoElemento(i);
-
-                        strFato += "xml/elementoMisto(id" + 
-                                   elementoTopo.getId() + ",'" 
-                                    + conteudo.replace("\'", "´") + "').\n";
-                    }
-                    
-                    if ( elementoTopo.getIdPai() > 0 )
-                    {
-                        strFato += elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                                   elementoTopo.getIdPai()+ ", id" + 
-                                   elementoTopo.getId() + ").\n";
-                    }
-                }
-                else
-                 {
-                     if ( elementoTopo.getQuantidadeConteudo() == 1 )
-                    {
-                        strFato = "";
-                        if ( elementoTopo.temAtributo())
-                        {
-                            strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                                    elementoTopo.getIdPai() + ", id" +
-                                    elementoTopo.getId() + ", '" 
-                                     + elementoTopo.geConteudoElemento(0).replace("\'", "´") + "').\n";
-                        }
-                        else
-                        {
-                            strFato = elementoTopo.getNomeElemento().toLowerCase() + "(id" + 
-                                      elementoTopo.getIdPai() + ",'" 
-                                      + elementoTopo.geConteudoElemento(0).replace("\'", "´") + "').\n";
-                        }
-                    }
-                 }                   
-            }
-            
-            System.out.println(strFato);
-            arquivo.writeFacts(strFato);
+    		else
+    		{
+    			apontarPai();
+    		}
+    		//System.out.println(strFato);
+            //arquivo.writeFacts(strFato);
         }
 
     @Override
     public void characters (char[] ch, int start, int length) throws SAXException {
        String conteudo = new String( ch, start, length);
        conteudo = conteudo.trim();
-      if ( conteudo.isEmpty() )
-           return;
-      if ( !strConteudo.isEmpty())
-    	  strConteudo += "\n";
-      
-      strConteudo += conteudo;
+       if( conteudo.isEmpty() )
+    	   return;
+       ElementoXML novoElemento = new ElementoXML();
+       novoElemento.setTipo(ElementoXML.TipoElemento.TEXTO);
+       novoElemento.setConteudo(conteudo);
+       novoElemento.setId(++contadorIdPai);
+       getElementoAtual().adicionarFilho(novoElemento);
+       novoElemento.setPai(getElementoAtual());
+       //getElementoAtual().setConteudo(conteudo);
+    }
+    
+    private void escreverElementoNoArquivo(ElementoXML elemento){
+    	Boolean bElementoMisto = elemento.ehElementoMisto();
+    	ArrayList<ElementoXML> filhos = elemento.getFilhos();
+    	for( int i = 0; i < filhos.size(); i++){
+    		if( ElementoXML.TipoElemento.FILHO != filhos.get(i).getTipo() || ElementoXML.TipoElemento.ATRIBUTO != filhos.get(i).getTipo()){
+	    		if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
+	    			strConteudo += "xml/ElementoMisto";
+	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+	    		}
+	    		else{
+		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO ){
+		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO ){
+		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    			}
+		    			else{
+			    			strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    			}
+		    		}
+		    		/*else{
+		    			
+		    			strConteudo += filhos.get(i).getNome().toLowerCase();
+		    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    		}*/
+	    		}
+	    		
+	    		
+    		}
+    		escreverElementoNoArquivo(filhos.get(i));
+    	}    	
     }
 }
