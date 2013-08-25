@@ -178,7 +178,6 @@ public class DefaultHandleSAX extends DefaultHandler {
     @Override
      public void endElement (String uri, String localName, String qName) throws SAXException {
     		if ( elementoRaiz != null && elementoRaiz.getNome().equals(qName) ){
-    			strConteudo = "";
     			strConteudo += elementoRaiz.getNome().toLowerCase();
     	    	strConteudo += "(" + elementoRaiz.getPai().getId() + ", " + elementoRaiz.getId() + ").\n";
     	    	if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
@@ -186,10 +185,12 @@ public class DefaultHandleSAX extends DefaultHandler {
         	    	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo() + "').\n";
     	    	}
     	    	
+    			apontarPai();
     	    	pilha.pop();
     	    	escreverElementoNoArquivo(elementoRaiz);
     	    	elementoRaiz = null;
     	    	System.out.println(strConteudo);
+    	    	arquivo.writeFacts(strConteudo);
         		strConteudo = "";
     		}
     		else
@@ -228,11 +229,11 @@ public class DefaultHandleSAX extends DefaultHandler {
 		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO ){
 		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO ){
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
-			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    			}
 		    			else{
 			    			strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
-			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    			}
 		    		}
 		    		/*else{
@@ -241,8 +242,6 @@ public class DefaultHandleSAX extends DefaultHandler {
 		    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    		}*/
 	    		}
-	    		
-	    		
     		}
     		escreverElementoNoArquivo(filhos.get(i));
     	}    	
