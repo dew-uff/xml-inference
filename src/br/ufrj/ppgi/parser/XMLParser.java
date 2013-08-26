@@ -1,6 +1,10 @@
 package br.ufrj.ppgi.parser;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -25,6 +29,40 @@ public class XMLParser extends DocumentParser{
 	private long totalTime = 0;
 	private Boolean bClearData = false;
 	private Boolean bResetLastId = false;
+	private static final String PATHCONFIG = "config.txt";
+	
+    private void escreverId(Integer contadorId)
+    {
+    	File file = new File(PATHCONFIG);   
+    	FileWriter fw;
+		try {
+			fw = new FileWriter(file);
+			fw.write(contadorId.toString());
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+    }
+    
+    private Integer obterId()
+    {
+    	File file = new File(PATHCONFIG);   
+    	FileReader fr;
+		try {
+			fr = new FileReader(file);  
+			BufferedReader br = new BufferedReader(fr);  
+    	    String linha = br.readLine();
+    	    br.close();
+    	    fr.close();
+    	    return Integer.parseInt(linha);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		return 0;
+    }
+
 	
 	public void executeParse(HashMap<String, File> fileList){
 		HashMap<String, Document> documentList = parserHandler(fileList);
@@ -35,6 +73,14 @@ public class XMLParser extends DocumentParser{
          	FileManager arquivo = new FileManager();
          	arquivo.clearDataFacts();
          }
+		 
+		 if ( bResetLastId ){
+			 contadorIdPai = 0;
+		 }
+		 else{
+			 contadorIdPai = obterId();
+		 }
+		 
     	
 		long tempoInicial = System.currentTimeMillis();
 		
@@ -50,6 +96,7 @@ public class XMLParser extends DocumentParser{
     	setTotalTime((tempoFinal - tempoInicial) / 1000);
     	  
     	System.out.printf("Tempo em segundos: " + getTotalTime());
+    	escreverId(contadorIdPai);
 	}
         
         public void executeParseSax(HashMap<String, File> fileList){
@@ -94,14 +141,14 @@ public class XMLParser extends DocumentParser{
 		
 		// Raiz
 		Element raiz = doc.getDocumentElement();
-		factsList.add(raiz.getNodeName().toLowerCase() + "(id" + contadorIdPai + "). \n");
+		factsList.add(raiz.getNodeName().toLowerCase() + "(" + contadorIdPai + "). \n");
 		
 		if(raiz.hasAttributes()){
 			NamedNodeMap attributeList = raiz.getAttributes();
 			
 			for(int j=0; j < attributeList.getLength(); j++){
 				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "(id"+contadorIdPai+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
+				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "("+contadorIdPai+ ", " + ++contadorIdPai +", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 			}
 		}
 		
@@ -127,7 +174,7 @@ public class XMLParser extends DocumentParser{
 			for (int i=0; i < nl.getLength();i++)
 			{
 				if(!nl.item(i).getNodeName().equals("#text")){
-					factsList.add(nl.item(i).getNodeName().toLowerCase() + "(id"+Integer.toString(idPai)+", ");
+					factsList.add(nl.item(i).getNodeName().toLowerCase() + "("+Integer.toString(idPai)+ ", ");
 					factsList = checkNode(nl.item(i), factsList);
 				}
 				processChildren(nl.item(i), factsList);
@@ -184,25 +231,25 @@ public class XMLParser extends DocumentParser{
 				contadorIdPai++;
 				idProprio = contadorIdPai;
 				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", '" + node.getFirstChild().getNodeValue()/*.replace("'", "''").replace("\t", "").replace("\n", "")*/ + "'). \n"));
+				factsList.set(index, content + (Integer.toString(idProprio)/*+ ", " /*+ ++contadorIdPai*/ + ", '" + node.getFirstChild().getNodeValue()/*.replace("'", "''").replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
 					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
+					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+ ", " + ++contadorIdPai +  ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 				}
 				
 			} else if(hasElementChild){
 				contadorIdPai++;
 				idProprio = contadorIdPai;
 				
-				factsList.set(index, content + ("id"+Integer.toString(idProprio)+"). \n"));
+				factsList.set(index, content + (Integer.toString(idProprio)+"). \n"));
 				
 				if(hasAttribute){
 					NamedNodeMap attributeList = node.getAttributes();
 					
 					for(int j=0; j < attributeList.getLength(); j++){
 						//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
+						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+", " + ++contadorIdPai + ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 					}
 				}
 			}
@@ -213,11 +260,11 @@ public class XMLParser extends DocumentParser{
 				
 				contadorIdPai++;
 				idProprio = contadorIdPai;
-				factsList.set(index, content + ("id"+Integer.toString(idProprio)+", ''). \n"));
+				factsList.set(index, content + (Integer.toString(idProprio)+", " + ++contadorIdPai + ", ''). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
 					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(id"+Integer.toString(idProprio)+", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
+					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+", " /*+ ++contadorIdPai*/+ ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 				}
 			}
 			else{
@@ -229,7 +276,7 @@ public class XMLParser extends DocumentParser{
 			for (int i=0; i < childList.getLength();i++){
 				Node child = childList.item(i);
 				if((child.getNodeType() == Node.TEXT_NODE) && (child.getNodeValue() != null) && (!child.getNodeValue().replace("\t", "").replace("\n", "").replace(" ", "").equals(""))){
-					mixedElementsFactsList.add("xml/elementoMisto(id"+Integer.toString(idPai)+", '" + child.getNodeValue().replace("'", "Â´").replace("\t", "").replace("\n", "") + "').\n");
+					mixedElementsFactsList.add("xml/elementoMisto("+Integer.toString(idPai)+", " + ++contadorIdPai +  ", '" + child.getNodeValue().replace("'", "Â´").replace("\t", "").replace("\n", "") + "').\n");
 				}
 			}
 			factsList.addAll(mixedElementsFactsList);
