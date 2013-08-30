@@ -182,7 +182,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     	    	strConteudo += "(" + elementoRaiz.getPai().getId() + ", " + elementoRaiz.getId() + ").\n";
     	    	if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
     	    		strConteudo += elementoRaiz.getNome().toLowerCase();
-        	    	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo() + "').\n";
+        	    	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo().replace("'", "`") + "').\n";
     	    	}
     	    	
     			apontarPai();
@@ -222,7 +222,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     	for( int i = 0; i < filhos.size(); i++){
     		if( ElementoXML.TipoElemento.FILHO != filhos.get(i).getTipo() || ElementoXML.TipoElemento.ATRIBUTO != filhos.get(i).getTipo()){
 	    		if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
-	    			strConteudo += "xml/ElementoMisto";
+	    			strConteudo += "xml/elementoMisto";
 	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 	    		}
 	    		else{
