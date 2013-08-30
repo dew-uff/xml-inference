@@ -177,29 +177,29 @@ public class DefaultHandleSAX extends DefaultHandler {
 
     @Override
      public void endElement (String uri, String localName, String qName) throws SAXException {
-    		if ( elementoRaiz != null && elementoRaiz.getNome().equals(qName) ){
-    			strConteudo += elementoRaiz.getNome().toLowerCase();
-    	    	strConteudo += "(" + elementoRaiz.getPai().getId() + ", " + elementoRaiz.getId() + ").\n";
-    	    	if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
-    	    		strConteudo += elementoRaiz.getNome().toLowerCase();
-        	    	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo().replace("'", "`") + "').\n";
-    	    	}
+    	if ( elementoRaiz != null && elementoRaiz.getNome().equals(qName) ){
+            strConteudo += elementoRaiz.getNome().toLowerCase();
+    	    strConteudo += "(" + elementoRaiz.getPai().getId() + ", " + elementoRaiz.getId() + ").\n";
+    	    if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
+    	    	strConteudo += elementoRaiz.getNome().toLowerCase();
+        	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo().replace("'", "`") + "').\n";
+    	    }
     	    	
-    			apontarPai();
-    	    	pilha.pop();
-    	    	escreverElementoNoArquivo(elementoRaiz);
-    	    	elementoRaiz = null;
-    	    	System.out.println(strConteudo);
-    	    	arquivo.writeFacts(strConteudo);
-        		strConteudo = "";
-    		}
-    		else
-    		{
-    			apontarPai();
-    		}
-    		//System.out.println(strFato);
-            //arquivo.writeFacts(strFato);
-        }
+            apontarPai();
+    	    pilha.pop();
+    	    escreverElementoNoArquivo(elementoRaiz);
+    	    elementoRaiz = null;
+    	    System.out.println(strConteudo);
+    	    arquivo.writeFacts(strConteudo);
+            strConteudo = "";
+    	}
+    	else
+    	{
+            apontarPai();
+    	}
+    	//System.out.println(strFato);
+        //arquivo.writeFacts(strFato);
+    }
 
     @Override
     public void characters (char[] ch, int start, int length) throws SAXException {
@@ -222,7 +222,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     	for( int i = 0; i < filhos.size(); i++){
     		if( ElementoXML.TipoElemento.FILHO != filhos.get(i).getTipo() || ElementoXML.TipoElemento.ATRIBUTO != filhos.get(i).getTipo()){
 	    		if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
-	    			strConteudo += "xml/elementoMisto";
+	    			strConteudo += "xml/mixedElement";
 	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 	    		}
 	    		else{
