@@ -204,9 +204,9 @@ public class DefaultHandleSAX extends DefaultHandler {
     @Override
     public void characters (char[] ch, int start, int length) throws SAXException {
        String conteudo = new String( ch, start, length);
-       conteudo = conteudo.trim();
-       if( conteudo.isEmpty() )
+       if ( !possuiSomenteEspacoEmBraco(conteudo) && !possuiLetra(conteudo))
     	   return;
+       
        ElementoXML novoElemento = new ElementoXML();
        novoElemento.setTipo(ElementoXML.TipoElemento.TEXTO);
        novoElemento.setConteudo(conteudo);
@@ -232,18 +232,45 @@ public class DefaultHandleSAX extends DefaultHandler {
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    			}
 		    			else{
-			    			strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
-			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + 
+			    							(filhos.get(i).getConteudoTexto().size() == 0 ? "" : filhos.get(i).getConteudo())  + "').\n";
 		    			}
 		    		}
 		    		/*else{
 		    			
 		    			strConteudo += filhos.get(i).getNome().toLowerCase();
-		    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    				strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    		}*/
 	    		}
     		}
     		escreverElementoNoArquivo(filhos.get(i));
     	}    	
     }
+    
+    private boolean possuiLetra( String s ) {  
+    	  
+        // cria um array de char  
+        char[] c = s.toCharArray();  
+        boolean d = false;  
+      
+        for ( int i = 0; i < c.length; i++ ){  
+            // verifica se o char não é um dígito  
+            if ( Character.isLetterOrDigit( c[ i ] ) ) {  
+                d = true;
+            }  
+        }        
+      
+        return d;      
+    }
+    
+    private boolean possuiSomenteEspacoEmBraco(String s){
+    	s.replace("\n", "");
+    	s.replace("\t", "");
+    	if ( s.indexOf(" ") > - 1)
+    		return true;
+    	return false;
+    }
+    
+    
 }

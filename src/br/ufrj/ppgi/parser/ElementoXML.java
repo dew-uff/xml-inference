@@ -73,10 +73,24 @@ public class ElementoXML {
     
     public String getConteudo(){
     	StringBuilder conteudo = new StringBuilder();
-    	for( int i = 0; i < conteudoTexto.size(); i++ ){
-    		conteudo.append(conteudoTexto.get(i));
+    	if (conteudoTexto.size() == 0){
+    		int a = 0;conteudo.append("");
+    	}
+    	else
+    	{
+	    	for( int i = 0; i < conteudoTexto.size(); i++ ){
+	    		conteudo.append(conteudoTexto.get(i));
+	    	}
     	}
     	return conteudo.toString();
+    }
+    
+    public Boolean temSomenteQuebraDeLinha(){
+    	if ( (getConteudo().indexOf("\n") > -1 && getConteudo().indexOf("\t") > -1) ||
+    		(getConteudo().indexOf("\n") > -1 && conteudoTexto.size() == 1))
+    		return true;
+    	
+    	return false;
     }
     
     public ArrayList<ElementoXML> getFilhos(){
