@@ -25,6 +25,16 @@ public class ElementoXML {
     private ArrayList<String> conteudoTexto = new ArrayList<String>();
     private ElementoXML pai;
     private TipoElemento tipo;
+    private boolean bElementoImpresso = false;
+    
+    
+    public void setElementoImpresso(boolean bImpresso){
+    	bElementoImpresso = bImpresso;
+    }
+    
+    public boolean getElementoImpresso(){
+    	return bElementoImpresso;
+    }
     
     
     public void setTipo(TipoElemento tipo){
@@ -114,5 +124,16 @@ public class ElementoXML {
 			return true;
     	
     	return false;
+    }
+    
+    public boolean naoPossuiElementoTexto(){
+    	boolean bPossuiElementoTexto = false;
+    	for( int i = 0; i < filhos.size(); i++ ){
+			if ( filhos.get(i).getTipo() == TipoElemento.TEXTO ){
+				bPossuiElementoTexto = true;
+				break;
+			}			
+		}
+    	return bPossuiElementoTexto;
     }
 }

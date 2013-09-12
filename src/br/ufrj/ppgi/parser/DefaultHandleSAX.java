@@ -183,6 +183,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     	    if ( !elementoRaiz.getConteudo().isEmpty() && elementoRaiz.getFilhos().isEmpty()){
     	    	strConteudo += elementoRaiz.getNome().toLowerCase();
         	strConteudo += "(" + elementoRaiz.getId() + ", '" + elementoRaiz.getConteudo().replace("'", "`") + "').\n";
+        	elementoRaiz.setElementoImpresso(true);
     	    }
     	    	
             apontarPai();
@@ -195,6 +196,15 @@ public class DefaultHandleSAX extends DefaultHandler {
     	}
     	else
     	{
+    		if ( getElementoAtual().getFilhos().size() == 0 )
+    		{
+		       ElementoXML novoElemento = new ElementoXML();
+		       novoElemento.setTipo(ElementoXML.TipoElemento.TEXTO);
+		       novoElemento.setConteudo("");
+		       novoElemento.setId(++contadorIdPai);
+		       getElementoAtual().adicionarFilho(novoElemento);
+		       novoElemento.setPai(getElementoAtual());
+    		}
             apontarPai();
     	}
     	//System.out.println(strFato);
@@ -204,7 +214,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     @Override
     public void characters (char[] ch, int start, int length) throws SAXException {
        String conteudo = new String( ch, start, length);
-       if ( !possuiSomenteEspacoEmBraco(conteudo) && !possuiLetra(conteudo))
+       if ( !possuiLetra(conteudo))
     	   return;
        
        ElementoXML novoElemento = new ElementoXML();
@@ -232,9 +242,11 @@ public class DefaultHandleSAX extends DefaultHandler {
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 		    			}
 		    			else{
+		    				imprimirPai(filhos.get(i).getPai().getPai());
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + 
-			    							(filhos.get(i).getConteudoTexto().size() == 0 ? "" : filhos.get(i).getConteudo())  + "').\n";
+			    							filhos.get(i).getConteudo()  + "').\n";
+			    			
 		    			}
 		    		}
 		    		/*else{
@@ -246,6 +258,14 @@ public class DefaultHandleSAX extends DefaultHandler {
     		}
     		escreverElementoNoArquivo(filhos.get(i));
     	}    	
+    }
+    
+    private void imprimirPai(ElementoXML pai){
+    	if ( !pai.getElementoImpresso() ){
+	     	strConteudo += pai.getNome().toLowerCase();
+	    	strConteudo += "(" + pai.getPai().getId() + ", " + pai.getId() + ").\n";
+	    	pai.setElementoImpresso(true);
+    	}
     }
     
     private boolean possuiLetra( String s ) {  
