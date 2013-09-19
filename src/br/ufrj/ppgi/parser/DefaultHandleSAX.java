@@ -242,19 +242,19 @@ public class DefaultHandleSAX extends DefaultHandler {
     			if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
     				imprimirPai(filhos.get(i).getPai());
 	    			strConteudo += "xml/mixedElement";
-	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
 	    		}
 	    		else{
 		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO ){
 		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO ){
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
-			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
 		    			}
 		    			else{
 		    				imprimirPai(filhos.get(i).getPai().getPai());
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + 
-			    							filhos.get(i).getConteudo()  + "').\n";
+			    							filhos.get(i).getConteudo().replace("'", "`")  + "').\n";
 			    			
 		    			}
 		    		}
@@ -284,7 +284,7 @@ public class DefaultHandleSAX extends DefaultHandler {
         boolean d = false;  
       
         for ( int i = 0; i < c.length; i++ ){  
-            // verifica se o char não é um dígito  
+            // verifica se o char nï¿½o ï¿½ um dï¿½gito  
             if ( Character.isLetterOrDigit( c[ i ] ) ) {  
                 d = true;
             }  
