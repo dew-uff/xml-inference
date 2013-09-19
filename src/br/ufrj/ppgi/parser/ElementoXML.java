@@ -20,7 +20,7 @@ public class ElementoXML {
     }
 	
 	private Integer id;
-    private String nome;
+    private String nome = "";
     private ArrayList<ElementoXML> filhos = new ArrayList<ElementoXML>();
     private ArrayList<String> conteudoTexto = new ArrayList<String>();
     private ElementoXML pai;

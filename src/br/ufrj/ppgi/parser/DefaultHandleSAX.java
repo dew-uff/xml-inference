@@ -147,7 +147,9 @@ public class DefaultHandleSAX extends DefaultHandler {
     
     @Override
     public void startElement (String uri, String localName, String qName, Attributes atts) {
-    	
+    	/*if (qName.equals("ss")){
+    		int a =0;
+    	}*/
     	ElementoXML novoElemento = new ElementoXML();
     	novoElemento.setTipo(ElementoXML.TipoElemento.FILHO);
     	novoElemento.setNome(qName);
@@ -230,8 +232,15 @@ public class DefaultHandleSAX extends DefaultHandler {
     	Boolean bElementoMisto = elemento.ehElementoMisto();
     	ArrayList<ElementoXML> filhos = elemento.getFilhos();
     	for( int i = 0; i < filhos.size(); i++){
+    		if ( filhos.get(i).getTipo() == ElementoXML.TipoElemento.FILHO)
+    		{
+    			strConteudo += filhos.get(i).getNome().toLowerCase();
+    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ").\n";
+    			filhos.get(i).setElementoImpresso(true);
+    		}
     		if( ElementoXML.TipoElemento.FILHO != filhos.get(i).getTipo() || ElementoXML.TipoElemento.ATRIBUTO != filhos.get(i).getTipo()){
-	    		if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
+    			if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
+    				imprimirPai(filhos.get(i).getPai());
 	    			strConteudo += "xml/mixedElement";
 	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
 	    		}
@@ -262,7 +271,7 @@ public class DefaultHandleSAX extends DefaultHandler {
     
     private void imprimirPai(ElementoXML pai){
     	if ( !pai.getElementoImpresso() ){
-	     	strConteudo += pai.getNome().toLowerCase();
+ 	     	strConteudo += pai.getNome().toLowerCase();
 	    	strConteudo += "(" + pai.getPai().getId() + ", " + pai.getId() + ").\n";
 	    	pai.setElementoImpresso(true);
     	}
