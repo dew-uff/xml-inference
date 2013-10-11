@@ -232,29 +232,45 @@ public class DefaultHandleSAX extends DefaultHandler {
     	Boolean bElementoMisto = elemento.ehElementoMisto();
     	ArrayList<ElementoXML> filhos = elemento.getFilhos();
     	for( int i = 0; i < filhos.size(); i++){
-    		if ( filhos.get(i).getTipo() == ElementoXML.TipoElemento.FILHO)
+    		if ( filhos.get(i).getTipo() == ElementoXML.TipoElemento.FILHO &&
+                        !filhos.get(i).naoPossuiElementoTexto())
     		{
+                    if ( !filhos.get(i).getElementoImpresso() ){
+                        if ( filhos.get(i).getNome().toLowerCase().equals("hw")){
+                            int a= 0;
+                        }
+                        
     			strConteudo += filhos.get(i).getNome().toLowerCase();
     			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ").\n";
     			filhos.get(i).setElementoImpresso(true);
+                    }
     		}
     		if( ElementoXML.TipoElemento.FILHO != filhos.get(i).getTipo() || ElementoXML.TipoElemento.ATRIBUTO != filhos.get(i).getTipo()){
     			if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
-    				imprimirPai(filhos.get(i).getPai());
-	    			strConteudo += "xml/mixedElement";
-	    			strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
+    				if ( !filhos.get(i).getElementoImpresso() ){
+                                    imprimirPai(filhos.get(i).getPai());
+                                    strConteudo += "xml/mixedElement";
+                                    strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
+                                    filhos.get(i).setElementoImpresso(true);
+                                }
 	    		}
 	    		else{
 		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO ){
 		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO ){
+                                            if ( !filhos.get(i).getElementoImpresso() ){
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
+                                                filhos.get(i).setElementoImpresso(true);
+                                            }
 		    			}
 		    			else{
-		    				imprimirPai(filhos.get(i).getPai().getPai());
+		    				//imprimirPai(filhos.get(i).getPai().getPai());
+                                            if ( !filhos.get(i).getElementoImpresso() ){
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
 			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + 
 			    							filhos.get(i).getConteudo().replace("'", "`")  + "').\n";
+                                                filhos.get(i).setElementoImpresso(true);
+                                            }
 			    			
 		    			}
 		    		}
