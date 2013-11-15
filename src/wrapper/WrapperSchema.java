@@ -23,14 +23,45 @@ public class WrapperSchema extends Wrapper {
 		tempQuery += "/";
 		int posInit = 1;
 		int posBar = tempQuery.indexOf("/", 1);
+		
 		while (posBar > -1)
 		{
 			String strSubString = tempQuery.substring(posInit, posBar);
-			QueryElement queryElement = new QueryElement();
-			queryElement.parseElement(strSubString);
-			arrayElementsQuery.add(queryElement);
-			posInit = posBar + 1;
-			posBar = tempQuery.indexOf("/", posInit);
+			int posFilter = -1;
+			if(! strSubString.isEmpty())
+			{
+				if(strSubString.indexOf("[", 0) != -1)
+				{
+					posInit = tempQuery.indexOf("[", posInit);
+					posFilter = tempQuery.indexOf("]", posInit);
+					strSubString = tempQuery.substring(posInit,posFilter+1 );
+				}
+				/*else
+				{
+					if(strSubString.indexOf("]", 0) != -1)
+					{
+						posBar = tempQuery.indexOf("]", 0);
+						strSubString = tempQuery.substring(posInit,tempQuery.indexOf("]", 0) );
+					}
+					
+				}*/
+				QueryElement queryElement = new QueryElement();
+				queryElement.parseElement(strSubString);
+				//if(!queryElement.getElement().isEmpty())
+				arrayElementsQuery.add(queryElement);
+			}
+			
+			if(posFilter==-1)
+			{	
+			  posInit = posBar + 1;
+			  posBar = tempQuery.indexOf("/", posInit);
+			}
+			else
+			{
+				posInit = posFilter +1;
+				posBar = tempQuery.indexOf("/", posInit+1);
+			}
+			//posBar = tempQuery.indexOf("/", posInit);
 			
 		}		
 	}
@@ -224,11 +255,14 @@ public class WrapperSchema extends Wrapper {
 			return query;
 		
 		query = nameElement + "(_";
-                
-                if ( nodeElement.getChildNodes().getLength() == 0 )
+		query += ", " + nameElement.toUpperCase() + ")";
+		if ( nodeElement.getChildNodes().getLength() != 0 )
+			query += processChilds(nodeElement.getChildNodes());
+		
+                /*if ( nodeElement.getChildNodes().getLength() == 0 )
                     query += ", " + nameElement.toUpperCase() + ")";
                 else
-                    query += processChilds(nodeElement.getChildNodes());
+                    query += processChilds(nodeElement.getChildNodes());*/
 		
 		return query;
 	}
@@ -248,9 +282,10 @@ public class WrapperSchema extends Wrapper {
 		for (String name : values){
 			Document document = documentList.get(name);
 			normalizeTreeDocument(document);
-			queryConvert += getQueryPrologFromSchema2(document, "element", arrayElementsQuery.get(arrayElementsQuery.size()-1).getElement());
-                        arrayElementsQuery.get(arrayElementsQuery.size()-1).setQueryFromSchema(queryConvert);
-                        queryConvert = arrayElementsQuery.get(arrayElementsQuery.size()-1).getFinalQuery();
+			queryConvert += getQueryPrologFromSchema2(document, "*",getLastElementQuery() );
+			
+            arrayElementsQuery.get(arrayElementsQuery.size()-1).setQueryFromSchema(queryConvert);
+            queryConvert = arrayElementsQuery.get(arrayElementsQuery.size()-1).getFinalQuery();
                         
         		/*if ( !arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula().isEmpty() ){
                             queryConvert += "," + arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula();
@@ -265,12 +300,29 @@ public class WrapperSchema extends Wrapper {
 		return queryConvert;
 	}
 	
+	
+	private String getLastElementQuery( )
+	{
+		
+		int index = arrayElementsQuery.size();
+		while(index>0)
+		{
+			if(!arrayElementsQuery.get(index-1).getElement().isEmpty())
+				return arrayElementsQuery.get(index-1).getElement();
+			
+			index--;
+			
+		}
+		
+		return "";
+	}
+	
 	private Node getElementByTagName(Document _doc, String _typeElement, String _nameTypeElement){
 		Node node = null;
 		NodeList listElements = _doc.getElementsByTagNameNS("*", _typeElement);
 		for ( int i = 0; i < listElements.getLength(); i++ ){
 			Node elementNode = listElements.item(i);
-			String nameElement = elementNode.getAttributes().getNamedItem("name").getNodeValue();
+			String nameElement = elementNode.getNodeName();//elementNode.getAttributes().getNamedItem("name").getNodeValue();
 			
 			if (nameElement.equals(_nameTypeElement) ){
 				node = elementNode;

@@ -65,7 +65,8 @@ public class XMLParser extends DocumentParser{
 
 	
 	public void executeParse(HashMap<String, File> fileList){
-		HashMap<String, Document> documentList = parserHandler(fileList);
+		//HashMap<String, Document> documentList = parserHandler(fileList);
+		HashMap<String, Document> documentList  = DocumentParser.getInstance().parserHandler(fileList);
 		Set<String> keyNames = documentList.keySet();
 		
 		 if  ( getClearData() )

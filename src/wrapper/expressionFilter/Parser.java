@@ -116,9 +116,12 @@ public class Parser implements IExpression {
                             tempElementText = "";
                         }
                     
-        			String strOperator = tempStack.pop();
-                                IExpression operator = createOperator(strOperator, expressionStack.pop(), new Element_(token));
-                                expressionStack.push(operator);        			
+                    if(!tempStack.isEmpty())
+                    {
+	        			String strOperator = tempStack.pop();
+	                                IExpression operator = createOperator(strOperator, expressionStack.pop(), new Element_(token));
+	                                expressionStack.push(operator);
+                    }
         		}
         	}
         }
