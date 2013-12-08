@@ -115,6 +115,11 @@ public class XMLParser extends DocumentParser{
             handler.setResetLastId(bResetLastId);
             SAXParserFactory factory = SAXParserFactory.newInstance();
             
+            String indexRule = "indexOf([Element|_], Element, 1). % We found the element";
+    		indexRule +="indexOf([_|Tail], Element, Index):-";
+    		indexRule +="indexOf(Tail, Element, Index1), % Check in the tail of the list";
+    		indexRule +="Index is Index1+1.  % and increment the resulting index \n";
+            
                        
             for(String name : keyNames){
                 try{
@@ -126,9 +131,10 @@ public class XMLParser extends DocumentParser{
                 }
                 contadorIdPai++;
                /* String stringProlog = process(documentList.get(name));
-                //System.out.println(stringProlog);
+                //System.out.println(stringProlog);*/
+                
                 FileManager fileManager = new FileManager();
-                fileManager.writeFacts(stringProlog);*/
+                fileManager.writeFacts(indexRule);
             }
 
             long tempoFinal = System.currentTimeMillis();  
@@ -139,6 +145,13 @@ public class XMLParser extends DocumentParser{
 	
 	private String process(Document doc){
 		ArrayList<String> factsList = new ArrayList<String>();
+		
+		
+		String indexRule = "indexOf([Element|_], Element, 1). % We found the element";
+		indexRule +="indexOf([_|Tail], Element, Index):-";
+		indexRule +="indexOf(Tail, Element, Index1), % Check in the tail of the list";
+		indexRule +="Index is Index1+1.  % and increment the resulting index \n";
+		factsList.add(indexRule);
 		
 		// Raiz
 		Element raiz = doc.getDocumentElement();
@@ -174,7 +187,8 @@ public class XMLParser extends DocumentParser{
 			NodeList nl = node.getChildNodes();
 			for (int i=0; i < nl.getLength();i++)
 			{
-				if(!nl.item(i).getNodeName().equals("#text")){
+				if(!nl.item(i).getNodeName().equals("#text"))
+				{
 					factsList.add(nl.item(i).getNodeName().toLowerCase() + "("+Integer.toString(idPai)+ ", ");
 					factsList = checkNode(nl.item(i), factsList);
 				}
@@ -223,8 +237,12 @@ public class XMLParser extends DocumentParser{
 		
 		if(isNotEmpty){
 			if((hasElementChild == false) && (hasAttribute == false) && hasTextChild){
+				
+				contadorIdPai++;
+				idProprio = contadorIdPai;
+				
 				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
-				factsList.set(index, content + ("'" + node.getFirstChild().getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n"));
+				factsList.set(index, content + Integer.toString(idProprio)+", " +("'" + node.getFirstChild().getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 			} else if((hasElementChild == false) && hasAttribute && hasTextChild){
 				NamedNodeMap attributeList = node.getAttributes();

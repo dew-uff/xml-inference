@@ -12,4 +12,15 @@ public class OperatorEqual implements IExpression {
     public String interpret()  { 
         return leftOperand.interpret() + " = '" + rightOperand.interpret() + "'";
     }
+    
+    public String getLeftOp()
+    {
+    	return leftOperand.interpret();
+    }
+    
+    public String getRightOp()
+    {
+    	return rightOperand.interpret();
+    }
+
 }

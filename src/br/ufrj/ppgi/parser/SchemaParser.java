@@ -114,7 +114,8 @@ public class SchemaParser extends DocumentParser{
 					String stringRule = tempRulesList.get(k);
 					tempRulesList.set(k, stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 					String stringBody = bodyRuleList.get(k);
-					bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+					//bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+					bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," +child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 				}
 			} 
 			else if(child.getNodeName() == xsSequence){
@@ -162,12 +163,14 @@ public class SchemaParser extends DocumentParser{
 						String stringRule = tempRulesList.get(k);
 						auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 						String stringBody = bodyRuleList.get(k);
-						auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+						//auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+						auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 					}
 					System.out.println("here");
 				} else{
 					tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
-					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+					//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 				}
 			} 
 			else if(child.getNodeName() == xsSequence){
@@ -196,7 +199,8 @@ public class SchemaParser extends DocumentParser{
 		
 			if(child.getNodeName() == xsElement){
 				tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
-				bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+				//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+				bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 			} 
 		}
 		return tempRulesList;

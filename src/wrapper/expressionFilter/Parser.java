@@ -95,33 +95,47 @@ public class Parser implements IExpression {
         int nCountPlic = 0;
         Stack<IExpression> expressionStack = new Stack<IExpression>();
     	Stack<String> tempStack = new Stack<String>();
-        for (String token : expression.split(" ")) {
-        	if ( isOperator(token) ){
+        for (String token : expression.split(" ")) 
+        {
+        	if ( isOperator(token) )
+        	{
         		tempStack.push(token);
         	}
-        	else{
-        		if ( !isElement(token) && nCountPlic == 0)
+        	else
+        	{
+        		
+        		if(isElement(token) && expression.split(" ").length == 1)
+        		{
         			expressionStack.push(new Variable(token));
-        		else{
-                    if ( token.indexOf("'") > -1 )
-                        nCountPlic++;
-
-                    if ( nCountPlic > 0 && nCountPlic < 2 ){
-                        tempElementText += token.replace("'", "") + " ";
-                        continue;
-                    }
-                    else
-                        if ( nCountPlic == 2 ){
-                            token = tempElementText + token.replace("'", "");
-                            tempElementText = "";
-                        }
-                    
-                    if(!tempStack.isEmpty())
-                    {
-	        			String strOperator = tempStack.pop();
-	                                IExpression operator = createOperator(strOperator, expressionStack.pop(), new Element_(token));
-	                                expressionStack.push(operator);
-                    }
+        		}
+        		else
+        		{
+	        		if ( !isElement(token) && nCountPlic == 0)
+	        			expressionStack.push(new Variable(token));
+	        		else
+	        		{
+	                    if ( token.indexOf("'") > -1 )
+	                        nCountPlic++;
+	
+	                    if ( nCountPlic > 0 && nCountPlic < 2 )
+	                    {
+	                        tempElementText += token.replace("'", "") + " ";
+	                        continue;
+	                    }
+	                    else
+	                        if ( nCountPlic == 2 )
+	                        {
+	                            token = tempElementText + token.replace("'", "");
+	                            tempElementText = "";
+	                        }
+	                    
+	                    if(!tempStack.isEmpty())
+	                    {
+		        			String strOperator = tempStack.pop();
+		                                IExpression operator = createOperator(strOperator, expressionStack.pop(), new Element_(token));
+		                                expressionStack.push(operator);
+	                    }
+	        		}
         		}
         	}
         }

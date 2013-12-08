@@ -2,19 +2,23 @@ package wrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
-import br.ufrj.ppgi.parser.DocumentParser;
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
 
+import br.ufrj.ppgi.parser.DocumentParser;
 import wrapper.QueryElement;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class WrapperSchema extends Wrapper {
 	
 	private ArrayList<QueryElement> arrayElementsQuery;
+	private Node rootNode;
 	
 	private void extractElementsFromQuery( String query )
 	{
@@ -23,7 +27,8 @@ public class WrapperSchema extends Wrapper {
 		tempQuery += "/";
 		int posInit = 1;
 		int posBar = tempQuery.indexOf("/", 1);
-		
+		String strLastItem = "";
+		boolean bFilter = false;
 		while (posBar > -1)
 		{
 			String strSubString = tempQuery.substring(posInit, posBar);
@@ -32,23 +37,93 @@ public class WrapperSchema extends Wrapper {
 			{
 				if(strSubString.indexOf("[", 0) != -1)
 				{
+					
+					
+					String strFirst = tempQuery.substring(posInit,tempQuery.indexOf("[", posInit));
+					strFirst = strFirst.replace("/", "");
+					if(!strFirst.isEmpty())
+					{
+						QueryElement queryElement = new QueryElement();
+						queryElement.parseElement(strFirst);
+						strLastItem = queryElement.getElement();
+						arrayElementsQuery.add(queryElement );
+					}
+					/*if(posInit<=2)
+					{
+						String strFirst = tempQuery.substring(posInit,tempQuery.indexOf("[", posInit));
+						QueryElement queryElement = new QueryElement();
+						queryElement.parseElement(strFirst);
+						strLastItem = queryElement.getElement();
+						arrayElementsQuery.add(queryElement );
+					}*/
+					
+					
 					posInit = tempQuery.indexOf("[", posInit);
 					posFilter = tempQuery.indexOf("]", posInit);
 					strSubString = tempQuery.substring(posInit,posFilter+1 );
-				}
-				/*else
-				{
-					if(strSubString.indexOf("]", 0) != -1)
-					{
-						posBar = tempQuery.indexOf("]", 0);
-						strSubString = tempQuery.substring(posInit,tempQuery.indexOf("]", 0) );
-					}
 					
-				}*/
+					int internalFilter = strSubString.indexOf("/");
+					if(internalFilter > -1)
+					{
+						//String strSub = tempQuery.substring(posInit+1, strSubString.length()-1);
+						String[] internalElements = strSubString.split("/");
+						int nCount=1;
+						for (String string : internalElements) 
+						{
+							string = string.replace("[", "");
+							string = string.replace("]", "");
+							if(nCount == internalElements.length)
+							{
+								strSubString = "["+string+"]";
+								break;
+							}
+							
+							QueryElement queryElement = new QueryElement();
+							queryElement.parseElement(string);
+							queryElement.setIsFilterpart(true);
+							arrayElementsQuery.add(queryElement);
+							
+							nCount++;
+						}
+							
+					}
+				}
+				
 				QueryElement queryElement = new QueryElement();
 				queryElement.parseElement(strSubString);
-				//if(!queryElement.getElement().isEmpty())
+				
+				if(isNumber(queryElement.getVariable()))
+				{
+					QueryPosition queryElementPosition = new QueryPosition();
+					queryElementPosition.parseElement(strSubString);
+					
+					queryElementPosition.setItemFilter(strLastItem);
+					queryElementPosition.setSearchValue(strLastItem);
+					
+					
+					queryElementPosition.setCompareVariable(strLastItem);
+					if(bFilter)
+					{
+						//queryElementPosition.setCompareVariable(strLastItem);
+						bFilter = false;
+					}
+					
+					queryElement = queryElementPosition;
+				}
+				
+				if(strSubString.indexOf("[", 0) != -1)
+				{
+					queryElement.setIsFilterpart(true);
+					strLastItem = queryElement.getVariable();
+					bFilter = true;
+				}
+				
 				arrayElementsQuery.add(queryElement);
+				if(!queryElement.isFilterpart())
+				{
+					strLastItem = queryElement.getElement();
+					bFilter = false;
+				}
 			}
 			
 			if(posFilter==-1)
@@ -81,6 +156,24 @@ public class WrapperSchema extends Wrapper {
 			
 		}
 	}*/
+	
+	private boolean isNumber(String token){
+    	boolean bNumber = false;
+    	try
+    	{
+    	   int val = Integer.parseInt(token);
+    	   if ( val > 0 )
+    		   bNumber = true;
+    	}
+    	catch (NumberFormatException nfe)
+    	{
+    	   // bad data - set to sentinel
+    	   bNumber = false;
+    	}
+    	
+    	return bNumber;
+    }
+	
 	
 	private boolean isComplexType( String nameSpace, String type){
 		if ( type.indexOf(nameSpace) == -1 )
@@ -247,6 +340,7 @@ public class WrapperSchema extends Wrapper {
 		return query;		
 	}
 	
+	@SuppressWarnings("unused")
 	private String getQueryPrologFromSchema2(Document document, String typeSchema, String nameElement){
 		String query = "";
 		Node nodeElement = getElementByTagName(document, typeSchema, nameElement);
@@ -268,7 +362,201 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
+	
+	private String getQueryPrologFromSchema3(Document document, String typeSchema, String nameElement,String fatherElement)
+	{
+		String query = "";
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement);
+		
+		if ( nodeElement == null )
+			return query;
+		
+		//Element root = document.getDocumentElement();
+		 Node root = getRootElement(document);
+		
+		query = nameElement+"(ID";
+		if(root.isSameNode(nodeElement))
+		{
+			query += nameElement.toUpperCase();
+			//query += " )";
+		}
+		else
+		{
+			query += fatherElement.toUpperCase();
+			query += ",";
+			if ( nodeElement.getChildNodes().getLength() != 0 )
+			{
+				query += "ID";
+				query += nameElement.toUpperCase();
+			}
+			
+		}
+		query += " )";
+		return query;
+	}
+	
+	
+	public boolean hasChildNodes(Document document, String typeSchema, String nameElement)
+	{
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement);
+		
+		if ( nodeElement == null )
+			return false;
+		
+		if ( nodeElement.getChildNodes().getLength() != 0 )
+			return true;
+		
+		return false;
+	}
+	
+	
+	public boolean isRoot(Document document, String typeSchema, String nameElement)
+	{
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement);
+		
+		if ( nodeElement == null )
+			return false;
+		
+	    Node root = getRootElement(document);
+		
+		if(root.isSameNode(nodeElement))
+			return true;
+		
+		return false;
+	}
+	
 	protected String convertQuery( String query )
+	{
+		extractElementsFromQuery(query);
+		
+		String queryConvert = "";
+		
+		HashMap<String, Document> documentList = DocumentParser.getInstance().getDocumentList();
+		if (documentList == null || documentList.isEmpty())
+			return queryConvert;
+		
+		Set<String> values = documentList.keySet();
+		int nSearch = 1;
+		for (String name : values)
+		{
+			Document document = documentList.get(name);
+			normalizeTreeDocument(document);
+			
+			String strLastCommonFather = "NOFATHER";
+			for ( int i=0; i<arrayElementsQuery.size();i++ ) 
+			{
+				
+				QueryElement element = arrayElementsQuery.get(i);
+				if(!element.isFilterpart())
+				{
+					 //queryConvert +=getQueryPrologFromSchema3(document,"*",element.getElement(),strLastCommonFather);
+					 queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonFather);
+					 strLastCommonFather = element.getElement();
+				}
+				else
+				{
+					
+					if(element.getFormula().isEmpty())
+					{
+						//queryConvert +=getQueryPrologFromSchema3(document,"*",element.getElement(),strLastCommonFather);
+						queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonFather);
+						String strLastFilterFather = element.getElement();
+						boolean bFind = false;
+						
+						if(i+1 < arrayElementsQuery.size())
+							  queryConvert +=", ";
+						
+						i++;
+						
+						while(!bFind && i<arrayElementsQuery.size())
+						{
+							QueryElement elementFilter = arrayElementsQuery.get(i);
+							if(elementFilter.getFormula().isEmpty())
+							{
+								//queryConvert +=getQueryPrologFromSchema3(document,"*",elementFilter.getElement(),strLastFilterFather);
+								queryConvert +=getQueryPrologFromSchema3(document,"element",elementFilter.getElement(),strLastFilterFather);
+								strLastFilterFather = elementFilter.getElement();
+							}
+							else
+							{
+								// Final do Filtro
+								if(elementFilter instanceof  QueryPosition)
+								{
+									QueryPosition queryPos = (QueryPosition) elementFilter;
+									//queryPos.setHasChildren(hasChildNodes(document, "*", queryPos.getItemFilter()));
+									queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter()));
+									//queryPos.setIsRoot(isRoot(document, "*", queryPos.getItemFilter()));
+									queryPos.setIsRoot(isRoot(document, "element", queryPos.getItemFilter()));
+									queryConvert += queryPos.getPositionFormula(nSearch);
+									nSearch++;
+								}
+								else
+								{
+									queryConvert += elementFilter.getExperimentalFormula(strLastFilterFather);
+								}
+								
+								bFind = true;
+							}
+							
+							if(i+1 < arrayElementsQuery.size() && !bFind)
+								  queryConvert +=", ";
+							if(!bFind)
+							  i++;
+						}
+					}
+					else
+					{
+						// Final do Filtro
+						if(element instanceof  QueryPosition)
+						{
+							QueryPosition queryPos = (QueryPosition) element;
+							//queryPos.setHasChildren(hasChildNodes(document, "*", queryPos.getItemFilter()));
+							queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter()));
+							//queryPos.setIsRoot(isRoot(document, "*", queryPos.getItemFilter()));
+							queryPos.setIsRoot(isRoot(document, "element", queryPos.getItemFilter()));
+							queryConvert += queryPos.getPositionFormula(nSearch);
+							nSearch++;
+						}
+						else
+						{
+						    queryConvert += element.getExperimentalFormula(strLastCommonFather);
+						}
+					}
+					
+					
+				}
+				
+				
+				if(i+1 < arrayElementsQuery.size())
+				  queryConvert +=", ";
+			}
+			
+			
+			
+			
+			/*queryConvert += getQueryPrologFromSchema2(document, "*",getLastElementQuery() );
+		
+            arrayElementsQuery.get(arrayElementsQuery.size()-1).setQueryFromSchema(queryConvert);
+            
+            queryConvert = arrayElementsQuery.get(arrayElementsQuery.size()-1).getFinalQuery();
+            */
+                        
+        		/*if ( !arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula().isEmpty() ){
+                            queryConvert += "," + arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula();
+                        }*/
+			
+		}
+		
+		
+		
+		//String element = getElement(query);		
+                
+		 queryConvert+=".";
+		 
+		 return queryConvert.replace( ", ." , ".");
+	}
+	
+	protected String convertQuery2( String query )
 	{
 		extractElementsFromQuery(query);
 		
@@ -282,10 +570,9 @@ public class WrapperSchema extends Wrapper {
 		for (String name : values){
 			Document document = documentList.get(name);
 			normalizeTreeDocument(document);
-			queryConvert += getQueryPrologFromSchema2(document, "*",getLastElementQuery() );
-			
-            arrayElementsQuery.get(arrayElementsQuery.size()-1).setQueryFromSchema(queryConvert);
-            queryConvert = arrayElementsQuery.get(arrayElementsQuery.size()-1).getFinalQuery();
+			queryConvert += getQueryPrologFromSchema2(document, "element", arrayElementsQuery.get(arrayElementsQuery.size()-1).getElement());
+                        arrayElementsQuery.get(arrayElementsQuery.size()-1).setQueryFromSchema(queryConvert);
+                        queryConvert = arrayElementsQuery.get(arrayElementsQuery.size()-1).getFinalQuery();
                         
         		/*if ( !arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula().isEmpty() ){
                             queryConvert += "," + arrayElementsQuery.get(arrayElementsQuery.size()-1).getFormula();
@@ -322,7 +609,8 @@ public class WrapperSchema extends Wrapper {
 		NodeList listElements = _doc.getElementsByTagNameNS("*", _typeElement);
 		for ( int i = 0; i < listElements.getLength(); i++ ){
 			Node elementNode = listElements.item(i);
-			String nameElement = elementNode.getNodeName();//elementNode.getAttributes().getNamedItem("name").getNodeValue();
+			//String nameElement = elementNode.getNodeName();
+			String nameElement = elementNode.getAttributes().getNamedItem("name").getNodeValue();
 			
 			if (nameElement.equals(_nameTypeElement) ){
 				node = elementNode;
@@ -346,20 +634,75 @@ public class WrapperSchema extends Wrapper {
 	private void normalizeTreeDocument(Document doc){
 		String nameSpace = doc.getDocumentElement().getPrefix();
 		NodeList listElements = doc.getElementsByTagNameNS("*", "element");
-		
+		List<Node> rootCandidateList = new ArrayList<Node>();
 		for ( int i = 0; i < listElements.getLength(); i++ )
 		{
 			Node elementNode = listElements.item(i);
-			String typeElement = elementNode.getAttributes().getNamedItem("type").getNodeValue();
-			if ( isComplexType(nameSpace, typeElement) ){
-				Node nodeComplexType = getElementByTagName(doc, "complexType", typeElement);
-				if ( !isChild( elementNode, nodeComplexType) ){
-					elementNode.appendChild(nodeComplexType);
+			if(elementNode != null && elementNode.hasAttributes())
+			{
+				Node nodeType =  elementNode.getAttributes().getNamedItem("type");
+				String typeElement = "";
+				if(nodeType != null)
+				 typeElement = nodeType.getNodeValue();
+						
+				if (!(typeElement.isEmpty()) && isComplexType(nameSpace, typeElement) )
+				{
+					Node nodeComplexType = getElementByTagName(doc, "complexType", typeElement);
+					if (nodeComplexType!= null && !isChild( elementNode, nodeComplexType) )
+					{
+					//if (!isChild( elementNode, nodeComplexType) ){
+						elementNode.appendChild(nodeComplexType);
+						/*if(elementNode.getParentNode()!= null && elementNode.getParentNode().hasAttributes())
+						{
+							Node rootTypeCandidate =  elementNode.getParentNode().getAttributes().getNamedItem("type");
+							if(rootTypeCandidate!= null && !(rootTypeCandidate.getNodeValue().isEmpty()) )
+							{
+								if( isComplexType(nameSpace, rootTypeCandidate.getNodeValue()))
+									rootNode = elementNode.getParentNode();
+							}
+						}*/
+						
+					}
 				}
 			}
-		}		
+			
+		}
+		//rootNode = rootCandidateList.get(0);
 	}
 	
+	
+	//Only after Normalize
+	private Node getRootElement(Document doc)
+	{
+		String nameSpace = doc.getDocumentElement().getPrefix();
+		NodeList listElements = doc.getElementsByTagNameNS("*", "element");
+		for ( int i = 0; i < listElements.getLength(); i++ )
+		{
+			Node elementNode = listElements.item(i);
+			boolean bRoot = true;
+			while(elementNode !=null)
+			{
+				elementNode = elementNode.getParentNode();
+				for(int j=0; j<listElements.getLength();j++)
+				{
+					if(listElements.item(j)!=null && listElements.item(j).equals(elementNode))
+					{
+						bRoot = false;
+					}
+				}
+				
+				if(bRoot == false)
+					break;
+			}
+			
+			if(bRoot)
+			{
+				return  listElements.item(i);
+			}
+		}
+		
+		return null;
+	}
 	
 	
 
