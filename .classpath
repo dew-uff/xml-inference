@@ -5,6 +5,6 @@
 	<classpathentry kind="lib" path="lib/appframework-1.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/swing-worker-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/2p.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Rafael/Documents/Mestrado/xml-inference/lib/jpl.jar"/>
+	<classpathentry kind="lib" path="lib/jpl.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

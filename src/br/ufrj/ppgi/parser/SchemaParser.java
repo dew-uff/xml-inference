@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.w3c.dom.Document;
@@ -19,6 +20,9 @@ public class SchemaParser extends DocumentParser{
 	private final String xsChoice = "xs:choice";
 	private final String xsAll = "xs:all";
 	
+	private static SchemaParser schemaParser = null;
+	private HashMap<Document,HashMap<String, ArrayList<String>>> ruleHash = new HashMap<Document,HashMap<String, ArrayList<String>>>();
+	
 	//TODO: Variaveis criadas para resolver S{C, S}
 	private int initialChoiceSize = 0;
 	private int temp = 0;
@@ -28,6 +32,27 @@ public class SchemaParser extends DocumentParser{
 	
 	private ArrayList<String> bodyRuleList = new ArrayList<String>();
 	private ArrayList<String> auxBodyRuleList = new ArrayList<String>();
+	
+	
+	public synchronized static SchemaParser getInstance() 
+	{
+		if ( schemaParser == null )
+			schemaParser = new SchemaParser();
+		
+		return schemaParser;
+	}
+	
+	public void destroyInstance() 
+	{
+		schemaParser = null;
+	}
+	
+	
+	public HashMap<Document,HashMap<String, ArrayList<String>>> getRuleHash()
+	{
+		
+		return ruleHash;
+	}
 	
 	
 	public void executeParse(HashMap<String, File> fileList, String nameSet){
@@ -92,8 +117,40 @@ public class SchemaParser extends DocumentParser{
 		}
 		
 		String stringProlog = "";
-		for(Iterator<String> it = rulesList.iterator(); it.hasNext();){
+		
+		
+		HashMap<String,ArrayList<String>> docHash = new HashMap<String,ArrayList<String>>();
+		ruleHash.put(doc, docHash);
+		
+		for(Iterator<String> it = rulesList.iterator(); it.hasNext();)
+		{
 			int k = rulesList.indexOf(it.next());
+			
+		     //#########
+			 RuleStringParser ruleParser = new RuleStringParser();
+			 ArrayList<String> ruleArray = ruleParser.getRules(rulesList.get(k));
+			 
+			 for (String strRule : ruleArray) 
+			 {
+				 String ruleName = ruleParser.getRuleName(strRule);
+				 ArrayList<String> ruleNameArray = new ArrayList<String>();
+				 if(docHash.containsKey(ruleName.trim()))
+				 {
+					 ruleNameArray = docHash.get(ruleName.trim());
+					 if(ruleNameArray == null)
+						 ruleNameArray = new ArrayList<String>();
+					 
+					 if(!ruleNameArray.contains(strRule.trim()))
+						 ruleNameArray.add(strRule.trim());
+				 }
+				 else
+		    	 {
+		    		 ruleNameArray.add(strRule.trim());
+		    	 }
+				 docHash.put(ruleName.trim(),ruleNameArray );
+			 }
+		     //#########
+			
 			stringProlog = stringProlog.concat(rulesList.get(k));
 		}
 		
@@ -108,8 +165,26 @@ public class SchemaParser extends DocumentParser{
 		for(int i=0; i < nlSequenceChilds.getLength(); i++){
 			Node child = nlSequenceChilds.item(i);
 			
-			if(child.getNodeName() == xsElement){
+			if(child.getNodeName() == xsElement)
+			{
+				
 				int finalSize = tempRulesList.size();
+				
+				//#####
+					boolean bMinOccur = (child.getAttributes().getNamedItem("minOccurs") != null &&
+							Integer.parseInt(child.getAttributes().getNamedItem("minOccurs").getNodeValue()) <=0);
+					
+					ArrayList<String> minOccurRulesList = new ArrayList<String>(); 
+					ArrayList<String> minOccurBodyRulesList = new ArrayList<String>(); 
+					
+					if(bMinOccur)
+					{
+						minOccurRulesList.addAll(tempRulesList);
+						minOccurBodyRulesList.addAll(bodyRuleList);
+					}
+				//####
+				
+				
 				for(int k = initialSize-1-temp; k < finalSize; k++){
 					String stringRule = tempRulesList.get(k);
 					tempRulesList.set(k, stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
@@ -117,6 +192,16 @@ public class SchemaParser extends DocumentParser{
 					//bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 					bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," +child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
 				}
+				
+				
+				//#####
+					if(bMinOccur)
+					{
+						tempRulesList.addAll(minOccurRulesList);
+						bodyRuleList.addAll(minOccurBodyRulesList);
+					}
+				//####			
+				
 			} 
 			else if(child.getNodeName() == xsSequence){
 				// TODO: Acerto para S{C, S}: Isso aqui esta esquisito
@@ -205,6 +290,42 @@ public class SchemaParser extends DocumentParser{
 		}
 		return tempRulesList;
 	}
+
+	
+	private ArrayList<String> processElementMinOccur(Node occurNode, ArrayList<String> tempRulesList)
+	{
+		String partialRule = tempRulesList.remove(tempRulesList.size()-1);
+		String partialBody = bodyRuleList.remove(bodyRuleList.size()-1); 
+		
+		if(false)
+		{
+			/*if(first)
+			{
+				tempRulesList.add(partialRule);
+				bodyRuleList.add(partialBody);
+				first = false;
+			}*/
+			int finalSize = tempRulesList.size();
+			for(int k = 0; k < finalSize; k++)
+			{
+				String stringRule = tempRulesList.get(k);
+				auxRuleList.add(stringRule.concat(", " + occurNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
+				String stringBody = bodyRuleList.get(k);
+				//auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+				auxBodyRuleList.add(stringBody.concat(occurNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+			}
+			System.out.println("here");
+		} 
+		else
+		{
+			tempRulesList.add(partialRule + ", " + occurNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
+			
+			bodyRuleList.add(partialBody.concat(occurNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + "ID"+occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + occurNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+		}
+		
+		return tempRulesList;
+	}
+	
 	
 	private String complexTypeSearch(Document doc, Element element){
 		String parentName = element.getAttributes().getNamedItem("name").getNodeValue();
@@ -239,3 +360,4 @@ public class SchemaParser extends DocumentParser{
 		return minOccursZero;
 	}*/
 }
+
