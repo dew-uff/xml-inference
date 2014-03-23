@@ -67,8 +67,9 @@ public class XMLSchemaLoaderView extends JFrame{
     
     @Action
     public void translateSchema() {
-    	SchemaParser schemaParser = new SchemaParser();
-    	schemaParser.executeParse(fileList, nameSet);
+    	//SchemaParser schemaParser = new SchemaParser();
+    	//schemaParser.executeParse(fileList, nameSet);
+    	SchemaParser.getInstance().executeParse(fileList, nameSet);
     	
     	component.setEnabled(true);
     	listModel.clear();

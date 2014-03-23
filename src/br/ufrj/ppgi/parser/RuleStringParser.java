@@ -68,6 +68,23 @@ public class RuleStringParser
 
          return ruleName;
      }
+	 
+	 public int  getRuleParametersNumber( String strRule )
+	 {
+		 int nParameters = -1;
+		 if(strRule.contains("("))
+         {
+			 int nIndexOpen =  strRule.indexOf("(",0);
+			 int nIndexClose =  strRule.indexOf(")", nIndexOpen);
+			 
+			 String [] ruleListSplit = strRule.substring(nIndexOpen, nIndexClose).split("\\,");
+			 nParameters = ruleListSplit.length;
+         }
+		 
+		 
+		 return nParameters;
+	 }
+	 
 	
 	 private String getRule(String ruleText)
      {
@@ -103,6 +120,29 @@ public class RuleStringParser
 	        		if(strID.contains("ID"))
 	        		{
 	        			String strReplace = "(ID"+getRuleName(strRule).toUpperCase();
+	        			strNewRule = strRule.replaceFirst("\\"+strID,strReplace);
+	        		}
+	        	}
+	        } 
+		 
+	        
+	       return strNewRule;
+	 }
+	 
+	 public String replaceParentIDRule(String strRule,String strParent)
+	 {
+	    	String strNewRule = strRule;
+		    int nIndexPar = strRule.indexOf("(");
+	        if(nIndexPar>=0)
+	        {
+	        	int nIndexComma = strRule.indexOf(",", nIndexPar);
+	        	if(nIndexComma >=0 && nIndexPar < nIndexComma)
+	        	{
+	        		
+	        		String strID = strRule.substring(nIndexPar,nIndexComma);
+	        		if(strID.contains("ID"))
+	        		{
+	        			String strReplace = "(ID"+strParent.toUpperCase();
 	        			strNewRule = strRule.replaceFirst("\\"+strID,strReplace);
 	        		}
 	        	}
