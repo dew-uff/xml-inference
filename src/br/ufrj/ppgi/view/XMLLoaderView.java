@@ -14,6 +14,7 @@ import org.jdesktop.application.ResourceMap;
 
 import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.main.XMLInference;
+import br.ufrj.ppgi.parser.DocumentParser;
 import br.ufrj.ppgi.parser.SchemaParser;
 import br.ufrj.ppgi.parser.XMLParser;
 
@@ -82,8 +83,9 @@ public class XMLLoaderView extends JFrame{
     
     @Action
     public void translateSchema() {
-    	SchemaParser schemaParser = new SchemaParser();
-    	schemaParser.executeParse(fileList, nameSet);
+    	//SchemaParser schemaParser = new SchemaParser();
+    	//schemaParser.executeParse(fileList, nameSet);
+    	SchemaParser.getInstance().executeParse(fileList, nameSet);
     	
     	component.setEnabled(true);
     	listModel.clear();
