@@ -12,6 +12,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import alice.tuprologx.ide.Console;
 import br.ufrj.ppgi.io.FileManager;
 
 public class SchemaParser extends DocumentParser{
@@ -173,6 +174,8 @@ public class SchemaParser extends DocumentParser{
 			stringProlog = stringProlog.concat(rulesList.get(k));
 		}
 		
+		
+	    System.out.println(stringProlog.toString());
 		return stringProlog.toString();
 	}
 	

@@ -16,6 +16,7 @@ public class QueryElement {
 	private IExpression queryFormula;
     private String querySchema;
     private boolean filterPart = false;
+    private boolean orFilterPart = false;
 	
 	public void parseElement(String newElement){
 		int posToken = newElement.indexOf("[");
@@ -118,6 +119,16 @@ public class QueryElement {
 	public void setIsFilterpart(boolean bIsFilterPart)
 	{
 		filterPart = bIsFilterPart;
+	}
+	
+	public boolean isOrFilterPart()
+	{
+		return orFilterPart;
+	}
+	
+	public void setIsOrFilterpart(boolean bIsOrFilterPart)
+	{
+		orFilterPart = bIsOrFilterPart;
 	}
 	
 	public String getVariable()
