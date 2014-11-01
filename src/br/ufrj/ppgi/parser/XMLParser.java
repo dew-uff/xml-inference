@@ -153,7 +153,7 @@ public class XMLParser extends DocumentParser{
     	String printRules = "";
     	
     	printRules = " printXML(LISTVAR,NODENAMESLIST,TREE,RULE) :- "; 
-    	printRules +=  " findall( LISTVAR,RULE,RESULTLIST),printXMLRuleList(RESULTLIST,NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT).\n";
+    	printRules +=  " findall( LISTVAR,RULE,RESULTLIST),printXMLRuleList(RESULTLIST,NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT),!.\n";
     	
     	printRules += " printXMLRuleList([HRESULT|TRESULT],NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT) :- \n"; 
     	printRules += "  printXMLRule(NODENAMESLIST,HRESULT,TREE,STACK,RESULTSTACK,LASTDEPHT,NEWLASTDEPHT,LASTTAG,RESULTTAG), \n";
@@ -170,10 +170,10 @@ public class XMLParser extends DocumentParser{
     	printRules += "  printXMLRule([HNODE|TNODE],[HVAR|TVAR],TREE,STACK,RESULTSTACK,LASTDEPHT,NEWLASTDEPHT,LASTTAG,NEWLASTTAG) :-  \n";
     	printRules += "    depht(TREE,HNODE,NEXTNEWLASTDEPHT), checkPrintCLoseNode(LASTDEPHT,NEXTNEWLASTDEPHT,HVAR,LASTTAG,STACK,TMPNEWSTACK),checkPrintOpenNode(TREE,HNODE,HVAR,STACK), \n";
     	printRules += "    addElementId(TREE,HNODE,HVAR,STACK,NEWSTACK),(var(NEWSTACK)->copy(STACK,NEWSTACK);true), \n";
-    	printRules += "    addMapElementId(TREE,HNODE,HNODE,HVAR,TMPNEWSTACK,NEXTLASTTAG),(var(NEXTLASTTAG)-> (nonvar(TMPNEWSTACK)-> copy(TMPNEWSTACK,NEXTLASTTAG));true), \n";
+    	printRules += "    addMapElementId(TREE,HNODE,HNODE,HVAR,TMPNEWSTACK,NEXTLASTTAG),(var(NEXTLASTTAG)-> (nonvar(TMPNEWSTACK)-> copy(TMPNEWSTACK,NEXTLASTTAG);true);true), \n";
     	printRules += "    printXMLRule(TNODE,TVAR,TREE,NEWSTACK,NEWRESULTSTACK,NEXTNEWLASTDEPHT,RETURNLASTDEPHT,NEXTLASTTAG,NEWRESULTTAG), \n";
-    	printRules += "    joinLists(NEWRESULTTAG,NEXTLASTTAG,TMPTAG),distinct(TMPTAG,NEWLASTTAG), \n";	
-    	printRules += "    joinLists(NEWRESULTSTACK,NEWSTACK,TMP),distinct(TMP,RESULTSTACK),NEWLASTDEPHT = RETURNLASTDEPHT . \n";
+    	printRules += "    joinLists(NEWRESULTTAG,NEXTLASTTAG,TMPTAG),distinct(TMPTAG,NEWLASTTAG),cleanList(TMPTAG,NEWLASTTAG), \n";	
+    	printRules += "    joinLists(NEWRESULTSTACK,NEWSTACK,TMP),distinct(TMP,RESULTSTACK),cleanList(TMP,RESULTSTACK),NEWLASTDEPHT = RETURNLASTDEPHT . \n";
     	
     	printRules += "  printNode(TREE,NODENAME,NODEVALUE) :-  nonvar(NODEVALUE) ->  (isLeaf(TREE,NODENAME) ->  depht(TREE,NODENAME,NSPACE),printOpenNode(NODENAME,NODEVALUE,NSPACE), \n";
     	printRules += "    	printCloseNode(NODENAME,NODEVALUE,NSPACE) \n";
@@ -205,14 +205,16 @@ public class XMLParser extends DocumentParser{
         printRules += "  findnode([],NODENAME,SUBTREE). \n";
         printRules += "  findnode([T|Ts],NODENAME,SUBTREE) :- findnode(T,NODENAME,SUBTREE), findnode(Ts,NODENAME,SUBTREE). \n";
     	
-    	
+    	printRules += "  printCloseNodes([]).\n";
         printRules += "  printCloseNodes(NODEIDMAP) :- length(NODEIDMAP, NLENGHT), printCloseMapNodes(NODEIDMAP,NLENGHT). \n";			
-
+        
+		printRules += "  printCloseMapNodes([],0).\n";
+        printRules += "  printCloseMapNodes([],1). \n";
+		
         printRules += "  printCloseMapNodes(NODEIDMAP, NLENGHT) :- element(1,NODEIDMAP,NODE),atom_chars(NODE,LISTCHARS),indexOfElement(LISTCHARS,'-',CHARPOS),split(LISTCHARS,CHARPOS+1,LIST1, LIST2), \n";
         printRules += "  				atom_chars(PRINTNODE,LIST2),PRINTDEPHT is NLENGHT-1,printCloseNode(PRINTNODE,_,PRINTDEPHT),removeListHead(NODEIDMAP,NEWNODEIDMAP), \n";
         printRules += "  				NEWNLENGHT is NLENGHT -1 ,printCloseMapNodes(NEWNODEIDMAP,NEWNLENGHT). \n";
-    					
-        printRules += "  printCloseMapNodes([],1). \n";
+    	
     	
         printRules += "  removeListHead([_|Tail], Tail). \n";
     	
@@ -253,7 +255,7 @@ public class XMLParser extends DocumentParser{
         printRules += "  idNotInList(ID,LIST) :-   nonvar(ID),number(ID), \\+ memberchk(ID,LIST). \n";
 	    
 	    
-        printRules += "  joinLists(LISTA,LISTB,RESULTLIST) :- (nonvar(LISTA),nonvar(LISTB)) -> (append(LISTA,LISTB,RESULTLIST)) ; (nonvar(LISTA),copy(LISTA,RESULTLIST)); (nonvar(LISTB),copy(LISTB,RESULTLIST)). \n";
+        printRules += "  joinLists(LISTA,LISTB,RESULTLIST) :- (nonvar(LISTA),nonvar(LISTB)) -> (append(LISTA,LISTB,RESULTLIST)) ; (nonvar(LISTA),copy(LISTA,RESULTLIST)); (nonvar(LISTB),copy(LISTB,RESULTLIST));true. \n";
     	
 	    
         printRules += "  member1(X,[H|_]) :- X==H,!. \n";
@@ -263,6 +265,11 @@ public class XMLParser extends DocumentParser{
         printRules += "  distinct([H|T],C) :- member1(H,T),!, distinct(T,C). \n";
         printRules += "  distinct([H|T],[H|C]) :- distinct(T,C). \n";
         
+		printRules += "  remv([], []).\n";
+        printRules += "  remv([H|T], N) :- var(H), !, remv(T, N).\n";
+        printRules += "  remv([H|T], [H|N]) :- remv(T, N).\n";
+  
+        printRules += "  cleanList(LISTA, LISTB) :- nonvar(LISTA)->(remv(LISTA,LISTC),distinct(LISTC,LISTB));true.\n";
         
         printRules += "  %atom chars(Atom,List)\n";    
         printRules += "  %element(Pos, List, Element) i\n";
