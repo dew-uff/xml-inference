@@ -33,7 +33,7 @@ public class WrapperProlog extends Wrapper {
 		return queryProlog.toString();
 	}
 	
-	protected String convertQuery( String query )
+	protected String convertQuery( String query, boolean _bJustTranslate )
 	{
 		String element = getElement(query);		
 		String strQueryConvert = getQueryBaseProlog(element);
