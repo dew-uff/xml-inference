@@ -122,7 +122,7 @@ public class XMLParser extends DocumentParser{
     		
     		
     		String printRules = buildPrintRules();
-            
+            String functions = buildFunctionsRules();
                        
             for(String name : keyNames){
                 try{
@@ -139,6 +139,7 @@ public class XMLParser extends DocumentParser{
                 FileManager fileManager = new FileManager();
                 fileManager.writeFacts(indexRule);
                 fileManager.writeFacts(printRules);
+                fileManager.writeFacts(functions);
             }
 
             long tempoFinal = System.currentTimeMillis();  
@@ -285,7 +286,159 @@ public class XMLParser extends DocumentParser{
 	    
     	return printRules;
     }
+
+    
+    private String buildFunctionsRules()
+    {
+    	String strFunctionRules = "";
+    	
+    	strFunctionRules+= " substringBefore(STRING1, STRING2, STRINGRESULT) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2), \n";
+    	strFunctionRules+= " substringBeforeList(STR1,STR2,STRINGRESULT,_). \n";         
+    	strFunctionRules+= " substringBeforeList([],_,STRINGRESULT,_):-  STRINGRESULT = ''. \n";
+    	strFunctionRules+= " substringBeforeList([H|T], [H1|T1],STRINGRESULT,STRINGRESULTAUX):- H=H1 -> ( (var(STRINGRESULTAUX)-> STRINGRESULT = ''; atom_chars(STRINGRESULT,STRINGRESULTAUX)),!); addEndList(H,STRINGRESULTAUX,STRINGRESULTTEMP),substringBeforeList(T,[H1|T1],STRINGRESULT,STRINGRESULTTEMP),!.\n";
+    	
+    	
+    	strFunctionRules+= " substringAfter(STRING1, STRING2, STRINGRESULT) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
+		strFunctionRules+= " substringAfterList(STR1,STR2,STRINGRESULT).\n";
+
+		strFunctionRules+= " substringAfterList([],_,STRINGRESULT):-  STRINGRESULT = ''.\n";
+		strFunctionRules+= " substringAfterList([H|T], [H1|T1],STRINGRESULT):- H=H1 -> (copyList(T,STRINGRESULTLIST),atom_chars(STRINGRESULT,STRINGRESULTLIST),!);substringAfterList(T,[H1|T1],STRINGRESULT),!.\n";
+		
+		
+		strFunctionRules+= " normalizeSpace(TEXT,STRINGRESULT) :- atom_chars(TEXT,STR),\n";
+		strFunctionRules+= " normalizeSpaceList(STR,STRINGRESULT).\n";
+     
+        strFunctionRules+= " normalizeSpaceList(STR,STRINGRESULT) :- normalizeSpaceList(STR,STRINGRESULT,TMPSTRINGRESULT), write(STRINGRESULT), atom_chars(TMPSTRINGRESULT,STRINGRESULT),!.\n";
+        strFunctionRules+= " normalizeSpaceList([H|T],STRINGRESULT,TMPSTRINGRESULT) :- \\+ H=' ' -> (addEndList(H,TMPSTRINGRESULT,NEWTMP),normalizeSpaceList(T,STRINGRESULT,NEWTMP),!); normalizeSpaceList(T,STRINGRESULT,TMPSTRINGRESULT).\n";
+        strFunctionRules+= " normalizeSpaceList([],STRINGRESULT,TMPRESULTLIST).%var(TMPRESULTLIST) -> STRINGRESULT = []; STRINGRESULT = TMPRESULTLIST.\n";
         
+        
+        strFunctionRules+= " contains(STRINGA, STRINGB) :- atom_chars(STRINGA,X), atom_chars(STRINGB,Y),\n";
+        strFunctionRules+= " containsListOrder(X,Y).\n";
+     
+        strFunctionRules+= " containsListOrder([],_) :- false.\n"; 
+        strFunctionRules+= " containsListOrder([H|T], [H1|T1]) :- H=H1 -> (compare(T,T1),!);containsListOrder(T,[H1|T1]).\n";
+        
+        
+        strFunctionRules+= " startsWith(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
+		strFunctionRules+= " startsWithList(STR1,STR2).\n";            
+		strFunctionRules+= " startsWithList([],_):-  false,!.\n";
+		strFunctionRules+= " startsWithList(_,[]):-  true,!. \n";
+		strFunctionRules+= " startsWithList([H|T], [H1|T1]):- H=H1 -> (startsWithList(T,T1)); false.\n";     
+
+		strFunctionRules+= " endsWith(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
+		strFunctionRules+= " endsWithList(STR1,STR2).\n";            
+		strFunctionRules+= " endsWithList(_,[]):-  false,!.\n"; 
+		strFunctionRules+= " endsWithList([],_):-  false,!.\n"; 
+		strFunctionRules+= " endsWithList([H|T], [H1|T1]):- H=H1 -> ( compareList(T,T1),!);endsWithList(T,[H1|T1]).\n";
+		
+		
+		
+		strFunctionRules+= " concat(STRINGINPUT,RESULT) :- tokenize(STRINGINPUT,',',TOKENIZERESULT),concatList(TOKENIZERESULT,TMPRESULT,RESULT).\n";
+		 
+		strFunctionRules+= "  concatList([],TMPRESULT,RESULT) :- RESULT = TMPRESULT.\n";
+		strFunctionRules+= "  concatList([H|T],TMPRESULT,RESULT):-  (nonvar(TMPRESULT)-> atom_concat(TMPRESULT,H,NEWTMPRESULT);NEWTMPRESULT = H),concatList(T,NEWTMPRESULT,RESULT),!.\n";
+		 
+		 
+		 
+		strFunctionRules+= " tokenize(STRING,TOKEN,RESULT) :- atom_chars(STRING,STR1),tokenizeList(STR1,TOKEN,TMPLIST,TMPRESULT,RESULTLIST),\n"; 
+		strFunctionRules+= "   transformCharList(RESULTLIST, RESULTCHAR, RESULT).\n";
+		 
+		strFunctionRules+= " transformCharList([],RESULTCHAR,RESULT) :- RESULT = RESULTCHAR.\n";
+		strFunctionRules+= " transformCharList([H|T],RESULTCHAR,RESULT) :- atom_chars(STRING,H),addEndList(STRING,RESULTCHAR,NEWRESULTCHAR), transformCharList(T,NEWRESULTCHAR,RESULT),!.\n";
+ 
+		strFunctionRules+= " tokenizeList([],TOKEN,TMPLIST,TMPRESULT,RESULT):- addEndList(TMPLIST,TMPRESULT,NEWRESULTTMP),RESULT = NEWRESULTTMP,!.\n";
+		strFunctionRules+= " tokenizeList([H|T],TOKEN,TMPLIST,TMPRESULT,RESULT) :- H = TOKEN -> (addEndList(TMPLIST,TMPRESULT,NEWRESULTTMP),tokenizeList(T,TOKEN,NEWTMPLIST,NEWRESULTTMP,RESULT),!) ;addEndList(H,TMPLIST,NEWTMPLIST), tokenizeList(T,TOKEN,NEWTMPLIST,TMPRESULT, RESULT),!.\n";
+ 
+
+		strFunctionRules+= " tokenize(STRING,TOKEN,RESULT) :- atom_chars(STRING,STR1),tokenizeList(STR1,TOKEN,TMPLIST,TMPRESULT,RESULTLIST), \n";
+		strFunctionRules+= " transformCharList(RESULTLIST, RESULTCHAR, RESULT).\n";
+
+
+		strFunctionRules+= " stringLength(STRING,LENGTH) :- atom_chars(STRING,STR1),listSize(STR1,LENGTH).\n";
+
+
+		strFunctionRules+= " listSize([H|T],LENGTH) :- listSize([H|T],LENGTH,0).\n";
+		strFunctionRules+= " listSize([H|T],LENGTH,TMPLENGTH) :- NEWTMPLENGTH is TMPLENGTH +1, listSize(T,LENGTH,NEWTMPLENGTH).\n";
+		strFunctionRules+= " listSize([],LENGTH,TMPLENGTH) :-  LENGTH = TMPLENGTH,!.\n";
+
+		strFunctionRules+= " compareNumber(STRING1,STRING2,RESULT):- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),compareNumberList(STR1,STR2,RESULT).\n";
+ 
+         
+		strFunctionRules+= " compareNumberList([], [],NUMBER):- NUMBER = 0.\n";
+		strFunctionRules+= " compareNumberList([H|T], [H1|T1],NUMBER) :- H=H1 ->(compareNumberList(T,T1,NUMBER),!); (H@>H1->NUMBER = 1; NUMBER = -1).\n";
+
+		
+		strFunctionRules+= " substring(STRING1,START,END,RESULT) :- atom_chars(STRING1,STR1),\n";
+		strFunctionRules+= "   NCOUNT is 1, substringList(STR1,START,END,NCOUNT,RESULT).\n";
+
+		strFunctionRules+= " substringList([H|T],START,END,NCOUNT,RESULT) :- START = NCOUNT -> (copyNList([H|T],RESULTAUX,END), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,END,TMPNCOUNT,RESULT)).\n";
+
+
+		strFunctionRules+= " substring(STRING1,START,RESULT) :- atom_chars(STRING1,STR1),\n";
+		strFunctionRules+= "    NCOUNT is 1, substringList(STR1,START,NCOUNT,RESULT).\n";
+
+		strFunctionRules+= " substringList([H|T],START,NCOUNT,RESULT) :- START = NCOUNT -> (copyNList([H|T],RESULTAUX,9999), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,TMPNCOUNT,RESULT)).\n";
+
+
+
+		strFunctionRules+= " copyNList( COPIEDLIST,RESULTLIST, SIZE) :- copyNList(COPIEDLIST,RESULTLIST,SIZE,0,TMPRESULTLIST).\n";
+		strFunctionRules+= " copyNList([H|T],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :- SIZE = ACTUALSIZE -> (var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST); addEndList(H,TMPRESULTLIST,NEWTMP),TMPACTUALSIZE is ACTUALSIZE +1, copyNList(T,RESULTLIST,SIZE,TMPACTUALSIZE,NEWTMP).\n";
+		strFunctionRules+= " %copyNList([H|T],RESULTLIST,TMPRESULTLIST) :- addEndList(H,TMPRESULTLIST,NEWTMP), copyList(T,RESULTLIST,NEWTMP).\n";
+		strFunctionRules+= " copyNList([],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :-  var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";
+		
+		
+		strFunctionRules+= " contains(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
+		strFunctionRules+= " containsList(STR1,STR2). \n";           
+	 
+		strFunctionRules+= " containsList(_,[]) :- false.\n";
+		strFunctionRules+= " containsList([],_) :- false.\n";
+		strFunctionRules+= " containsList([H|T], [H1|T1]) :- H=H1->(compareList(T,T1),!);containsList(T, [H1|T1]). \n";
+	 
+	 
+	 
+		strFunctionRules+= " compareList(_, []):- true.\n";
+		strFunctionRules+= " compareList([H|T], [H1|T1]) :- H=H1 ->(compareList(T,T1),!);false.\n";
+	    
+
+		strFunctionRules+= " compareList([],[]):- true,!.\n";
+	    strFunctionRules+= " compareList([H|T], [H1|T1]):- H=H1 ->(compareList(T,T1));false.\n";
+
+        strFunctionRules+= " compare(_, []):- true.\n";
+    	strFunctionRules+= " compare([], _):- false.\n";
+    	strFunctionRules+= " compare([H|T], [H1|T1]) :- H=H1 ->(compare(T,T1)).\n";
+    	
+    	strFunctionRules+= " floor(INPUT, OUTPUT):- atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT.\n";
+
+    	strFunctionRules+= " ceiling(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
+
+
+    	strFunctionRules+= " round(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
+
+
+    	strFunctionRules+= " sum(List, Sum) :-\n";
+    	strFunctionRules+= " 		    sum(List, 0, Sum).\n";
+
+    	strFunctionRules+= " sum([], Accumulator, Accumulator).\n";
+
+    	strFunctionRules+= " sum([Head|Tail], Accumulator, Result) :-\n";
+    	strFunctionRules+= " 	  atom_number(Head,NHEAD),  NewAccumulator is Accumulator + NHEAD,\n";
+        strFunctionRules+= " sum(Tail, NewAccumulator, Result). \n"; 
+    											
+		strFunctionRules+= " %Copy one List to another \n";
+		strFunctionRules+= " copyList( COPIEDLIST,RESULTLIST) :- copyList(COPIEDLIST,RESULTLIST,TMPRESULTLIST).\n";
+		strFunctionRules+= " copyList([H|T],RESULTLIST,TMPRESULTLIST) :- addEndList(H,TMPRESULTLIST,NEWTMP), copyList(T,RESULTLIST,NEWTMP).\n";
+		strFunctionRules+= " copyList([],RESULTLIST,TMPRESULTLIST) :-  var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";						
+
+		strFunctionRules+= " %addEndList(X,L,L1)\n";
+		strFunctionRules+= " %adds element X to the end of the list L and returns L1\n";
+    	strFunctionRules+= " addEndList(X,[],[X]).\n";
+    	strFunctionRules+= " addEndList(X,[A|L],[A|L1]):- \n";
+    	strFunctionRules+= " addEndList(X,L,L1). \n";
+    	
+    	return strFunctionRules;
+    }
+    
 	private String process(Document doc){
 		ArrayList<String> factsList = new ArrayList<String>();
 		

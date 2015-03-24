@@ -16,6 +16,16 @@ public class OperatorGreaterThan implements IExpression {
             leftOperand = left;
             rightOperand = right;
         }
+        
+        public IExpression leftOperand()
+        {
+        	return leftOperand;
+        }
+        
+        public IExpression rightOperand()
+        {
+        	return rightOperand;
+        }
 
         public String interpret()  {
             return leftOperand.interpret() + " @> " + "'" + rightOperand.interpret() + "'";

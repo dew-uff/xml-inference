@@ -22,5 +22,16 @@ public class OperatorEqual implements IExpression {
     {
     	return rightOperand.interpret();
     }
+    
+    
+    public IExpression leftOperand()
+    {
+    	return leftOperand;
+    }
+    
+    public IExpression rightOperand()
+    {
+    	return rightOperand;
+    }
 
 }

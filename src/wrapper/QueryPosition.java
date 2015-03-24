@@ -67,6 +67,51 @@ public class QueryPosition extends QueryElement
 		
 		return positionFormula;
 	}
+	
+	
+	public String getPositionFormulaForLastItem(int nSearch)
+	{
+		String lastPositionFormula ="";
+		//Position Filter
+		//if( isNumber(prologFormula) )
+		//{
+		lastPositionFormula = " findall(IDSEARCH"+String.valueOf(nSearch)+",";
+		
+		lastPositionFormula +=   itemFilter.toLowerCase().trim(); //Last filter item, or last item 
+		
+		if(isRoot())
+		{
+			lastPositionFormula +="(IDSEARCH"+String.valueOf(nSearch)+")";
+		}
+		else
+		{
+			lastPositionFormula +="(_";
+			lastPositionFormula +=",IDSEARCH"+String.valueOf(nSearch);
+			if(!bHasChildren)
+			{
+				//positionFormula +=	"ID"+itemFilter.toUpperCase().trim();	
+				lastPositionFormula += ",";
+				lastPositionFormula +=	searchValue.toUpperCase().trim(); // Value for the search
+			}
+			lastPositionFormula +=	")";
+		}
+		
+		lastPositionFormula +=",LIST )";
+		lastPositionFormula +=" , listSize(LIST,LENGTH) ";
+		lastPositionFormula +=",indexOf(LIST,IDSEARCH"+String.valueOf(nSearch)+",";
+		lastPositionFormula +="	LENGTH ";
+		lastPositionFormula +=")";
+		
+		if(!compareVariable.isEmpty())
+		{
+		   lastPositionFormula +=",IDSEARCH"+String.valueOf(nSearch)+"=";
+		   lastPositionFormula +=	"ID"+compareVariable.toUpperCase(); // Variable from last filter
+		}
+		//}	
+				
+		
+		return lastPositionFormula;
+	}
 
 
 	public boolean hasChildren() {

@@ -19,4 +19,14 @@ public class OperatorGreaterEqualThan implements IExpression {
         public String interpret()  {
             return leftOperand.interpret() + " @>= " + "'" + rightOperand.interpret() + "'";
         }
+        
+        public IExpression leftOperand()
+        {
+        	return leftOperand;
+        }
+        
+        public IExpression rightOperand()
+        {
+        	return rightOperand;
+        }
     }
