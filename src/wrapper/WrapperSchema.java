@@ -1,9 +1,11 @@
 package wrapper;
 
 import java.io.StringWriter;
+import java.rmi.server.ExportException;
 import java.security.acl.LastOwnerException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import javax.lang.model.element.ElementVisitor;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -31,6 +34,7 @@ import wrapper.expressionFilter.OperatorEqual;
 import wrapper.expressionFilter.OperatorGreaterEqualThan;
 import wrapper.expressionFilter.OperatorGreaterThan;
 import wrapper.expressionFilter.OperatorLessEqualThan;
+import wrapper.expressionFilter.OperatorLessThan;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -49,6 +53,7 @@ public class WrapperSchema extends Wrapper {
 		arrayElementsQuery = new ArrayList<QueryElement>();
 		String tempQuery = query;
 		tempQuery += "/";
+		//tempQuery = tempQuery.replace("@", "");
 		int posInit = 1;
 		int posBar = tempQuery.indexOf("/", 1);
 		String strLastItem = "";
@@ -77,13 +82,30 @@ public class WrapperSchema extends Wrapper {
 			endPosPlic = query.indexOf("'",beginPosPlic+1);
 		}*/
 		
+		QueryElement joinQueryElement = null;
+		boolean bJoin = false;
 		
 		while (posBar > -1)
 		{
 			String strSubString = tempQuery.substring(posInit, posBar);
+			
 			int posFilter = -1;
 			if(! strSubString.isEmpty())
 			{
+				if(bJoin && joinQueryElement != null)
+				{
+					arrayElementsQuery.add(joinQueryElement);
+					bJoin = false;
+				}
+				
+				if(strSubString.contains(" |"))
+				{
+					joinQueryElement = new QueryElement();
+					bJoin = true;
+					joinQueryElement.setIsJoin(bJoin);
+					strSubString = strSubString.replace(" |", "");
+				}
+				
 				if(strSubString.indexOf("[", 0) != -1)
 				{
 					
@@ -96,7 +118,10 @@ public class WrapperSchema extends Wrapper {
 						queryElement.parseElement(strFirst);
 						strLastItem = queryElement.getElement();
 						arrayElementsQuery.add(queryElement );
+						//posInit = tempQuery.indexOf("[", posInit);
 					}
+					
+					
 					/*if(posInit<=2)
 					{
 						String strFirst = tempQuery.substring(posInit,tempQuery.indexOf("[", posInit));
@@ -107,146 +132,256 @@ public class WrapperSchema extends Wrapper {
 					}*/
 					
 					
-					posInit = tempQuery.indexOf("[", posInit);
-					posFilter = tempQuery.indexOf("]", posInit);
+					List<Pair<Integer,Integer>> filterList = mapfilter(tempQuery);
+					
+					for(int nFilter=filterList.size()-1;nFilter>=0;nFilter--)
+					{
+						if(filterList.get(nFilter).getKey()+1>=posInit)
+						{
+							
+							if(filterList.get(nFilter).getKey()+1 == posInit)
+								posInit = filterList.get(nFilter).getKey()+1;
+							else
+								posInit = filterList.get(nFilter).getKey();
+							
+							posFilter = filterList.get(nFilter).getValue();
+							break;
+						}
+						/*else if(filterList.get(nFilter).getValue()>posFilter)
+						{
+							posFilter = filterList.get(nFilter).getValue();
+							break;
+						}*/
+							
+						
+					}
+					
+					//#### TEST 14
+					//posInit = tempQuery.indexOf("[", posInit);
+					//posFilter = tempQuery.lastIndexOf("]");
+					
+					
+					/*if(tempQuery.indexOf("[", posInit+1)==-1)
+					{
+						posFilter = tempQuery.indexOf("]", posInit);
+							
+					}
+					else
+					{
+						posFilter = tempQuery.lastIndexOf("]");
+					}*/
+					
 					strSubString = tempQuery.substring(posInit,posFilter+1 );
 					
 					
-					int internalFilter = strSubString.indexOf("/");
+					parseFilter(strSubString);
 					
-					//#################################################
-					int beginPosPlicFilter = strSubString.indexOf("'",0);
-					int endPosPlicFilter = -1;
-					if(beginPosPlicFilter!= -1 )
-					{
-						endPosPlicFilter = strSubString.indexOf("'",beginPosPlicFilter+1);
-					}
-					if(internalFilter>=beginPosPlicFilter && internalFilter<=endPosPlicFilter)
-						internalFilter = -1;
-					
-					List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(strSubString);
-					
-					for(int i=0; i< pairParenthesisList.size();i++)
-					{
-						Pair<Integer,Integer> pair = pairParenthesisList.get(i);
-						if(internalFilter>=pair.getKey() && internalFilter<=pair.getValue())
-						{
-							internalFilter = -1;
-							break;
-						}
-						
-					}
-					//#################################################
-					
-					if(internalFilter > -1)
-					{
-						//String strSub = tempQuery.substring(posInit+1, strSubString.length()-1);
-						String[] internalElements = strSubString.split("/");
-						int nCount=1;
-						for (String string : internalElements) 
-						{
-							string = string.replace("[", "");
-							string = string.replace("]", "");
-							if(nCount == internalElements.length)
-							{
-								strSubString = "["+string+"]";
-								break;
-							}
-							
-							QueryElement queryElement = new QueryElement();
-							queryElement.parseElement(string);
-							queryElement.setIsFilterpart(true);
-							arrayElementsQuery.add(queryElement);
-							
-							nCount++;
-						}
-							
-					}
 				}
-				
-				
-				ArrayList<String> andElements = getAndElements(strSubString);
-				ArrayList<String> orElements = getOrElements(strSubString);
-				
-				if(andElements.size()>0)
-				{
-					for (String stringAnd : andElements)
-					{
-						QueryElement queryElement = new QueryElement();
-						queryElement.parseElement("["+stringAnd+"]");
-						queryElement.setIsFilterpart(true);
-						arrayElementsQuery.add(queryElement);
-					}	
-				}
-				else if(orElements.size()>0)
-				{
-					for (String stringOR : orElements)
-					{
-						QueryElement queryElement = new QueryElement();
-						queryElement.parseElement("["+stringOR+"]");
-						queryElement.setIsFilterpart(true);
-						queryElement.setIsOrFilterpart(true);
-						arrayElementsQuery.add(queryElement);
-					}	
-				}
-				//else if(! (strSubString.indexOf("[", 0) != -1))
-				else if( (strSubString.indexOf("[", 0) != -1))
+				else
 				{
 					QueryElement queryElement = new QueryElement();
-					
-					String strfilterElement =  strSubString;
-					strfilterElement = strfilterElement.replace("[", "");
-					strfilterElement = strfilterElement.replace("]", "");
-					queryElement.parseElement(strSubString);
-					
-					if(isNumber(queryElement.getVariable()))
-					{
-						QueryPosition queryElementPosition = new QueryPosition();
-						queryElementPosition.parseElement(strSubString);
-						
-						queryElementPosition.setItemFilter(strLastItem);
-						queryElementPosition.setSearchValue(strLastItem);
-						
-						
-						queryElementPosition.setCompareVariable(strLastItem);
-						if(bFilter)
-						{
-							//queryElementPosition.setCompareVariable(strLastItem);
-							bFilter = false;
-						}
-						
-						queryElement = queryElementPosition;
-					}
-					
-					if(strSubString.indexOf("[", 0) != -1)
-					{
-						queryElement.setIsFilterpart(true);
-						strLastItem = queryElement.getVariable();
-						bFilter = true;
-					}
-					
-					if(arrayElementsQuery.get(arrayElementsQuery.size()-1) != queryElement)
-						arrayElementsQuery.add(queryElement);
-					
-					if(!queryElement.isFilterpart())
-					{
-						strLastItem = queryElement.getElement();
-						bFilter = false;
-					}
-				
-				}
-				else //if(strSubString.indexOf("(", 0) != -1)
-				{
-					QueryElement queryElement = new QueryElement();
-					queryElement.parseElement(strSubString);
+					queryElement.parseElement(strSubString.replace("/", ""));
 					arrayElementsQuery.add(queryElement);
+				}	
 					
-					
-					/*if(strSubString.indexOf("(", 0) != -1)
-					{
-						
-					}*/
-				}
+//					int internalFilter = strSubString.indexOf("/");
+//					
+//					//#################################################
+//					int beginPosPlicFilter = strSubString.indexOf("'",0);
+//					int endPosPlicFilter = -1;
+//					if(beginPosPlicFilter!= -1 )
+//					{
+//						endPosPlicFilter = strSubString.indexOf("'",beginPosPlicFilter+1);
+//					}
+//					if(internalFilter>=beginPosPlicFilter && internalFilter<=endPosPlicFilter)
+//						internalFilter = -1;
+//					
+//					List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(strSubString);
+//					
+//					for(int i=0; i< pairParenthesisList.size();i++)
+//					{
+//						Pair<Integer,Integer> pair = pairParenthesisList.get(i);
+//						if(internalFilter>=pair.getKey() && internalFilter<=pair.getValue())
+//						{
+//							internalFilter = -1;
+//							break;
+//						}
+//						
+//					}
+//					//#################################################
+//					
+//					if(internalFilter > -1)
+//					{
+//						//String strSub = tempQuery.substring(posInit+1, strSubString.length()-1);
+//						String[] internalElements = strSubString.split("/");
+//						int nCount=1;
+//						for (String string : internalElements) 
+//						{
+//							string = string.replace("[", "");
+//							string = string.replace("]", "");
+//							if(nCount == internalElements.length)
+//							{
+//								strSubString = "["+string+"]";
+//								break;
+//							}
+//							
+//							QueryElement queryElement = new QueryElement();
+//							queryElement.parseElement(string);
+//							queryElement.setIsFilterpart(true);
+//							arrayElementsQuery.add(queryElement);
+//							
+//							nCount++;
+//						}
+//							
+//					}
+//				}
+//				
+//				
+//				ArrayList<String> andElements = getAndElements(strSubString);
+//				ArrayList<String> orElements = getOrElements(strSubString);
+//				
+//				if(andElements.size()>0)
+//				{
+//					for (String stringAnd : andElements)
+//					{
+//						
+//						
+//						orElements = getOrElements(stringAnd);
+//						if(orElements.size()>0)
+//						{
+//							for(String stringOR : orElements)
+//							{
+//								/*QueryElement parenthesis = verifyElementParenthesis(stringOR);
+//								
+//								if(stringOR.trim().startsWith("(") && parenthesis != null)
+//								{
+//									arrayElementsQuery.add(parenthesis);
+//								}*/
+//								
+//								QueryElement queryElement = new QueryElement();
+//								if(stringOR.trim().startsWith("(") || (stringOR.trim().endsWith(")") && !stringOR.trim().contains("(")))
+//									stringOR = stringOR.replace("(", "").replace(")", "");
+//								
+//								queryElement.parseElement("["+stringOR+"]");
+//								queryElement.setIsFilterpart(true);
+//								queryElement.setIsOrFilterpart(true);
+//								arrayElementsQuery.add(queryElement);
+//								
+//								/*if(stringOR.trim().endsWith(")") && parenthesis != null)
+//								{
+//									arrayElementsQuery.add(parenthesis);
+//								}*/
+//							}	
+//						}
+//						else
+//						{
+//							/*QueryElement parenthesis = verifyElementParenthesis(stringAnd);
+//							
+//							if(stringAnd.trim().startsWith("(") && parenthesis != null)
+//							{
+//								arrayElementsQuery.add(parenthesis);
+//							}*/
+//							
+//							QueryElement queryElement = new QueryElement();
+//							if(stringAnd.trim().startsWith("(") || (stringAnd.trim().endsWith(")") && !stringAnd.trim().contains("(")))
+//								stringAnd = stringAnd.replace("(", "").replace(")", "");
+//							
+//							queryElement.parseElement("["+stringAnd+"]");
+//							queryElement.setIsFilterpart(true);
+//							arrayElementsQuery.add(queryElement);
+//							
+//							/*if(stringAnd.trim().endsWith("(") && parenthesis != null)
+//							{
+//								arrayElementsQuery.add(parenthesis);
+//							}*/
+//						}
+//						
+//					}	
+//				}
+//				else if(orElements.size()>0)
+//				{
+//					for (String stringOR : orElements)
+//					{
+//						/*QueryElement parenthesis = verifyElementParenthesis(stringOR);
+//						
+//						if(stringOR.trim().startsWith("(") && parenthesis != null)
+//						{
+//							arrayElementsQuery.add(parenthesis);
+//						}*/
+//						
+//						QueryElement queryElement = new QueryElement();
+//						if(stringOR.trim().startsWith("(") || (stringOR.trim().endsWith(")") && !stringOR.trim().contains("(")))
+//							stringOR = stringOR.replace("(", "").replace(")", "");
+//						
+//						queryElement.parseElement("["+stringOR+"]");
+//						queryElement.setIsFilterpart(true);
+//						queryElement.setIsOrFilterpart(true);
+//						arrayElementsQuery.add(queryElement);
+//						
+//						/*if(stringOR.trim().endsWith("(") && parenthesis != null)
+//						{
+//							arrayElementsQuery.add(parenthesis);
+//						}*/
+//					}	
+//				}
+//				//else if(! (strSubString.indexOf("[", 0) != -1))
+//				else if( (strSubString.indexOf("[", 0) != -1))
+//				{
+//					QueryElement queryElement = new QueryElement();
+//					
+//					String strfilterElement =  strSubString;
+//					strfilterElement = strfilterElement.replace("[", "");
+//					strfilterElement = strfilterElement.replace("]", "");
+//					queryElement.parseElement(strSubString);
+//					
+//					if(isNumber(queryElement.getVariable()))
+//					{
+//						QueryPosition queryElementPosition = new QueryPosition();
+//						queryElementPosition.parseElement(strSubString);
+//						
+//						queryElementPosition.setItemFilter(strLastItem);
+//						queryElementPosition.setSearchValue(strLastItem);
+//						
+//						
+//						queryElementPosition.setCompareVariable(strLastItem);
+//						if(bFilter)
+//						{
+//							//queryElementPosition.setCompareVariable(strLastItem);
+//							bFilter = false;
+//						}
+//						
+//						queryElement = queryElementPosition;
+//					}
+//					
+//					if(strSubString.indexOf("[", 0) != -1)
+//					{
+//						queryElement.setIsFilterpart(true);
+//						strLastItem = queryElement.getVariable();
+//						bFilter = true;
+//					}
+//					
+//					if(arrayElementsQuery.get(arrayElementsQuery.size()-1) != queryElement)
+//						arrayElementsQuery.add(queryElement);
+//					
+//					if(!queryElement.isFilterpart())
+//					{
+//						strLastItem = queryElement.getElement();
+//						bFilter = false;
+//					}
+//				
+//				}
+//				else //if(strSubString.indexOf("(", 0) != -1)
+//				{
+//					QueryElement queryElement = new QueryElement();
+//					queryElement.parseElement(strSubString);
+//					arrayElementsQuery.add(queryElement);
+//					
+//					
+//					/*if(strSubString.indexOf("(", 0) != -1)
+//					{
+//						
+//					}*/
+//				}
 					
 			}
 			
@@ -291,6 +426,235 @@ public class WrapperSchema extends Wrapper {
 		}		
 	}
 	
+	
+	private void parseFilter(String filterQuery)
+	{
+		    String tempQuery = filterQuery;
+		    //String bkpQuery = tempQuery;
+		    int posInit =0;
+		    int posEnd  = tempQuery.indexOf("]",posInit);
+		    
+		    String strLastItem = "";
+		    while(posEnd != -1 && posInit != -1)
+		    {
+		    	//boolean bUseBkp = false;
+		    	String strFirst = "";
+		    	if(filterQuery.indexOf("[", posInit+1) != -1)
+		    		strFirst = filterQuery.substring(posInit+1,filterQuery.indexOf("[", posInit+1));
+				strFirst = strFirst.replace("/", "");
+				if(!strFirst.isEmpty())
+				{
+					QueryElement queryElement = new QueryElement();
+					queryElement.parseElement(strFirst);
+					queryElement.setIsFilterpart(true);
+					strLastItem = queryElement.getElement();
+					arrayElementsQuery.add(queryElement);
+					
+					posInit = filterQuery.indexOf("[", posInit+1);
+				}
+				
+				
+				//posEnd = tempQuery.indexOf("]", posInit);
+				
+				//if(posEnd<0)
+					//break;
+				
+				tempQuery = filterQuery.substring(posInit,posEnd+1 );
+				
+				int internalFilter = tempQuery.indexOf("/");
+					
+				//#################################################
+				int beginPosPlicFilter = tempQuery.indexOf("'",0);
+				int endPosPlicFilter = -1;
+				if(beginPosPlicFilter!= -1 )
+				{
+					endPosPlicFilter = tempQuery.indexOf("'",beginPosPlicFilter+1);
+				}
+				if(internalFilter>=beginPosPlicFilter && internalFilter<=endPosPlicFilter)
+					internalFilter = -1;
+				
+				List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(tempQuery);
+				
+				for(int i=0; i< pairParenthesisList.size();i++)
+				{
+					Pair<Integer,Integer> pair = pairParenthesisList.get(i);
+					if(internalFilter>=pair.getKey() && internalFilter<=pair.getValue())
+					{
+						internalFilter = -1;
+						break;
+					}
+					
+				}
+				//#################################################
+				
+				
+				if(internalFilter > -1)
+				{
+					String[] internalElements = tempQuery.split("/");
+					int nCount=1;
+					for (String string : internalElements) 
+					{
+						string = string.replace("[", "");
+						string = string.replace("]", "");
+						
+						if(nCount == internalElements.length)
+						{
+							//bkpQuery = tempQuery;
+							//bUseBkp = true;
+							tempQuery = "["+string+"]";
+							break;
+						}
+						
+						QueryElement queryElement = new QueryElement();
+						queryElement.parseElement(string);
+						queryElement.setIsFilterpart(true);
+						arrayElementsQuery.add(queryElement);
+						
+						nCount++;
+					}	
+				}
+				
+				ArrayList<String> andElements = getAndElements(tempQuery);
+				ArrayList<String> orElements = getOrElements(tempQuery);
+				
+				if(andElements.size()>0)
+				{
+					for (String stringAnd : andElements)
+					{
+						orElements = getOrElements(stringAnd);
+						if(orElements.size()>0)
+						{
+							for(String stringOR : orElements)
+							{
+								QueryElement queryElement = new QueryElement();
+								if(stringOR.trim().startsWith("(") || (stringOR.trim().endsWith(")") && !stringOR.trim().contains("(")))
+									stringOR = stringOR.replace("(", "").replace(")", "");
+								
+								queryElement.parseElement("["+stringOR+"]");
+								queryElement.setIsFilterpart(true);
+								queryElement.setIsOrFilterpart(true);
+								arrayElementsQuery.add(queryElement);
+							}	
+						}
+						else
+						{
+							
+							QueryElement queryElement = new QueryElement();
+							if(stringAnd.trim().startsWith("(") || (stringAnd.trim().endsWith(")") && !stringAnd.trim().contains("(")))
+								stringAnd = stringAnd.replace("(", "").replace(")", "");
+							
+							queryElement.parseElement("["+stringAnd+"]");
+							queryElement.setIsFilterpart(true);
+							arrayElementsQuery.add(queryElement);
+						}
+						
+					}	
+				}
+				else if(orElements.size()>0)
+				{
+					for (String stringOR : orElements)
+					{
+						QueryElement queryElement = new QueryElement();
+						if(stringOR.trim().startsWith("(") || (stringOR.trim().endsWith(")") && !stringOR.trim().contains("(")))
+							stringOR = stringOR.replace("(", "").replace(")", "");
+						
+						queryElement.parseElement("["+stringOR+"]");
+						queryElement.setIsFilterpart(true);
+						queryElement.setIsOrFilterpart(true);
+						arrayElementsQuery.add(queryElement);
+					}	
+				}
+				else if( (tempQuery.indexOf("[", 0) != -1))
+				{
+					QueryElement queryElement = new QueryElement();
+					
+					String strfilterElement =  tempQuery;
+					strfilterElement = strfilterElement.replace("[", "");
+					strfilterElement = strfilterElement.replace("]", "");
+					queryElement.parseElement(tempQuery);
+					
+					if(isNumber(queryElement.getVariable()))
+					{
+						QueryPosition queryElementPosition = new QueryPosition();
+						queryElementPosition.parseElement(tempQuery);
+						
+						queryElementPosition.setItemFilter(strLastItem);
+						queryElementPosition.setSearchValue(strLastItem);
+						
+						
+						queryElementPosition.setCompareVariable(strLastItem);
+						//if(bFilter)
+						//{
+							//bFilter = false;
+						//}
+						
+						queryElement = queryElementPosition;
+					}
+					
+					if(tempQuery.indexOf("[", 0) != -1)
+					{
+						queryElement.setIsFilterpart(true);
+						strLastItem = queryElement.getVariable();
+						//bFilter = true;
+					}
+					
+					if(arrayElementsQuery.get(arrayElementsQuery.size()-1) != queryElement)
+						arrayElementsQuery.add(queryElement);
+					
+					if(!queryElement.isFilterpart())
+					{
+						strLastItem = queryElement.getElement();
+						//bFilter = false;
+					}
+				
+				}
+				else
+				{
+					QueryElement queryElement = new QueryElement();
+					queryElement.parseElement(tempQuery);
+					arrayElementsQuery.add(queryElement);
+				}
+				
+				//if(bUseBkp)
+					//tempQuery = bkpQuery;
+				
+				//posInit = filterQuery.indexOf("[", posEnd);
+				posInit=posEnd+1;
+				posEnd = filterQuery.indexOf("]", posInit);
+				
+				if(posInit == posEnd)
+					break;
+		    }
+	}
+	
+	private QueryElement verifyElementParenthesis(String _element)
+	{
+		String parenthesis = "";
+		
+		if(_element.trim().startsWith("("))
+		{
+			parenthesis="(";
+			_element = _element.replace("(","");
+		}
+		else if(_element.trim().endsWith(")"))
+		{
+			parenthesis=")";
+			_element = _element.replace(")","");
+		}
+		
+		QueryElement queryElement = null;
+		
+		if(!parenthesis.isEmpty())
+		{
+			queryElement = new QueryElement();
+			queryElement.parseElement(parenthesis);
+			queryElement.setIsParenthesis(true);
+		}
+		
+		return queryElement;
+	}
+	
+	
 	private List<Pair<Integer,Integer>> mapParenthsis(String text)  
 	{
 		
@@ -307,6 +671,30 @@ public class WrapperSchema extends Wrapper {
 		{
 			beginPosParenthesis = tmpStack.pop();
 			int endPosParenthesis = text.indexOf(")",beginPosParenthesis+1);
+			
+			if(endPosParenthesis >-1)
+				pairParenthesisList.add(new Pair<Integer, Integer>(beginPosParenthesis,endPosParenthesis));
+		}
+		
+		return pairParenthesisList;
+	}
+	
+	private List<Pair<Integer,Integer>> mapfilter(String text)  
+	{
+		
+		List<Pair<Integer,Integer>> pairParenthesisList = new ArrayList<Pair<Integer,Integer>>();
+		Stack<Integer> tmpStack  =new Stack<Integer>();
+		int beginPosParenthesis = text.indexOf("[",0);
+		while(beginPosParenthesis > -1)
+		{
+			tmpStack.add(beginPosParenthesis);
+			beginPosParenthesis = text.indexOf("[",beginPosParenthesis+1);
+		}
+		
+		while(!tmpStack.isEmpty())
+		{
+			beginPosParenthesis = tmpStack.pop();
+			int endPosParenthesis = text.indexOf("]",beginPosParenthesis+1);
 			
 			if(endPosParenthesis >-1)
 				pairParenthesisList.add(new Pair<Integer, Integer>(beginPosParenthesis,endPosParenthesis));
@@ -437,7 +825,8 @@ public class WrapperSchema extends Wrapper {
 				if ( nodeTypeElement != null )
 					typeNodeElement = nodeTypeElement.getNodeValue();
 				
-				if ( isComplexType(nameSpace, typeNodeElement) && typeSchema.toLowerCase().equals("element") )
+				//if ( isComplexType(nameSpace, typeNodeElement) && typeSchema.toLowerCase().equals("element") )
+				if ( isNodeComplexType(nodeElement) && typeSchema.toLowerCase().equals("element") )
 				{
 					query = nameElement.toLowerCase() + "(ID";
 					query += getQueryPrologFromSchema(document, "complexType", typeNodeElement);
@@ -579,7 +968,7 @@ public class WrapperSchema extends Wrapper {
 	@SuppressWarnings("unused")
 	private String getQueryPrologFromSchema2(Document document, String typeSchema, String nameElement){
 		String query = "";
-		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,false);
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,"NOPARENT",false);
 		
 		if ( nodeElement == null )
 			return query;
@@ -602,18 +991,76 @@ public class WrapperSchema extends Wrapper {
 	private String getQueryPrologFromSchema3(Document document, String typeSchema, String nameElement,String fatherElement)
 	{
 		String query = "";
-		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,false);
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,fatherElement,false);
 		
 		if ( nodeElement == null )
+		{
+			
+			if(fatherElement.compareToIgnoreCase("NOPARENT")==0)
+			{
+				ArrayList<String> alltags = obtainAllTagsNames(document);
+				query = "setof(_,(";
+				int nCount =0;
+				for(String tag : alltags)
+				{
+					
+					if(nameElement.contains("@"))
+					{
+						nameElement = nameElement.replace("@", "");
+						query += fatherElement.trim()+"_attribute_"+nameElement.trim()+"(ID";
+					}
+					else
+					{
+						query += nameElement.trim()+"(ID";	
+					}
+					
+					query += tag.toUpperCase();
+					query += ", ";
+					query += "ID";
+					query += nameElement.trim().toUpperCase();
+					query += ",";
+					query += nameElement.trim().toUpperCase();
+					query += ")";
+					
+					if(nCount+1 < alltags.size())
+						query +=" , ! ; ";
+					
+					nCount++;
+				}
+				query+=" ),_)";
+			}
+			else
+			{
+				//##query = nameElement.trim()+"(ID";
+				if(nameElement.contains("@"))
+				{
+					nameElement = nameElement.replace("@", "");
+					query += fatherElement.trim()+"_attribute_"+nameElement.trim()+"(ID";
+				}
+				else
+				{
+					query += nameElement.trim()+"(ID";	
+				}
+				query += fatherElement.toUpperCase();
+				query += ", ";
+				query += "ID";
+				query += nameElement.trim().toUpperCase();
+				query += ",";
+				query += nameElement.trim().toUpperCase();
+				query += ")";
+			}
+			
 			return query;
+		}
+			
 		
 		//Element root = document.getDocumentElement();
 		 Node root = getRootElement(document);
 		
-		query = nameElement+"(ID";
+		query = nameElement.trim()+"(ID";
 		if(root.isSameNode(nodeElement))
 		{
-			query += nameElement.toUpperCase();
+			query += nameElement.trim().toUpperCase();
 			//query += " )";
 		}
 		else
@@ -627,9 +1074,26 @@ public class WrapperSchema extends Wrapper {
 				query += nameElement.toUpperCase();
 			}*/
 			query += "ID";
-			query += nameElement.toUpperCase();
+			query += nameElement.trim().toUpperCase();
 			boolean bHasComplexChilds = false;
-			if(nodeElement.getChildNodes().getLength() == 1)
+			
+			
+			//bHasComplexChilds = isNodeComplexType(nodeElement);
+			//####################
+			bHasComplexChilds = hasChildNodes(document, typeSchema, nameElement, fatherElement, false);
+			/*if(nodeElement.getAttributes().getLength() >0)
+			{
+				String nameSpace = document.getDocumentElement().getPrefix();
+				Node nodeType =  nodeElement.getAttributes().getNamedItem("type");
+				String typeElement = "";
+				if(nodeType != null)
+				{
+					typeElement = nodeType.getNodeValue();
+				    bHasComplexChilds = isComplexType(nameSpace, typeElement);
+				}
+					
+			}*/
+			/*if(nodeElement.getChildNodes().getLength() == 1)
 			{
 				
 				Node complexChild  = nodeElement.getChildNodes().item(0);
@@ -650,13 +1114,13 @@ public class WrapperSchema extends Wrapper {
 				}
 			}
 			else if(nodeElement.getChildNodes().getLength() >1)
-			  bHasComplexChilds = true;
+			  bHasComplexChilds = true;*/
 			
 			//if ( nodeElement.getChildNodes().getLength() <= 0 )
 			if(!bHasComplexChilds)
 			{
 				query += ",";
-				query += nameElement.toUpperCase();
+				query += nameElement.trim().toUpperCase();
 			}
 			//####
 		}
@@ -673,7 +1137,7 @@ public class WrapperSchema extends Wrapper {
         	return schema;
         
         NodeList nlComplexType = document.getElementsByTagName("xs:complexType");
-        Node nodeElement = getElementByTagName(document, typeSchema, nameElement,false);
+        Node nodeElement = getElementByTagName(document, typeSchema, nameElement,"NOPARENT",false);
         //if(isNodeComplexType(nodeElement))
         //{
         	Node nodeType =  nodeElement.getAttributes().getNamedItem("type");
@@ -756,7 +1220,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strFather,QueryElement element,int[] nPositionVet)
+	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strGrandFather,String strFather,QueryElement element,int[] nPositionVet)
 	{
 		String strPrologFunction = "";
 		Boolean bConsiderNamespaces = true;
@@ -765,7 +1229,7 @@ public class WrapperSchema extends Wrapper {
 		{
 			IExpression expression = element.getExpressionFormula();
 			
-			strPrologFunction = getPrologOperatorFunction3(document,strFather,expression,nPositionVet);
+			strPrologFunction = getPrologOperatorFunction3(document,strGrandFather,strFather,expression,nPositionVet);
 		}	
 		
 		return new Pair<String, Boolean>(strPrologFunction, bConsiderNamespaces);
@@ -937,7 +1401,7 @@ public class WrapperSchema extends Wrapper {
 		    			
 		    			if(exp instanceof Function)
 		    			{
-		    				getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
+		    				//getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
 		    				leftArgs.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
 		    			}
 		    			else 
@@ -965,7 +1429,7 @@ public class WrapperSchema extends Wrapper {
 		    			
 		    			if(exp instanceof Function)
 		    			{
-		    				getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
+		    				//getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
 		    				rightArgs.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
 		    			}
 		    			else 
@@ -996,13 +1460,14 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private String getPrologOperatorFunction3(Document document,String strFather,IExpression expression,int[] nPositionVet)
+	private String getPrologOperatorFunction3(Document document,String strGrandFather,String strFather,IExpression expression,int[] nPositionVet)
 	{
 		String result = "";
 		
 		IExpression left = null;
 		IExpression right = null;
 		String strOperator = "";
+		boolean bException = false; 
 		
 		if(expression instanceof OperatorEqual)
 		{
@@ -1033,10 +1498,10 @@ public class WrapperSchema extends Wrapper {
 			OperatorLessEqualThan op = (OperatorLessEqualThan)expression;	
     		left =	op.leftOperand();
     		right =	op.rightOperand();
-    		strOperator = " <= ";
+    		strOperator = " =< ";
 		}
 		
-		if(expression instanceof OperatorLessEqualThan)
+		if(expression instanceof OperatorLessThan)
 		{
 			OperatorLessEqualThan op = (OperatorLessEqualThan)expression;	
     		left =	op.leftOperand();
@@ -1055,7 +1520,20 @@ public class WrapperSchema extends Wrapper {
 	    	if(left instanceof Function)
 	    	{
 	    		
-	    		result = teste(document,left,strFather,nPositionVet);
+	    		Function leftFunc = (Function)left;	
+	    		String strFuncName = leftFunc.getFunctionName();
+	    		if((strFuncName.compareToIgnoreCase(Function.FUNCTION_LOCAL_NAME)==0 && leftFunc.arguments().size()<=0) ||
+	    				strFuncName.compareToIgnoreCase(Function.FUNCTION_NAME)==0)
+	    			bException = true;
+	    		
+	    		if(strFuncName.compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0 || 
+	    				strFuncName.compareToIgnoreCase(Function.FUNCTION_NOT)==0)
+	    			bException = true;
+	    		
+	    		if(strFuncName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
+	    				bException = true;
+	    		
+	    		result = translateFunction(document,left,strGrandFather,strFather,nPositionVet);
 	    		bLeftIsFunction = true;	
 	    		leftValue  = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    		Function function = (Function) left;
@@ -1068,7 +1546,9 @@ public class WrapperSchema extends Wrapper {
 	    	
 	    	if(right instanceof Function)
 	    	{
-	    		result += teste(document,right,strFather,nPositionVet);	    		
+	    		if(bLeftIsFunction)
+	    			nPositionVet[0]++;
+	    		result += ", "+translateFunction(document,right,strGrandFather,strFather,nPositionVet);	    		
 	    		bRightIsFunction = true;
 	    		rightValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    	}
@@ -1081,11 +1561,163 @@ public class WrapperSchema extends Wrapper {
 	    			rightValue = right.interpret();
 	    	}
 	    	
-	    	result += ", " +leftValue + strOperator +rightValue;
+	    	if(!bException)
+	    		result += ", " +leftValue + strOperator +rightValue;
+	    	else
+	    		result = translateFunctionExceptions(document, strGrandFather, strFather, left, right, strOperator,nPositionVet);
 	    }
 		
 		return result;
 		
+	}
+	
+	private String translateFunctionExceptions(Document document,String strGrandFather,String strFather,IExpression left,IExpression right,String strOperator,int[] nPositionVet)
+	{
+		String strResult = "";
+		
+		if(left instanceof Function)
+		{
+			Function leftFunc = (Function)left;
+			String functionName = leftFunc.getFunctionName();		
+			if(functionName.compareToIgnoreCase(Function.FUNCTION_LOCAL_NAME)==0 ||
+					functionName.compareToIgnoreCase(Function.FUNCTION_NAME)==0 )
+			{
+				
+				boolean bIsLocalName = functionName.compareToIgnoreCase(Function.FUNCTION_LOCAL_NAME)==0;
+				ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
+				 
+				 String strCompleteRule  = "";
+				 String strCompareLocalname = right.interpret();
+				 
+				 if(!bIsLocalName)
+					 strCompareLocalname = strCompareLocalname.replace(":", "_");
+				 
+				 boolean bPrevious = false;
+				 for (int i=0; i< completeRuleList.size();i++) 
+				 {
+					 String rule = completeRuleList.get(i);
+					 
+					 String [] splitRule = rule.split("\\(");
+					 if(splitRule.length >0)
+					 {
+						 
+						 String localName = splitRule[0];
+						 if(splitRule[0].contains("_") && bIsLocalName)
+						 {
+							 String [] splitLocalName = localName.split("\\_"); 
+							 if(splitLocalName.length ==2)
+								 localName = splitLocalName[1];
+						 }
+						 
+						 if(!(localName.compareToIgnoreCase(strCompareLocalname)==0))
+							 continue;
+						 
+						 if(bPrevious)
+							 strCompleteRule+="; ";	 
+						 
+						 strCompleteRule+=rule;
+				    	 bPrevious = true;
+					 }
+				 }
+				 
+				 if(bPrevious)
+					 strResult =" setof(_,( "+strCompleteRule+ " ),_) ";
+			}
+			else if(functionName.compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0)
+			{
+				ArrayList<IExpression> listArgs = leftFunc.arguments();
+				StringBuilder sbReturn = new StringBuilder("");
+				String recursiveResult = "";
+				String strBooleanCompare = right.interpret();
+				strBooleanCompare = strBooleanCompare.replace("(","");
+				strBooleanCompare = strBooleanCompare.replace(")","");
+				
+				if(listArgs.size()>0)
+				{
+					List<String> functionArgs  = new ArrayList<String>();
+					String simpleArg = listArgs.get(0).interpret().trim();
+					simpleArg = simpleArg.replace("(", "");
+					simpleArg = simpleArg.replace(")", "");
+					functionArgs.add(simpleArg);
+					
+					if(strBooleanCompare.compareToIgnoreCase(Function.FUNCTION_TRUE)==0)
+					{
+						List<String> finalArgs = obtainFinalFunctionArgs(  functionArgs,document, strFather, 1, sbReturn);
+						if (finalArgs.size() > 0)
+							strResult = sbReturn.toString();
+					}
+					else if (strBooleanCompare.compareToIgnoreCase(Function.FUNCTION_FALSE)==0)
+					{
+						nPositionVet[0]++;
+						strResult = "findall( ID"+strFather.toUpperCase()+nPositionVet[0]+", "+strFather.toLowerCase()+"(_,ID"+strFather.toUpperCase()+nPositionVet[0]+"), LISTFALSE"+nPositionVet[0]+"), ";
+						nPositionVet[0]++;
+						strResult += "findall( ID"+strFather.toUpperCase()+nPositionVet[0]+", ("+strFather.toLowerCase()+"(_,ID"+strFather.toUpperCase()+nPositionVet[0]+"),";
+						strResult += simpleArg.toLowerCase()+"( ID"+strFather.toUpperCase()+nPositionVet[0]+",_,_) ), LISTFALSE"+nPositionVet[0]+"), ";
+						strResult += " minus(LISTFALSE"+(nPositionVet[0]-1)+",LISTFALSE"+(nPositionVet[0])+",";
+						nPositionVet[0]++;
+						strResult += " LISTFALSE"+nPositionVet[0]+") , ";
+						//nPositionVet[0]++;
+						//strResult += "member(ID"+strFather.toUpperCase()+nPositionVet[0]+", ";
+						strResult += "member(ID"+strFather.toUpperCase()+", ";
+						strResult += " LISTFALSE"+(nPositionVet[0])+") , ";
+						//strResult += strFather.toLowerCase()+"(_, ID"+strFather.toUpperCase()+")";
+						//findall(IDPERSON,person(_,IDPERSON),LIST), findall(IDPERSON1,(person(_,IDPERSON1),homepage(IDPERSON1,_,_)),LIST1),minus(LIST,LIST1,LIST2).
+					}
+				}
+			
+			}
+			else if(functionName.compareToIgnoreCase(Function.FUNCTION_NOT)==0)
+			{
+				ArrayList<IExpression> listArgs = leftFunc.arguments();
+				String strBooleanCompare = right.interpret();
+				strBooleanCompare = strBooleanCompare.replace("(","");
+				strBooleanCompare = strBooleanCompare.replace(")","");
+				
+				if(listArgs.size()>0)
+				{
+					boolean bArgIs = true;
+					if(strBooleanCompare.compareToIgnoreCase(Function.FUNCTION_TRUE)==0)
+					{
+						//Arg is false
+						bArgIs = false;
+					}
+					
+					bArgIs = !bArgIs;
+					
+					if(listArgs.get(0) instanceof Function)
+					{
+						//Function argFunction = (Function)listArgs.get(0);
+						String booleanFunctionName = Function.FUNCTION_FALSE;
+						if(!bArgIs)
+							booleanFunctionName = Function.FUNCTION_TRUE;
+						
+						Function funcBooleanResult = new Function(booleanFunctionName, new ArrayList<IExpression>());
+						
+						/*if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0)
+						{*/
+							strResult+=
+									translateFunctionExceptions( document, strGrandFather, strFather,listArgs.get(0),funcBooleanResult, strOperator,nPositionVet);
+						/*}
+						else if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_NOT)==0)
+						{
+							
+						}*/
+						
+					}
+					
+				}
+			}
+			else if(functionName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
+			{
+				OperatorEqual opEqual = new OperatorEqual(left,right);	
+				QueryElement element = new QueryElement();
+				element.parseElement("["+opEqual.interpret()+"]");
+				strResult+= obtainAxisNamespace(document,strFather,element);
+			}
+		}
+		
+		
+		return strResult;
 	}
 	
 	String translateSimpleFunction(Document document,String strTagFather, String functionName, ArrayList<String> functionArgs, int nVariable)
@@ -1125,9 +1757,9 @@ public class WrapperSchema extends Wrapper {
 		{
 			/*int nPosition = 1;
 			if(nPositionVet.length>0)
-				nPosition = nPositionVet[0];*/
+				nPosition = nPositionVet[0];
 			
-			/*String strPositionValue = right.interpret();
+			String strPositionValue = right.interpret();
 			QueryPosition queryElementPosition = new QueryPosition();
 			queryElementPosition.setItemFilter(strFather);
 			queryElementPosition.setSearchValue(strPositionValue);
@@ -1147,6 +1779,10 @@ public class WrapperSchema extends Wrapper {
 			
 			/*if(nPositionVet.length>0)
 				nPositionVet[0]++;*/
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_LAST)==0)
+		{
+			
 		}
 		else if(functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING_BEFORE)==0) 
 		{
@@ -1221,34 +1857,37 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	String teste(Document document,IExpression expression, String strTagFather,int[] nPositionVet)
+	String translateFunction(Document document,IExpression expression,String strGrandFather, String strTagFather,int[] nPositionVet)
 	{
 		Function func = (Function)expression;	
 		List<String> functionArgs = new ArrayList<String>(); 
 		ArrayList<IExpression> listArgs = func.arguments();
 		StringBuilder sbReturn = new StringBuilder("");
 		String recursiveResult = "";
+		
 		for(int i=0; i< listArgs.size();i++)
 		{
 			IExpression exp = listArgs.get(i);
+			
 			if(exp instanceof Function)
 			{
 				//getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
-				recursiveResult = teste(document,exp,strTagFather,nPositionVet) + recursiveResult;
+				recursiveResult = translateFunction(document,exp,strGrandFather,strTagFather,nPositionVet) +", "+recursiveResult;
 				
 				functionArgs.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
 				nPositionVet[0]++;
 			}
 			else 
 			{
-				functionArgs.add(exp.interpret());
+				//if(exp.interpret().compareTo("(")!=0 && exp.interpret().compareTo(")")!=0)
+				String simpleArg = exp.interpret().trim();
+				simpleArg = simpleArg.replace("(", "");
+				simpleArg = simpleArg.replace(")", "");
+				functionArgs.add(simpleArg);
 			}
 		}
 		
 		String functionName = func.getFunctionName();
-		
-		
-		
 		
 		if(functionName.compareToIgnoreCase(Function.FUNCTION_LOCAL_NAME)==0)
 		{
@@ -1261,10 +1900,29 @@ public class WrapperSchema extends Wrapper {
 			}
 			
 		}
-		else if (functionName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_LANG)==0)
 		{
 			if(functionArgs.size() > 0)
 			{
+				String strTag = functionArgs.get(0);
+				sbReturn.append(obtainLangTags(document,strTagFather,strTag));
+			}
+			
+		}
+		else if (functionName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
+		{
+			if(functionArgs.size() > 0 )
+			{
+				String namespaceResult = "!";
+				if( !(functionArgs.get(0).compareToIgnoreCase("xml")==0))
+				{
+					String strTag = functionArgs.get(0);
+					QueryElement element = new QueryElement();
+					element.parseElement("["+Function.FUNCTION_NAMESPACE+strTag+"]");
+					namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element)+", !)";
+				}
+				sbReturn.append(namespaceResult);
+				
 				/*String strValue = functionArgs.get(0);
 				 List<String> listArguments = func.simpleElementArguments();
 				 String strNamespaceTag = "*";
@@ -1284,15 +1942,15 @@ public class WrapperSchema extends Wrapper {
 			if(nPositionVet.length>0)
 				nPosition = nPositionVet[0];*/
 			
-			/*String strPositionValue = right.interpret();
+			//String strPositionValue = right.interpret();
 			QueryPosition queryElementPosition = new QueryPosition();
-			queryElementPosition.setItemFilter(strFather);
-			queryElementPosition.setSearchValue(strPositionValue);
-			queryElementPosition.setCompareVariable(strFather);
-			queryElementPosition.setHasChildren(hasChildNodes(document, "element", queryElementPosition.getItemFilter(),false));
+			queryElementPosition.setItemFilter(strTagFather);
+			queryElementPosition.setSearchValue(strTagFather);
+			queryElementPosition.setCompareVariable(strTagFather);
+			queryElementPosition.setHasChildren(hasChildNodes(document, "element", queryElementPosition.getItemFilter(),"NOPARENT",false));
 			queryElementPosition.setIsRoot(isRoot(document, "element", queryElementPosition.getItemFilter()));	
 			
-			if(strPositionValue.toUpperCase().compareTo("LAST()") ==0 )
+			/*if(strPositionValue.toUpperCase().compareTo("LAST()") ==0 )
 			{
 				strPrologFunction += queryElementPosition.getPositionFormulaForLastItem(nVariable);
 			}
@@ -1302,82 +1960,528 @@ public class WrapperSchema extends Wrapper {
     			strPrologFunction += queryElementPosition.getPositionFormula(nPosition);
 			}*/
 			
+		    sbReturn.append(queryElementPosition.getPosition(strGrandFather,nPositionVet[0]));
+			
 			/*if(nPositionVet.length>0)
 				nPositionVet[0]++;*/
 		}
-		/*else if(functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING_BEFORE)==0) 
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_LAST)==0)
 		{
-			 
-			 //List<String> listArguments = func.simpleElementArguments();
-			 
-			 if(functionArgs.size()>1)
+			QueryPosition queryElementPosition = new QueryPosition();
+			queryElementPosition.setItemFilter(strTagFather);
+			queryElementPosition.setSearchValue(strTagFather);
+			queryElementPosition.setCompareVariable(strTagFather);
+			queryElementPosition.setHasChildren(hasChildNodes(document, "element", queryElementPosition.getItemFilter(),"NOPARENT",false));
+			queryElementPosition.setIsRoot(isRoot(document, "element", queryElementPosition.getItemFilter()));
+			
+			sbReturn.append(queryElementPosition.getPositionFormulaForLastItem(strGrandFather,nPositionVet[0]));
+		}
+		else if (functionName.compareToIgnoreCase(Function.FUNCTION_NUMBER)==0
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_FLOOR)==0
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_CEILING)==0
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_ROUND)==0)
+		{
+			 /*if(functionArgs.size()>0)
 			 {
-				 /*String strResultValue = functionArgs.get(2);
+				 String arg = functionArgs.get(0);
+				 String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+				 	boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
 				 
-				 if(!strResultValue.contains("'"))
-					 strResultValue = "'"+strResultValue+"'";*/
+				 if(arg.toUpperCase().compareTo(strTagFather)!=0
+ 						&& !bArgIsresult)
+ 				{
+				    if(arg.contains("/") && !arg.contains("'"))
+				    {
+				       String [] vetArgs =  arg.split("/");
+				       String strTempFather = strTagFather;
+				       String strPreviousRules = "";
+				       for(int i=0;i<vetArgs.length;i++)
+				       {
+				    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+				    	   {
+				    		   
+				    		   if(i+1 == vetArgs.length)
+				    		   {   
+				    			  break;  
+				    		   }
+				    		   else
+				    		   {
+				    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather)+", ";
+				    			   strTempFather = vetArgs[i];   
+				    		   }
+				    	   }
+				       }
+				       
+				       sbReturn.append(strPreviousRules);
+				    }
+ 				}
 				 
-				/*sbReturn.insert(0,functionName+"( ");;
+				 // Pass Function Name
+			    sbReturn.append(functionName+" ( ");
+				sbReturn.append(arg.toUpperCase()+", ");
+				sbReturn.append(strResultValue + ") ");
+			 }*/
+			 
+			 List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			 if(finalArgs.size()>0)
+			 {
+				 String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+				 // Pass Function Name
+			    sbReturn.append("my"+functionName+"( ");
+				sbReturn.append(finalArgs.get(0).toUpperCase()+", ");
+				sbReturn.append(strResultValue + ") ");
+			 }
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_DIV)==0)
+		{
+			if(functionArgs.size()>1)
+			{
+				 boolean bHasMath = false;
+				
+				 if(functionArgs.size()>2)
+				 {
+					 if(functionArgs.contains("-") || functionArgs.contains("+"))
+					 {
+						 sbReturn.append(parseDivMathExpression(functionArgs,document,strTagFather,nPositionVet));
+						 bHasMath = true;
+					 }
+				 }
 				 
-				for(int i=0; i<2;i++)
-				{
-					boolean bArgIsresult = functionArgs.get(i).toUpperCase().contains(Function.FUNCTION_RESULT);
-					
-					if(functionArgs.get(i).toUpperCase().compareTo(strTagFather)!=0
+				 if(bHasMath)
+					 sbReturn.append(", ");
+				
+				  
+				 List<String>  listArgsDiv = new ArrayList<String>();
+				 
+				 if(bHasMath)
+				 {
+					 listArgsDiv.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
+					 for(int nArg =0; nArg<functionArgs.size();nArg++)
+					 {
+						 if(!(functionArgs.get(nArg).trim().length()<=0))
+						 {
+							 listArgsDiv.add(functionArgs.get(nArg));
+							 break;
+						 }	 
+					 }
+					 
+					 nPositionVet[0]++;
+				 }
+				 else
+				 {
+				   listArgsDiv.add(functionArgs.get(0));
+				   listArgsDiv.add(functionArgs.get(1)); 
+				 }
+				 
+				 
+				 /*for(int j=0;j<2;j++)
+				 {
+					 String arg = listArgsDiv.get(j);
+					 
+					 	boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
+					 
+					 if(arg.toUpperCase().compareTo(strTagFather)!=0
 							&& !bArgIsresult)
 					{
-						sbReturn.insert(0,getQueryPrologFromSchema3(document,"element",functionArgs.get(i),strTagFather)+", ");
+					    if(arg.contains("/") && !arg.contains("'"))
+					    {
+					       String [] vetArgs =  arg.split("/");
+					       String strTempFather = strTagFather;
+					       String strPreviousRules = "";
+					       for(int i=0;i<vetArgs.length;i++)
+					       {
+					    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+					    	   {
+					    		   
+					    		   if(i+1 == vetArgs.length)
+					    		   {   
+					    			   listArgsDiv.set(j, vetArgs[i]);
+					    		   }
+					    		   else
+					    		   {
+					    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather)+", ";
+					    			   strTempFather = vetArgs[i];   
+					    		   }
+					    	   }
+					       }
+					       
+					       sbReturn.append(strPreviousRules);
+					    }
+					    
 					}
-					
-					 sbReturn.append(functionArgs.get(i).toUpperCase());
-					 sbReturn.append(", ");
+				}*/
+				 List<String> finalArgs = obtainFinalFunctionArgs(listArgsDiv,document,strTagFather,2,sbReturn);
+				 if(finalArgs.size()>1)
+				 {
+					// Pass Function Name
+					String strDivResultVariable = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+					sbReturn.append(functionName+"("+finalArgs.get(0).toUpperCase()+","+finalArgs.get(1).toUpperCase()+", "+strDivResultVariable+") "); 
+				 }
+			 }
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_SUM)==0
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_COUNT)==0) 
+		{
+			//boolean bIsSum = functionName.compareToIgnoreCase(Function.FUNCTION_SUM)==0;
+			 if(functionArgs.size()>0)
+			 {
+				 String arg = functionArgs.get(0);
+				 String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+				 boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
+				 
+				 if(arg.toUpperCase().compareTo(strTagFather)!=0
+ 						&& !bArgIsresult)
+ 				{
+				    if(arg.contains("/") && !arg.contains("'"))
+				    {
+				       String [] vetArgs =  arg.split("/");
+				       String strTempFather = strTagFather;
+				       String strPreviousRules = "";
+				       for(int i=0;i<vetArgs.length;i++)
+				       {
+				    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+				    	   {
+				    		   
+				    		   boolean bHasComplexChilds = hasChildNodes(document, "element", vetArgs[i], strTempFather, false);
+				    		   
+				    		   if(i+1 == vetArgs.length)
+				    		   {   
+				    			  // Pass Function Name
+				    			    sbReturn.append(Function.mountMathListFunction(functionName,vetArgs[i], strPreviousRules,strTempFather, strResultValue,bHasComplexChilds));   
+				    		   }
+				    		   else
+				    		   {
+				    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather)+", ";
+				    			   strTempFather = vetArgs[i];   
+				    		   }
+				    	   }
+				       }
+				    }
+				    else
+				    {
+				    	boolean bHasComplexChilds = hasChildNodes(document, "element", arg, strTagFather, false);
+				    	sbReturn.append(Function.mountMathListFunction(functionName,arg, "",strTagFather, strResultValue,bHasComplexChilds));
+				    }
+					 
+ 				}
+				//else //Mount Function With Result
+			 }
+			 
+		}
+		else if(/*functionName.compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0
+				||*/ functionName.compareToIgnoreCase(Function.FUNCTION_NOT)==0)
+		{
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			if (finalArgs.size() > 0)
+			{
+				sbReturn.delete(0, sbReturn.length()-1);
+				nPositionVet[0]++;
+				sbReturn.append( "findall( ID"+strTagFather.toUpperCase()+nPositionVet[0]+", "+strTagFather.toLowerCase()+"(_,ID"+strTagFather.toUpperCase()+nPositionVet[0]+"), LISTFALSE"+nPositionVet[0]+"), ");
+				nPositionVet[0]++;
+				sbReturn.append("findall( ID"+strTagFather.toUpperCase()+nPositionVet[0]+", ("+strTagFather.toLowerCase()+"(_,ID"+strTagFather.toUpperCase()+nPositionVet[0]+"),");
+				sbReturn.append( finalArgs.get(0).toLowerCase()+"( ID"+strTagFather.toUpperCase()+nPositionVet[0]+",_,_) ), LISTFALSE"+nPositionVet[0]+") , ");
+				sbReturn.append( " minus(LISTFALSE"+(nPositionVet[0]-1)+",LISTFALSE"+(nPositionVet[0])+",");
+				nPositionVet[0]++;
+				sbReturn.append( " LISTFALSE"+nPositionVet[0]+") , ");
+				//nPositionVet[0]++;
+				//strResult += "member(ID"+strFather.toUpperCase()+nPositionVet[0]+", ";
+				sbReturn.append( "member(ID"+strTagFather.toUpperCase()+", ");
+				sbReturn.append( " LISTFALSE"+(nPositionVet[0])+") , ");	
+			}
+			
+			/*List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			if (finalArgs.size() > 0) 
+			{
+				String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+				sbReturn.append(functionName+"( ");
+				sbReturn.append(finalArgs.get(0).toUpperCase()+", ");
+				sbReturn.append(strResultValue + ") ");
+			}*/
+			
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_TRUE)==0
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_FALSE)==0)
+		{
+			nPositionVet[0]++;
+			String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+			sbReturn.append(strResultValue + " = "+ functionName);
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_STRING)==0)
+		{
+			/*if (functionArgs.size() > 0) 
+			{
+				nPositionVet[0]++;
+				String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+				String arg = functionArgs.get(0);
+				
+				boolean bArgIsresult = functionArgs.get(0).toUpperCase().contains(Function.FUNCTION_RESULT); 
+				if(arg.toUpperCase().compareTo(strTagFather)!=0
+						&& !bArgIsresult)
+				{
+					String ruleItem = getQueryPrologFromSchema3(document,"element",arg,strTagFather);
+					if(!ruleItem.isEmpty())
+						sbReturn.insert(0, ruleItem+", ");	
 				}
 				
-				sbReturn.append(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0])+") ");
-				nPositionVet[0]++;
-			 }
-		}*/
+				sbReturn.append(strResultValue + " = "+ arg.toUpperCase());
+			}*/
+			
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			if (finalArgs.size() > 0) 
+			{
+				String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+				sbReturn.append(strResultValue + " = "+ finalArgs.get(0).toUpperCase());	
+			}
+			
+		}
 		else if(functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING)==0
 				|| functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING_AFTER)==0
-				|| functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING_BEFORE)==0) 
+				|| functionName.compareToIgnoreCase(Function.FUNCTION_SUBSTRING_BEFORE)==0
+				|| functionName.replace("-", "").compareToIgnoreCase(Function.FUNCTION_NORMALIZE_SPACE)==0
+				|| functionName.replace("-", "").compareToIgnoreCase(Function.FUNCTION_STRING_LENGTH)==0) 
 		{
 			
 			 //ArrayList<IExpression> listArguments = func.arguments();
 			 
-			 if(functionArgs.size()>1)
+			 /*if(functionArgs.size()>0)
 			 {
 				 String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
-				 
-				 /*if(!strResultValue.contains("'"))
-					 strResultValue = "'"+strResultValue+"'";*/
-				 
+				  
 				 sbReturn.insert(0,functionName+"( ");
-				 for(int i=0; i<2;i++)
+				 for(int i=0; i<functionArgs.size();i++)
 				 {
 					boolean bArgIsresult = functionArgs.get(i).toUpperCase().contains(Function.FUNCTION_RESULT); 
     				String arg = functionArgs.get(i);
     				if(arg.toUpperCase().compareTo(strTagFather)!=0
     						&& !bArgIsresult)
     				{
-    					sbReturn.insert(0, getQueryPrologFromSchema3(document,"element",arg,strTagFather)+", ");	
+    					String ruleItem = getQueryPrologFromSchema3(document,"element",arg,strTagFather);
+    					if(!ruleItem.isEmpty())
+    						sbReturn.insert(0, ruleItem+", ");	
     				}
     				
-    				 /*strPrologFunction += strFuncname+"( ";
-    				 strPrologFunction+=listArguments.get(0).toUpperCase();
-    				 strPrologFunction+=", "+listArguments.get(1)+" , ";
-    				 strPrologFunction+=listArguments.get(2)+" , ";
-    				 strPrologFunction+=strResultValue+" )";*/
     				 sbReturn.append(arg.toUpperCase());
 		    				 
 					 sbReturn.append(", ");
-				 }
+				 }*/
 				 
+			     List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			     String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+			     sbReturn.append(functionName+"( ");
+			     for(int i=0; i<finalArgs.size();i++)
+				 {
+			    	 String arg = finalArgs.get(i);
+			    	 sbReturn.append(arg.toUpperCase());
+					 sbReturn.append(", ");
+				 }
 				 sbReturn.append(strResultValue+") ");
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_CONCAT)==0)
+		{
+			 if(functionArgs.size()>1)
+			 {
+				 	
+				    List<String> pairArgs = new ArrayList<String>(); 
+				    for(int j=0;j<functionArgs.size();j++)
+				 	{
+				 		String arg = functionArgs.get(j);
+						boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
+						if(arg.toUpperCase().compareTo(strTagFather)!=0
+			 						&& !bArgIsresult)
+			 			{
+							    if(arg.contains("/") && !arg.contains("'"))
+							    {
+							    	String [] vetArgs =  arg.split("/");
+								       String strTempFather = strTagFather;
+								       String strPreviousRules = "";
+								       for(int i=0;i<vetArgs.length;i++)
+								       {
+								    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+								    	   {
+								    		   
+								    		   if(i+1 == vetArgs.length)
+								    		   {   
+								    			   arg = vetArgs[i]; 
+								    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather);
+								    			   break;
+								    		   }
+								    		   else
+								    		   {
+								    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather)+", ";
+								    			   strTempFather = vetArgs[i];   
+								    		   }
+								    	   }
+								       }
+								       
+								       sbReturn.append(strPreviousRules);
+							    }  
+			 			}
+						
+						
+						if(j == 1)
+						{
+							nPositionVet[0]++;
+							String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);	
+							
+							if(!sbReturn.toString().endsWith(", "))
+								sbReturn.append(", ");
+							
+							sbReturn.append("atom_concat( ");
+							sbReturn.append(pairArgs.get(0).toUpperCase()+", ");
+							//sbReturn.append(pairArgs.get(1).toUpperCase()+", ");
+							sbReturn.append(arg.toUpperCase()+", ");
+							sbReturn.append(strResultValue + ") ");
+							
+							pairArgs.clear();
+							pairArgs.add(strResultValue);
+						}
+						//else if(j>2)
+						else if(j>1)
+						{
+							if(!sbReturn.toString().endsWith(", "))
+								sbReturn.append(", ");
+							
+							String strPreviousResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+							sbReturn.append("atom_concat( ");
+							sbReturn.append(strPreviousResultValue+", ");
+							sbReturn.append(arg.toUpperCase()+", ");
+							
+							nPositionVet[0]++;
+							String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+							sbReturn.append(strResultValue + ") ");
+							
+						}
+						else
+						{
+							pairArgs.add(arg);
+						}
+						
+						if(j+1 < functionArgs.size())
+							sbReturn.append(", ");
+				 	}
+				    
 			 }
+		}
+		else if(functionName.compareToIgnoreCase(Function.FUNCTION_TRANSLATE)==0)
+		{
+			 /*if(functionArgs.size()>2)
+			 {
+				 	
+				    List<String> finalArgs = new ArrayList<String>(); 
+				    for(int j=0;j<functionArgs.size();j++)
+				 	{
+				 		String arg = functionArgs.get(j);
+						boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
+						if(arg.toUpperCase().compareTo(strTagFather)!=0
+			 						&& !bArgIsresult)
+			 			{
+							    if(arg.contains("/") && !arg.contains("'"))
+							    {
+							    	String [] vetArgs =  arg.split("/");
+								       String strTempFather = strTagFather;
+								       String strPreviousRules = "";
+								       for(int i=0;i<vetArgs.length;i++)
+								       {
+								    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+								    	   {
+								    		   
+								    		   if(i+1 == vetArgs.length)
+								    		   {   
+								    			   arg = vetArgs[i]; 
+								    			   break;
+								    		   }
+								    		   else
+								    		   {
+								    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather)+", ";
+								    			   strTempFather = vetArgs[i];   
+								    		   }
+								    	   }
+								       }					    
+							    }  
+			 			}
+						
+					  finalArgs.add(arg);
+				 	}
+				    
+				    if(finalArgs.size() > 2)
+				    {
+				    	String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+						sbReturn.append(functionName+"( ");
+						sbReturn.append(finalArgs.get(0)+", ");
+						sbReturn.append(finalArgs.get(1)+", ");
+						sbReturn.append(finalArgs.get(2)+", ");
+						sbReturn.append(strResultValue + ") ");
+				    }
+				    
+			 }*/
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,3,sbReturn);
+			if(finalArgs.size() > 2)
+		    {
+		    	String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
+				sbReturn.append(functionName+"( ");
+				sbReturn.append(finalArgs.get(0).toUpperCase()+", ");
+				sbReturn.append(finalArgs.get(1).toUpperCase()+", ");
+				sbReturn.append(finalArgs.get(2).toUpperCase()+", ");
+				sbReturn.append(strResultValue + ") ");
+		    }
 		}
 		
 		sbReturn.insert(0, recursiveResult);
+		
 		return sbReturn.toString();
+	}
+	
+	
+	private List<String> obtainFinalFunctionArgs( List<String> argsList,Document document,String strTagFather, int nNeededArgs,StringBuilder sbReturn)
+	{
+		 
+		 List<String> finalArgs = new ArrayList<String>();
+		 if(argsList.size()>=nNeededArgs)
+		 {	     
+        	    for(int j=0;j<argsList.size();j++)
+			 	{
+			 		String arg = argsList.get(j);
+					boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT);
+					String strTempFather = strTagFather;
+					if(arg.toUpperCase().compareTo(strTagFather)!=0
+		 						&& !bArgIsresult)
+		 			{
+						    if(arg.contains("/") && !arg.contains("'"))
+						    {
+						    	   String [] vetArgs =  arg.split("/");
+							       String strPreviousRules = "";
+							       for(int i=0;i<vetArgs.length;i++)
+							       {
+							    	   if(vetArgs[i].toUpperCase().compareTo(strTagFather)!=0)
+							    	   {
+							    		   
+							    		   if(i+1 == vetArgs.length)
+							    		   {   
+							    			   arg = vetArgs[i]; 
+							    			   break;
+							    		   }
+							    		   else
+							    		   {
+							    			   String previousRule = getQueryPrologFromSchema3(document,"element",vetArgs[i],strTempFather);
+							    			   if(!previousRule.isEmpty())
+							    				   strPreviousRules += previousRule+", ";
+							    			   strTempFather = vetArgs[i];   
+							    		   }
+							    	   }
+							       }
+							       
+							       sbReturn.append(strPreviousRules);
+						    }
+						    
+						    if(!arg.startsWith("'") && !arg.matches("[0-9]") && arg.trim().length() > 0 && !arg.startsWith("\"") )
+						    	sbReturn.append(getQueryPrologFromSchema3(document,"element",arg,strTempFather)+", ");
+		 			}
+					
+				  finalArgs.add(arg);
+			 	}   
+		 }
+		 
+		 return finalArgs;
 	}
 	
 	private ArrayList<String> getPrologOperatorTags(QueryElement element, Document document)
@@ -1508,9 +2612,9 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	public boolean hasChildNodes(Document document, String typeSchema, String nameElement,boolean bConsiderNamespaces)
+	public boolean hasChildNodes(Document document, String typeSchema, String nameElement,String nameParentElement,boolean bConsiderNamespaces)
 	{
-		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,bConsiderNamespaces);
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,nameParentElement,bConsiderNamespaces);
 		
 		if ( nodeElement == null )
 			return false;
@@ -1518,13 +2622,48 @@ public class WrapperSchema extends Wrapper {
 		if ( nodeElement.getChildNodes().getLength() != 0 )
 			return true;
 		
+		
+		if(isNodeComplexType(nodeElement))
+			return true;
+		
+		if(nodeElement.getAttributes().getLength() >0)
+		{
+			String nameSpace = document.getDocumentElement().getPrefix();
+			Node nodeType =  nodeElement.getAttributes().getNamedItem("type");
+			String typeElement = "";
+			if(nodeType != null)
+				typeElement = nodeType.getNodeValue();
+			
+			 ArrayList<Node> complexNode = getComplexNodeByName(document,typeElement);
+			 if(complexNode.size()>0)
+			 {
+				 //if(isComplexType(nameSpace, typeElement))
+				 NodeList childNodes = complexNode.get(0).getChildNodes();
+				 boolean bHasOnlyAttribute = true;
+				 for(int i=0; i< childNodes.getLength();i++)
+			     {
+					 String childNodeName = childNodes.item(i).getNodeName();
+					if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0)
+			    	{
+			    		bHasOnlyAttribute = false;
+			    		break;
+			    	}
+			     }
+				 
+				 if(!bHasOnlyAttribute)
+					 return true;
+			 }	
+		}
+		
+		
 		return false;
 	}
 	
 	
+	
 	public boolean isRoot(Document document, String typeSchema, String nameElement)
 	{
-		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,false);
+		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,"NOPARENT",false);
 		
 		if ( nodeElement == null )
 			return false;
@@ -1551,16 +2690,30 @@ public class WrapperSchema extends Wrapper {
 		Set<String> values = documentList.keySet();
 		int nSearch = 1;
 		boolean bOrFilter = false;
+		boolean bJoin = false;
+		boolean bParentFilter = false;
+		boolean bFilter = false;
 		String strLastCommonParent = "";
 		String strLastCommonGrandParent = "";
+		String strLastBkpCommonParent = "";
+		String strLastBkpCommonGrandParent = "";
+		
 		String strFunction = "";
 		boolean  bWildCard = false;
+		boolean bPrecOrFolw = false;
 		Document document = null;
 		int nWildCardLevel = 0;
+		boolean  bHasUsedWildCard = false;
+		String   strLastWildCardItem = "NOLASTWILDCARD";
+		int nLastWildCardLevel = 0;
 		int nRefParent = 0;
+		int nCompareTag = 0;
+		ArrayList<String> parentFilterTags = new ArrayList<String>();
 		//ArrayList<String> listaTags = new ArrayList<String>();
 		ArrayList<Pair<String,Boolean>> pairListTags = new ArrayList<Pair<String,Boolean>>();
 		//HashMap<String,Boolean> tagHash = new HashMap<String,Boolean>();
+		ArrayList<String> targetNodeNameList = new ArrayList<String>();
+		
 		for (String name : values)
 		{
 			document = documentList.get(name);
@@ -1579,10 +2732,244 @@ public class WrapperSchema extends Wrapper {
 				}
 				
 				QueryElement element = arrayElementsQuery.get(i);
+				
+				if(element.isParenthesis())
+				{
+					queryConvert += element.getElement();
+					continue;
+				}
+				
+				if(element.isJoin())
+				{
+					queryConvert = "setof(_,(("+ queryConvert;
+					if(queryConvert.endsWith(", "))
+						queryConvert = queryConvert.substring(0, queryConvert.length()-2);
+					
+					queryConvert +=" ) ; ( ";
+					bJoin = true;
+					strLastCommonParent = "NOPARENT";
+					strLastCommonGrandParent = "NOGRANDPARENT";
+					continue;
+				}
+				
+				
+				if(element.getElement().trim().endsWith(":*"))
+				{
+					queryConvert += obtainAxisWildCard(document,strLastCommonParent,element);
+					continue;
+				}
+				
+				if(element.getElement().trim().contains(Function.FUNCTION_NAMESPACE))
+				{
+					queryConvert += obtainAxisNamespace(document,strLastCommonParent,element);
+					continue;
+				}
+				
+				if(element.getVariable().toLowerCase().contains(Function.FUNCTION_PARENT))
+				{
+					
+					if(element.isFilterpart())
+					{
+						bParentFilter = true;
+						String[] filterParentArray = element.getVariable().split(Function.FUNCTION_PARENT);
+						if(filterParentArray.length > 1)
+							parentFilterTags.add(filterParentArray[1]);
+					}
+					else
+					{
+						 queryConvert +=getQueryPrologFromSchema3(document,"element",element.getVariable(),"NOPARENT");
+						 strLastCommonGrandParent = "NOGRANDPARENT";
+						 strLastCommonParent = element.getVariable();
+					}
+					
+					continue;
+				}
+				
+				if(element.getVariable().toLowerCase().contains("ancestor::"))
+				{
+					String[] ancestorArray = element.getVariable().split("ancestor::");
+					if(ancestorArray.length > 1)
+					{
+						ArrayList<String> ancestorRules =  getAncestorRule(document,strLastCommonParent,ancestorArray[1],new ArrayList<String>());
+						for(int j=0;i<ancestorRules.size();j++)
+						{
+							
+						}
+						
+					}
+					
+					
+				}
+				
+				//##### WildCard Test
+				 if(element.getElement().trim().compareTo("*")==0)
+				 {
+					 nWildCardLevel++;
+					 continue;
+				 }
+				 
+				 if(element.getElement().trim().compareTo("..")==0)
+				 {
+					 nRefParent++;
+					 continue;
+				 }
+				
+				 if(nWildCardLevel>0 || nRefParent>0)
+				 {
+					 
+					 if(nWildCardLevel >0)
+					 {
+						 /*if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!=0)
+						 {
+							 queryConvert +=getWildCardQuery(document,strLastCommonParent,nWildCardLevel);
+							 //nWildCardLevel =0;
+						 }
+						 else
+						 {
+							 
+							 
+							 ArrayList<String>  completeRuleList = getRuleSchema(document,strLastCommonParent,true);
+							 String strCompleteRule  = "";
+							 if(completeRuleList.size()>1)
+							 {
+								 strCompleteRule= " setof(_,( ";
+							 }
+							 
+							 boolean bPrevious = false;
+							 
+							 for (int j=0; j< completeRuleList.size();j++) 
+							 {
+								  
+
+								 String rule= completeRuleList.get(j);
+								 if(element.getVariable().contains("@"))
+								 {
+									 String elementName = element.getVariable().replace("@", "");
+									 if(rule.contains("_attribute_"+elementName.trim()))
+									 {
+									     String [] splitRule = rule.split("_attribute_"+elementName.trim());
+									     if(splitRule.length >0)
+									     {
+									    	 if(bPrevious)
+												 strCompleteRule+="; ";	 
+									    	 
+									    	 strCompleteRule += getQueryPrologFromSchema3(document,"element",splitRule[0],"_");
+									    	 String  currentElementRule =getQueryPrologFromSchema3(document,"element",element.getVariable(),splitRule[0]);
+									    	 strWildCardItem = element.getVariable();
+									    	 strCompleteRule +=" , "+currentElementRule;
+									    	 bPrevious = true;
+									     }
+										 
+									 } 
+								 }
+								 else
+								 {
+									 String [] splitRule = rule.split("(");
+									 if(splitRule.length >0)
+									 {
+										 if(bPrevious)
+											 strCompleteRule+="; ";	 
+										 
+										 strCompleteRule+=rule; 
+										 String  currentElementRule =getQueryPrologFromSchema3(document,"element",element.getElement(),splitRule[0]);
+										 strWildCardItem = element.getElement();
+								    	 strCompleteRule +=" , "+currentElementRule;
+								    	 bPrevious = true;
+									 }
+								 }
+								
+							 }
+							 
+							 if(completeRuleList.size()>1)
+								 strCompleteRule +=" ),_) ";
+							 
+							 queryConvert += strCompleteRule;
+						 }*/
+						 
+						 String strAfterWildCardFunction = "";
+						 boolean bHasOnlyFunction = false;
+						 if(element.hasFunction())
+						 {
+							int[] nPositionVet = {nSearch};
+							if(strLastCommonParent.compareToIgnoreCase("NOPARENT")==0)
+								bHasOnlyFunction = true;
+							if(element.hasOperator() )
+							{
+								Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet);
+								strAfterWildCardFunction = pair.getKey();
+								/*else
+									queryConvert += ", "+pair.getKey();*/	
+							}
+							else
+							{
+								strAfterWildCardFunction = 	translateFunction(document,element.getExpressionFormula(), strLastCommonGrandParent, strLastCommonParent, nPositionVet);
+							}
+						}
+						 
+						 
+						 //if((strLastCommonParent.compareToIgnoreCase("NOPARENT")!=0))
+						// {
+							 if(element.getVariable().contains("@") && !element.getVariable().isEmpty() )
+								 strLastWildCardItem = element.getVariable();
+							 else if(!element.getElement().isEmpty())
+								 strLastWildCardItem = element.getElement(); 
+						 //}
+						 
+						 if(bHasOnlyFunction)
+							 queryConvert = strAfterWildCardFunction;
+						 else
+						 {
+							 queryConvert+= getWildCardRules(document,element,strLastCommonParent,nWildCardLevel,nCompareTag);
+							 queryConvert += ", "+strAfterWildCardFunction;
+						 }
+						 bWildCard = true;
+						 nLastWildCardLevel = nWildCardLevel;
+						 nWildCardLevel = 0;
+						 bHasUsedWildCard = true;
+						 
+					 }
+					 else if(nRefParent >0)
+					 {
+						 queryConvert +=getRulesBottomUp(document,strLastCommonParent,nRefParent);
+						 nRefParent =0; 
+					 }
+					 
+					 if(bWildCard)
+					 {
+						 if(!element.getElement().isEmpty())
+						 {
+							 strLastCommonGrandParent = strLastCommonParent; 
+							 strLastCommonParent = element.getElement();
+						 }
+						 
+						 queryConvert +=", ";
+						 bWildCard = false;
+						 continue;
+					 }
+					 
+					 queryConvert +=", ";
+					 ///
+					/* queryConvert +=", "+getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
+					 strLastCommonGrandParent = strLastCommonParent;
+					 strLastCommonParent = element.getElement();
+					 
+					 pairListTags.add(new Pair<String, Boolean>(strLastCommonParent,true));*/
+				 }
+				
+				
 				if(!element.isFilterpart())
 				{
+					if(bFilter)
+					{
+						strLastCommonParent = strLastBkpCommonParent;
+						strLastCommonGrandParent = strLastBkpCommonGrandParent;
+					}
+					
+					 bFilter = false; 
 					 //queryConvert +=getQueryPrologFromSchema3(document,"*",element.getElement(),strLastCommonFather);
-					 if(element.getElement().trim().compareTo("*")==0)
+					 
+					 //##### WildCard Test
+					 /*if(element.getElement().trim().compareTo("*")==0)
 					 {
 						 nWildCardLevel++;
 						 continue;
@@ -1592,9 +2979,137 @@ public class WrapperSchema extends Wrapper {
 					 {
 						 nRefParent++;
 						 continue;
+					 }*/
+					 
+					 if(element.getElement().toLowerCase().contains("preceding::") || element.getElement().toLowerCase().contains("following::")
+							 || element.getElement().toLowerCase().contains("preceding-sibling::") || element.getElement().toLowerCase().contains("following-sibling"))
+					 {
+						 
+						 int [] vetNCompareTag = {nCompareTag};
+						 queryConvert+= obtainPrecedinOrFollowingRules(document, queryConvert ,element, strLastCommonParent,strLastCommonGrandParent
+									,vetNCompareTag,bHasUsedWildCard,strLastWildCardItem, nLastWildCardLevel );
+									
+						 nCompareTag  = vetNCompareTag[0];			
+						 bPrecOrFolw = true;
 					 }
 					 
-					 if(nWildCardLevel>0 || nRefParent>0)
+					 
+					 /*if(element.getElement().toLowerCase().contains("preceding::"))
+					 {
+						 String[] filterSiblingArray = element.getVariable().split("preceding::");
+						 if(filterSiblingArray.length > 1)
+						 {
+							 nCompareTag++;
+							 String strFilterSibling = filterSiblingArray[1];
+							 String commonParent = strLastCommonParent;
+							 if(commonParent.trim().equalsIgnoreCase(strFilterSibling))
+									 commonParent = strLastCommonGrandParent;	 
+								
+							 String tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+							 tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+							 tempQuery = tempQuery.replace(commonParent.toUpperCase(), commonParent.toUpperCase()+nCompareTag);
+							 
+							 queryConvert+=tempQuery;
+							 queryConvert +=", ID"+strFilterSibling.toUpperCase() +" > ID"+strFilterSibling.toUpperCase()+nCompareTag;
+							 
+							 bPrecOrFolw = true;
+						 }
+					 }
+					 else if(element.getElement().toLowerCase().contains("following::"))
+					 {
+						 String[] filterSiblingArray = element.getVariable().split("following::");
+						 if(filterSiblingArray.length > 1)
+						 {
+							 nCompareTag++;
+							 String strFilterSibling = filterSiblingArray[1];
+							 String commonParent = strLastCommonParent;
+							 if(commonParent.trim().equalsIgnoreCase(strFilterSibling))
+								commonParent = strLastCommonGrandParent;
+							 
+							 String tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+							 tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+							 tempQuery = tempQuery.replace(commonParent.toUpperCase(), commonParent.toUpperCase()+nCompareTag);
+							 
+							 queryConvert+=tempQuery;
+							 queryConvert +=", ID"+strFilterSibling.toUpperCase() +" < ID"+strFilterSibling.toUpperCase()+nCompareTag;
+							 
+							 bPrecOrFolw = true;
+						 }
+					 }
+					 else if(element.getElement().toLowerCase().contains("preceding-sibling::"))
+					 {
+							
+							String[] filterSiblingArray = element.getVariable().split("preceding-sibling::");
+							if(filterSiblingArray.length > 1)
+							{
+								nCompareTag++;
+								String strFilterSibling = filterSiblingArray[1];
+								String commonParent = strLastCommonParent;
+								if(commonParent.trim().equalsIgnoreCase(strFilterSibling))
+									commonParent = strLastCommonGrandParent;
+								
+								String tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+								tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+								
+								queryConvert = " findall(ID"+strFilterSibling.toUpperCase()+", ("+queryConvert;
+								int nComma = queryConvert.lastIndexOf(", ");
+								if(nComma != -1)
+									queryConvert = queryConvert.substring(0, nComma);
+								queryConvert+=") , PRECEDINDLIST), preceding(PRECEDINDLIST,PRECEDINDFINALLIST), member(ID"+strFilterSibling.toUpperCase()+nCompareTag+", PRECEDINDFINALLIST)";
+								queryConvert+=" ,"+tempQuery;
+								nCompareTag++;
+								tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+								tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+								queryConvert+=" ,"+tempQuery;
+								queryConvert +=", ID"+strFilterSibling.toUpperCase()+(nCompareTag-1) +" < ID"+strFilterSibling.toUpperCase()+nCompareTag;
+								
+								
+								//##queryConvert += tempQuery;
+								//##queryConvert +=", ID"+strFilterSibling.toUpperCase()+nCompareTag +" < ID"+strFilterSibling.toUpperCase(); 
+								//bSibling = true;
+							}
+					 }
+					 else if(element.getElement().toLowerCase().contains("following-sibling::"))
+					 {
+							
+							String[] filterSiblingArray = element.getVariable().split("following-sibling::");
+							if(filterSiblingArray.length > 1)
+							{
+								//queryConvert +=
+								nCompareTag++;
+								String strFilterSibling = filterSiblingArray[1];
+								String commonParent = strLastCommonParent;
+								if(commonParent.trim().equalsIgnoreCase(strFilterSibling))
+									commonParent = strLastCommonGrandParent;
+								String tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+								tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+								
+								queryConvert = " findall(ID"+strFilterSibling.toUpperCase()+", ("+queryConvert;
+								int nComma = queryConvert.lastIndexOf(", ");
+								if(nComma != -1)
+									queryConvert = queryConvert.substring(0, nComma);
+								queryConvert+=") , FOLLOWINGLIST), following(FOLLOWINGLIST,FOLLOWINGLISTFINALLIST), member(ID"+strFilterSibling.toUpperCase()+nCompareTag+", FOLLOWINGLISTFINALLIST)";
+								queryConvert+=" ,"+tempQuery;
+								nCompareTag++;
+								tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+								tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag);
+								queryConvert+=" ,"+tempQuery;
+								queryConvert +=", ID"+strFilterSibling.toUpperCase()+(nCompareTag-1) +" > ID"+strFilterSibling.toUpperCase()+nCompareTag;
+								
+								//##queryConvert += tempQuery;
+								//###queryConvert +=", ID"+strFilterSibling.toUpperCase()+nCompareTag +" > ID"+strFilterSibling.toUpperCase(); 
+								//bSibling = true;
+							}
+					 }*/
+					 else
+					 {
+						 queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
+						 strLastCommonGrandParent = strLastCommonParent;
+						 strLastCommonParent = element.getElement();
+						 pairListTags.add(new Pair<String, Boolean>(strLastCommonParent,true));
+					 }
+					 
+					/* if(nWildCardLevel>0 || nRefParent>0)
 					 {
 						 
 						 if(nWildCardLevel >0)
@@ -1614,23 +3129,122 @@ public class WrapperSchema extends Wrapper {
 						 strLastCommonParent = element.getElement();
 						 
 						 pairListTags.add(new Pair<String, Boolean>(strLastCommonParent,true));
-					 }
-					 else
-					 {
-						 queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
-						 strLastCommonGrandParent = strLastCommonParent;
-						 strLastCommonParent = element.getElement();
-						 pairListTags.add(new Pair<String, Boolean>(strLastCommonParent,true));
-					 }
+					 }*/
+					 
 				}
 				else
 				{
 					
+					if(!bFilter)
+					{
+						strLastBkpCommonParent = strLastCommonParent;
+						strLastBkpCommonGrandParent = strLastCommonGrandParent; 
+					}
+					
+					bFilter = true;
 					if(element.getFormula().isEmpty())
 					{
-						//queryConvert +=getQueryPrologFromSchema3(document,"*",element.getElement(),strLastCommonFather);
-						queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
-						String strLastFilterFather = element.getElement();
+						String strLastFilterFather ="";
+						
+						if(element.getElement().toLowerCase().contains("preceding::") || element.getElement().toLowerCase().contains("following::")
+								 || element.getElement().toLowerCase().contains("preceding-sibling::") || element.getElement().toLowerCase().contains("following-sibling"))
+						 {
+							 
+							String strSplit = "preceding-sibling::";
+							if(element.getElement().toLowerCase().contains("following-sibling::"))
+								strSplit ="following-sibling::";
+							else if (element.getElement().toLowerCase().contains("preceding::"))
+								strSplit ="preceding::";
+							else if (element.getElement().toLowerCase().contains("following::"))
+								strSplit ="following::";
+						 
+							String[] filterSiblingArray = element.getVariable().split(strSplit);
+							if(filterSiblingArray.length > 1)
+								strLastFilterFather = filterSiblingArray[0];
+							
+							int [] vetNCompareTag = {nCompareTag};
+							 queryConvert+= obtainPrecedinOrFollowingRules(document, queryConvert ,element, strLastCommonParent,strLastCommonGrandParent
+										,vetNCompareTag,bHasUsedWildCard,strLastWildCardItem, nLastWildCardLevel );
+										
+							 nCompareTag  = vetNCompareTag[0];			
+							 bPrecOrFolw = true;
+						 }
+						
+						//bPrecOrFolw = false;
+						/*if(element.getElement().toLowerCase().contains("following-sibling::"))
+						{
+							
+							String[] filterSiblingArray = element.getVariable().split("following-sibling::");
+							if(filterSiblingArray.length > 1)
+							{
+								//queryConvert +=
+								nCompareTag++;
+								strLastFilterFather = filterSiblingArray[1];
+								String tempQuery = getQueryPrologFromSchema3(document,"element",strLastFilterFather,strLastCommonParent);
+								tempQuery = tempQuery.replace(strLastFilterFather.toUpperCase(), strLastFilterFather.toUpperCase()+nCompareTag);
+								
+								queryConvert = " findall(ID"+strLastFilterFather.toUpperCase()+", ("+queryConvert;
+								int nComma = queryConvert.lastIndexOf(", ");
+								if(nComma != -1)
+									queryConvert = queryConvert.substring(0, nComma);
+								queryConvert+=") , FOLLOWINGLIST), following(FOLLOWINGLIST,FOLLOWINGLISTFINALLIST), member(ID"+strLastFilterFather.toUpperCase()+nCompareTag+", FOLLOWINGLISTFINALLIST)";
+								queryConvert+=" ,"+tempQuery;
+								nCompareTag++;
+								tempQuery = getQueryPrologFromSchema3(document,"element",strLastFilterFather,strLastCommonParent);
+								tempQuery = tempQuery.replace(strLastFilterFather.toUpperCase(), strLastFilterFather.toUpperCase()+nCompareTag);
+								queryConvert+=" ,"+tempQuery;
+								queryConvert +=", ID"+strLastFilterFather.toUpperCase()+(nCompareTag-1) +" > ID"+strLastFilterFather.toUpperCase()+nCompareTag;
+								
+								
+								//##queryConvert += tempQuery;
+								//##queryConvert +=", ID"+strLastFilterFather.toUpperCase()+nCompareTag +" > ID"+strLastFilterFather.toUpperCase(); 
+								bPrecOrFolw = true;
+							}
+						}
+						else  if(element.getElement().toLowerCase().contains("preceding-sibling::"))
+					    {
+							
+							String[] filterSiblingArray = element.getVariable().split("preceding-sibling::");
+							if(filterSiblingArray.length > 1)
+							{
+								nCompareTag++;
+								strLastFilterFather = filterSiblingArray[1];
+								
+								String tempQuery = getQueryPrologFromSchema3(document,"element",strLastFilterFather,strLastCommonParent);
+								tempQuery = tempQuery.replace(strLastFilterFather.toUpperCase(), strLastFilterFather.toUpperCase()+nCompareTag);
+								
+								
+								queryConvert = " findall(ID"+strLastFilterFather.toUpperCase()+", ("+queryConvert;
+								int nComma = queryConvert.lastIndexOf(", ");
+								if(nComma != -1)
+									queryConvert = queryConvert.substring(0, nComma);
+								queryConvert+=") , PRECEDINDLIST), preceding(PRECEDINDLIST,PRECEDINDFINALLIST), member(ID"+strLastFilterFather.toUpperCase()+nCompareTag+", PRECEDINDFINALLIST)";
+								queryConvert+=" ,"+tempQuery;
+								nCompareTag++;
+								tempQuery = getQueryPrologFromSchema3(document,"element",strLastFilterFather,strLastCommonParent);
+								tempQuery = tempQuery.replace(strLastFilterFather.toUpperCase(), strLastFilterFather.toUpperCase()+nCompareTag);
+								queryConvert+=" ,"+tempQuery;
+								queryConvert +=", ID"+strLastFilterFather.toUpperCase()+(nCompareTag-1) +" < ID"+strLastFilterFather.toUpperCase()+nCompareTag;
+								
+								
+								
+								//##queryConvert += tempQuery;
+								//##queryConvert +=", ID"+strLastFilterFather.toUpperCase()+nCompareTag +" < ID"+strLastFilterFather.toUpperCase(); 
+								bPrecOrFolw = true;
+							}
+					    }*/
+						else
+						{
+							//queryConvert +=getQueryPrologFromSchema3(document,"*",element.getElement(),strLastCommonFather);
+							String tempQuery = getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
+							if(bPrecOrFolw)
+							{
+								tempQuery = tempQuery.replace(strLastCommonParent.toUpperCase(), strLastCommonParent.toUpperCase()+nCompareTag);
+								tempQuery = tempQuery.replace(element.getElement().toUpperCase(), element.getElement().toUpperCase()+nCompareTag);
+							}
+							queryConvert += tempQuery;
+							strLastFilterFather = element.getElement();
+						}
 						
 						boolean bFind = false;
 						
@@ -1659,18 +3273,37 @@ public class WrapperSchema extends Wrapper {
 							if(elementFilter.getFormula().isEmpty())
 							{
 								//queryConvert +=getQueryPrologFromSchema3(document,"*",elementFilter.getElement(),strLastFilterFather);
-								queryConvert +=getQueryPrologFromSchema3(document,"element",elementFilter.getElement(),strLastFilterFather);
-								strLastFilterFather = elementFilter.getElement();
+								if(bPrecOrFolw)
+								{
+									String strSibling = elementFilter.getElement();
+									
+									String tempQuery = getQueryPrologFromSchema3(document,"element",strSibling,strLastFilterFather);
+									tempQuery = tempQuery.replace(strSibling.toUpperCase(), strSibling.toUpperCase()+nCompareTag);
+									tempQuery = tempQuery.replace(strLastFilterFather.toUpperCase(), strLastFilterFather.toUpperCase()+nCompareTag);
+									queryConvert +=tempQuery;
+									//strLastFilterFather = strSibling+nCompareTag;
+									strLastFilterFather = strSibling;
+								}
+								else
+								{
+									queryConvert +=getQueryPrologFromSchema3(document,"element",elementFilter.getElement(),strLastFilterFather);
+									strLastFilterFather = elementFilter.getElement();
+								}
+								
 								
 							}
 							else
 							{
+								if(elementFilter.hasOperator())
+								{
+									queryConvert += elementFilter.getExperimentalFormula(strLastFilterFather,nCompareTag);
+								}
 								// Final do Filtro
-								if(elementFilter instanceof  QueryPosition)
+								else if(elementFilter instanceof  QueryPosition)
 								{
 									QueryPosition queryPos = (QueryPosition) elementFilter;
 									//queryPos.setHasChildren(hasChildNodes(document, "*", queryPos.getItemFilter()));
-									queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter(),false));
+									queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter(),strLastCommonParent,false));
 									//queryPos.setIsRoot(isRoot(document, "*", queryPos.getItemFilter()));
 									queryPos.setIsRoot(isRoot(document, "element", queryPos.getItemFilter()));
 									queryConvert += queryPos.getPositionFormula(nSearch);
@@ -1683,7 +3316,7 @@ public class WrapperSchema extends Wrapper {
 								    	queryConvert +="setof(_,( ";
 								    	bOrFilter = true;
 								    }
-									queryConvert += elementFilter.getExperimentalFormula(strLastFilterFather);
+									queryConvert += elementFilter.getExperimentalFormula(strLastFilterFather,0);
 								}
 								
 								bFind = true;
@@ -1702,7 +3335,8 @@ public class WrapperSchema extends Wrapper {
 								    	queryConvert +=" ),_)";
 								    	bOrFilter = false;
 								    }
-									queryConvert +=", ";
+								   
+								    queryConvert +=", ";
 								} 
 								//queryConvert +=", ";
 							}
@@ -1717,7 +3351,7 @@ public class WrapperSchema extends Wrapper {
 						{
 							QueryPosition queryPos = (QueryPosition) element;
 							//queryPos.setHasChildren(hasChildNodes(document, "*", queryPos.getItemFilter()));
-							queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter(),false));
+							queryPos.setHasChildren(hasChildNodes(document, "element", queryPos.getItemFilter(),strLastCommonParent,false));
 							//queryPos.setIsRoot(isRoot(document, "*", queryPos.getItemFilter()));
 							queryPos.setIsRoot(isRoot(document, "element", queryPos.getItemFilter()));
 							queryConvert += queryPos.getPositionFormula(nSearch);
@@ -1730,7 +3364,11 @@ public class WrapperSchema extends Wrapper {
 								//FILTRO COM FUNCAO
 								
 								//queryConvert += getPrologFunction(document,strLastCommonParent,element);
-								strFunction = getPrologFunction(document,strLastCommonParent,element);
+								//strFunction = getPrologFunction(document,strLastCommonParent,element);
+								int[] nPositionVet = {nSearch};
+								strFunction = translateFunction(document,element.getExpressionFormula(),strLastCommonGrandParent, strLastCommonParent,nPositionVet);
+								nPositionVet[0]++;
+								nSearch = nPositionVet[0];
 							}
 							else
 							{
@@ -1747,7 +3385,7 @@ public class WrapperSchema extends Wrapper {
 									{
 										int[] nPositionVet = {nSearch};
 
-										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonParent,element,nPositionVet);
+										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet);
 
 										strFunction = pair.getKey();
 										ArrayList<String> tagOperatorList = getPrologOperatorTags(element,document);
@@ -1757,14 +3395,23 @@ public class WrapperSchema extends Wrapper {
 											pairListTags.add(new Pair<String, Boolean>(string, pair.getValue()));	
 										}
 										//listaTags.addAll(tagOperatorList);
-										
+										nPositionVet[0]++;
 										nSearch = nPositionVet[0];
 									}
 									else
-										strFunction = element.getExperimentalFormula(strLastCommonParent);
+										strFunction = element.getExperimentalFormula(strLastCommonParent,0);
 								}
 								else
-								    queryConvert += element.getExperimentalFormula(strLastCommonParent);
+								{
+									//queryConvert +=getQueryPrologFromSchema3(document,"element",element.getElement(),strLastCommonParent);
+								    //queryConvert += element.getExperimentalFormula(strLastCommonParent);
+									String expFormula  = element.getExperimentalFormula(strLastCommonParent,0);
+									if(expFormula.compareToIgnoreCase(element.getVariable())==0)
+										queryConvert +=getQueryPrologFromSchema3(document,"element",element.getVariable(),strLastCommonParent);
+									else
+										queryConvert +=expFormula;
+								}
+									
 								
 							}
 							
@@ -1788,7 +3435,8 @@ public class WrapperSchema extends Wrapper {
 					    	queryConvert +=" ),_)";
 					    	bOrFilter = false;
 					     }
-						queryConvert +=", ";
+						 if(!queryConvert.trim().endsWith(",") || !queryConvert.trim().endsWith("),"))
+							 queryConvert +=", ";
 					}
 				}
 				//queryConvert +=", ";
@@ -1810,15 +3458,40 @@ public class WrapperSchema extends Wrapper {
 			
 		}
 		
+		if(bParentFilter)
+		{
+			ArrayList<String > parentTags = getTagParents(document,strLastCommonParent,1);
+			
+			for(int k=0; k< parentTags.size();k++)
+			{
+				for(int j=0;j<parentFilterTags.size();j++)
+				{
+					if(parentTags.get(k).toLowerCase().compareTo(parentFilterTags.get(j)) == 0)
+						parentTags.remove(k);
+				}
+			}
+			
+			
+			
+			queryConvert = invalidateTags(parentTags)+ queryConvert;
+			
+			
+			bParentFilter = false;
+		}
+		
 		
 		
 		//String element = getElement(query);		
-		 if(bOrFilter)
+		 if(bOrFilter || bJoin)
 	     {
-	    	queryConvert +=" ),_)";
+	    	if(bJoin)
+	    		queryConvert +=" ) ";
+	    	
+			queryConvert +=" ),_)";
 	    	bOrFilter = false;
 	     }
 		 
+		 boolean bInsertAllRulesFromTag = false;
 		 
 		 if(nWildCardLevel>0 || nRefParent >0)
 		 {
@@ -1826,7 +3499,7 @@ public class WrapperSchema extends Wrapper {
 					 && ! queryConvert.isEmpty()) //WildCard With parents
 			 {
 				 if(strLastCommonParent != "NOPARENT")
-					 queryConvert += getWildCardQuery(document,strLastCommonParent,nWildCardLevel);
+					 queryConvert += getWildCardQuery(document,strLastCommonParent,nWildCardLevel,nCompareTag);
 				 else
 				 {
 					 ArrayList<String>  completeRuleList = getRuleSchema(document,strLastCommonParent,true);
@@ -1869,98 +3542,108 @@ public class WrapperSchema extends Wrapper {
 		 }
 		 else
 		 {  
-				 ArrayList<String>  completeRuleList = getRuleSchema(document,strLastCommonParent,true);
-				 queryConvert+=" .";
-				 String strCompleteRule = "";
-				 boolean bMultRules = false;
-				 
-				 boolean bHasChildren = hasChildNodes(document, "element", strLastCommonParent,false);
-				 
-				 if(completeRuleList.size()>0)
-				 {
-					 if(completeRuleList.size()>1)
-					 {
-						 strCompleteRule= " setof(_,( ";
-					 }
-					 
-					 String addRule = "";
-					 if(bHasChildren)
-					 {
-						 RuleStringParser stringParser = new RuleStringParser();
-						 if(stringParser.getRuleParametersNumber(completeRuleList.get(0)) >2)
-							 addRule = stringParser.replaceParentIDRule(completeRuleList.get(0),strLastCommonGrandParent);
-					 }
-					 else
-					 {
-						 addRule= completeRuleList.get(0);	 
-					 }
-					 
-					 if(!queryConvert.contains(addRule.trim()))
-					 {
-						 strCompleteRule+= addRule;
-						 //bMultRules= true;
-					 }
-				 }
-				 
-				 for(int i=1;i<completeRuleList.size();i++)
-				 {
-					 
-					 String addRule = "";
-					 if(bHasChildren)
-					 {
-						 RuleStringParser stringParser = new RuleStringParser();
-						 
-						 if(stringParser.getRuleParametersNumber(completeRuleList.get(i)) >2)
-							 addRule = stringParser.replaceParentIDRule(completeRuleList.get(i),strLastCommonGrandParent);
-					 }
-					 else
-					 {
-						 addRule =completeRuleList.get(i);
-					 }
-					 
-					 if(!addRule.isEmpty() && !queryConvert.contains(addRule.trim()))
-					 {
-						 String strJoin = "";
-						 if(bMultRules)
-						 {
-							 if(bWildCard)
-							 {
-								 strJoin = " , "; 
-							 }
-							 else
-							 {
-								 strJoin = " , ! ; ";
-							 }
-						 }
-						 
-						 strCompleteRule+=strJoin+ addRule;
-						 bMultRules= true;
-					 }
-				 }
-				 
-				 if(bMultRules)
-					 strCompleteRule +=" ),_) ";
-				 
-				 queryConvert = queryConvert.replace( ", ." , " .");
-				 
-				 if(bMultRules && !strCompleteRule.isEmpty())
-					 queryConvert = queryConvert.replace(" .", ", "+strCompleteRule+".");
-				 
-				 queryConvert = queryConvert.replace( " ." , "");
-
+			 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!= 0)
+				 bInsertAllRulesFromTag = true;
 		 }
 		 
 		 if(!strFunction.isEmpty())
 		 {
 			 if(!queryConvert.replace(".", "").trim().isEmpty())
 				 queryConvert += " , "+strFunction;
-			 else
-				 queryConvert =  strFunction + " .";
+			 /*else
+				 queryConvert =  strFunction + " .";*/
 		 }
 			 
 		 
+		 if(bInsertAllRulesFromTag)
+		 {
+			 ArrayList<String>  completeRuleList = getRuleSchema(document,strLastCommonParent,true);
+			 queryConvert+=" .";
+			 String strCompleteRule = "";
+			 boolean bMultRules = false;
+			 
+			 boolean bHasChildren = hasChildNodes(document, "element", strLastCommonParent,strLastCommonGrandParent,false);
+			 
+			 if(completeRuleList.size()>0)
+			 {
+				 if(completeRuleList.size()>1)
+				 {
+					 strCompleteRule= " setof(_,( ";
+					 bMultRules= true;
+				 }
+				 
+				 String addRule = "";
+				 if(bHasChildren)
+				 {
+					 RuleStringParser stringParser = new RuleStringParser();
+					 if(stringParser.getRuleParametersNumber(completeRuleList.get(0)) >2)
+						 addRule = stringParser.replaceParentIDRule(completeRuleList.get(0),strLastCommonGrandParent);
+				 }
+				 else
+				 {
+					 addRule= completeRuleList.get(0);	 
+				 }
+				 
+				 if(!queryConvert.contains(addRule.trim()))
+				 {
+					 strCompleteRule+= addRule;
+					 //bMultRules= true;
+				 }
+			 }
+			 
+			 for(int i=1;i<completeRuleList.size();i++)
+			 {
+				 
+				 String addRule = "";
+				 if(bHasChildren)
+				 {
+					 RuleStringParser stringParser = new RuleStringParser();
+					 
+					 if(stringParser.getRuleParametersNumber(completeRuleList.get(i)) >2)
+						 addRule = stringParser.replaceParentIDRule(completeRuleList.get(i),strLastCommonGrandParent);
+				 }
+				 else
+				 {
+					 addRule =completeRuleList.get(i);
+				 }
+				 
+				 if(!addRule.isEmpty() && !queryConvert.contains(addRule.trim()))
+				 {
+					 String strJoin = ",";
+					 if(bMultRules)
+					 {
+						 if(bWildCard)
+						 {
+							 strJoin = " , "; 
+						 }
+						 else
+						 {
+							 strJoin = " , ! ; ";
+						 }
+					 }
+					 
+					 if(bMultRules)
+						 strCompleteRule+=strJoin+ addRule;
+					 else
+						 strCompleteRule+=addRule;
+					 bMultRules= true;
+				 }
+			 }
+			 
+			 if(bMultRules)
+				 strCompleteRule +=" ),_) ";
+			 
+			 queryConvert = queryConvert.replace( ", ." , " .");
+			 
+			 if(bMultRules && !strCompleteRule.isEmpty())
+				 queryConvert = queryConvert.replace(" .", ", "+strCompleteRule+".");
+			 
+			 queryConvert = queryConvert.replace( " ." , "");
+		 }
+		 
 		 
 		 queryConvert = queryConvert.replace(", ,", ",");
+		 queryConvert = queryConvert.replace(",  ,", ",");
 		 
 		 String finalQuery =   "";
 		 
@@ -1982,7 +3665,7 @@ public class WrapperSchema extends Wrapper {
                       System.out.println(pair.getKey() + "/" + pair.getValue());
 				     
 				     String lastTag = pair.getKey();
-					 Node nodeLastElement = getElementByTagName(document, "element", lastTag,pair.getValue());
+					 Node nodeLastElement = getElementByTagName(document, "element", lastTag,"IDNOPARENT",pair.getValue());
 					 ArrayList<String> lastTagchilds = getSubTreeNames(document,nodeLastElement);
 					 
 					 for (String string : lastTagchilds) 
@@ -2015,7 +3698,7 @@ public class WrapperSchema extends Wrapper {
 					 //String lastTag = listaTags.get(listaTags.size()-1);
 					 String lastTag = pair.getKey();
 					 Boolean lastTagUseNamespace = pair.getValue();
-					 Node nodeLastElement = getElementByTagName(document, "element", lastTag,pair.getValue());
+					 Node nodeLastElement = getElementByTagName(document, "element", lastTag,"IDNOPARENT",pair.getValue());
 					 
 					 //###########
 					 pairListTags.clear();
@@ -2057,7 +3740,7 @@ public class WrapperSchema extends Wrapper {
 				 
 				 tags+="'"+pair.getKey()+"'";
 				  
-				 Node nodeElement = getElementByTagName(document, "element", pair.getKey(),pair.getValue());
+				 Node nodeElement = getElementByTagName(document, "element", pair.getKey(),"IDNOPARENT",pair.getValue());
 				 
 				 if(nodeElement != null)
 				 {
@@ -2113,6 +3796,11 @@ public class WrapperSchema extends Wrapper {
 			 finalQuery = queryConvert;
 		 }
 		 
+		 finalQuery = finalQuery.trim().replace(", .","");
+		 finalQuery = finalQuery.trim().replace(",.",""); 
+		 
+		 if(!finalQuery.trim().endsWith("."))
+			 finalQuery += ". ";
 		 return finalQuery; 
 	}
 	
@@ -2129,6 +3817,389 @@ public class WrapperSchema extends Wrapper {
 		
 		return false;
 	}*/
+	
+	private String obtainAxisWildCard(Document document, String strFather, QueryElement element)
+	{
+		 String axisWildCard = "";
+		 ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
+		 
+		 String strCompleteRule  = "";
+		 
+		 String strAxes = element.getElement();
+		 String [] vetAxes = strAxes.split("\\:");
+		 
+		 if(vetAxes.length<1)
+			 return axisWildCard;
+				 
+		 String strRootAxes = vetAxes[0];
+		 
+		 boolean bPrevious = false;
+		 List<String> alreadyInsertedTags = new ArrayList<String>();
+		 
+		 for (int i=0; i< completeRuleList.size();i++) 
+		 {
+			 String rule = completeRuleList.get(i);
+			 
+			 //if(!rule.contains("_attribute_"))
+				 //continue;
+			 
+			 if(rule.contains("attribute_xmlns_"+strRootAxes.toLowerCase()))
+			 {
+				 String [] vetAttributeName = rule.split("\\_attribute_xmlns_");
+				 if(vetAttributeName.length >0 && !alreadyInsertedTags.contains(vetAttributeName[0]))
+				   alreadyInsertedTags.add(vetAttributeName[0]);
+			 }
+			 
+			 /*String [] splitRule = rule.split("\\(");
+			 if(splitRule.length >0)
+			 {
+                 String localName = splitRule[0]; 
+				 if(localName.contains("attribute_xmlns_"+strRootAxes.toLowerCase()))
+				 {
+					 String [] vetAttributeName = localName.split("\\attribute_xmlns_");
+					 if(vetAttributeName.length >0 && !alreadyInsertedTags.contains(vetAttributeName[0]))
+					   alreadyInsertedTags.add(vetAttributeName[0]);
+				 }
+			 }*/ 
+		 }
+		 
+		 for (int i=0; i< alreadyInsertedTags.size();i++) 
+		 {
+			 String namespaceElement = alreadyInsertedTags.get(i);
+			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement, "NOPARENT", false);
+			 
+			 
+			 if(bPrevious)
+				 strCompleteRule+="; ";
+			 
+			 if(isRoot(document,"element",namespaceElement))
+				 strCompleteRule+= namespaceElement.toLowerCase()+"(ID"+namespaceElement.toUpperCase()+")";
+			 else
+			 {
+				 if(bHasChilds)
+					 strCompleteRule+=namespaceElement.toLowerCase()+"(_,ID"+namespaceElement.toUpperCase()+")";
+				 else
+					 strCompleteRule+=namespaceElement.toLowerCase()+"(_,ID"+namespaceElement.toUpperCase()+",_)";
+			 }
+			 
+			 bPrevious = true;
+				 
+		 }
+		  
+		 
+		 if(bPrevious)
+			 axisWildCard =" setof(_,( ("+strCompleteRule+ "),! ),_) ";
+		 /*
+		 for (int i=0; i< completeRuleList.size();i++) 
+		 {
+			 String rule = completeRuleList.get(i);
+			 
+			 //if(!rule.contains("_attribute_"))
+				 //continue;
+			 
+			 String [] splitRule = rule.split("\\(");
+			 if(splitRule.length >0)
+			 {
+				 
+				 String localName = splitRule[0];
+				 
+				 if(localName.contains("attribute_xmlns_"+strRootAxes.toLowerCase()))
+				 {
+					 String [] vetAttributeName = localName.split("\\attribute_xmlns_"+strRootAxes.toLowerCase());
+					 
+					 
+				 }
+				 else
+				 {
+					 if(splitRule[0].contains("_"))
+					 {
+						 String [] splitLocalName = localName.split("\\_"); 
+						 if(splitLocalName.length ==2)
+							 localName = splitLocalName[0];
+					 }
+					 
+					 if(!(localName.compareToIgnoreCase(strRootAxes)==0))
+						 continue;
+					 
+				 }
+				 
+				 if(bPrevious)
+					 strCompleteRule+="; ";	 
+				 
+				 strCompleteRule+=rule;
+		    	 bPrevious = true;
+			 }
+		 }
+		 
+		 if(bPrevious)
+			 axisWildCard =" setof(_,( "+strCompleteRule+ " ),_) ";
+		*/
+		
+		return axisWildCard;
+	}
+	
+	private String obtainAxisNamespace(Document document, String strFather, QueryElement element)
+	{
+		 String axisWildCard = "";
+		 ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
+		 boolean bPrevious = false;
+		 String strCompleteRule  = "";
+		 String strNamespaceName = "";
+		 
+		 if(element.hasOperator())
+		 {
+			 IExpression expression = element.getExpressionFormula();
+			 if(expression instanceof OperatorEqual)
+			 {
+			    	OperatorEqual op = (OperatorEqual)expression;		    	
+			    	IExpression left =	op.leftOperand();
+			    	IExpression right =	op.rightOperand();
+			    	
+			    	//String namespaceToCompare = right.interpret();
+			    	strNamespaceName = right.interpret();
+			    	String namespace = left.interpret();
+			    	
+			    	if(strNamespaceName.contains("http://"))
+			    	{
+			    		String [] vetNamComp = strNamespaceName.split("\\/");
+			    		if(vetNamComp.length>0)
+			    			strNamespaceName = vetNamComp[vetNamComp.length-1];
+			    	}
+			    	
+					 /*for (int i=0; i< completeRuleList.size();i++) 
+					 {
+						 String rule = completeRuleList.get(i);
+						 
+						 String [] splitRule = rule.split("\\(");
+						 if(splitRule.length >0)
+						 {
+							 
+							 String localName = splitRule[0];
+							 if(splitRule[0].contains("_"))
+							 {
+								 String [] splitLocalName = localName.split("\\_"); 
+								 if(splitLocalName.length ==2)
+									 localName = splitLocalName[0];
+							 }
+							 
+							 if(!(localName.compareToIgnoreCase(namespaceToCompare)==0))
+								 continue;
+							 
+							 if(bPrevious)
+								 strCompleteRule+="; ";	 
+							 
+							 strCompleteRule+=rule;
+					    	 bPrevious = true;
+						 }
+					 }*/
+			 }
+		 }
+		 else
+		 { 
+		      String strAxes = element.getElement();
+		      if(strAxes.isEmpty())
+		      {
+		    	  if(element.hasFunction())
+		    	  {
+		    		  Function namespaceFunction = (Function)element.getExpressionFormula();
+		    		  if(namespaceFunction.arguments().size()>0)
+		    		  {
+		    			  strAxes = Function.FUNCTION_NAMESPACE;
+		    			  strAxes+= namespaceFunction.arguments().get(0).interpret();
+		    		  } 
+		    	  }
+		    	   
+		      }
+			  String [] vetAxes = strAxes.split("\\::");
+			 
+			 if(vetAxes.length<2)
+				 return axisWildCard;
+					 
+			 //String strNamespaceName = vetAxes[1];
+			 strNamespaceName = vetAxes[1];
+			 
+			 //boolean bPrevious = false;
+			 /*for (int i=0; i< completeRuleList.size();i++) 
+			 {
+				 String rule = completeRuleList.get(i);
+				 
+				 String [] splitRule = rule.split("\\(");
+				 if(splitRule.length >0)
+				 {
+					 
+					 String localName = splitRule[0];
+					 if(splitRule[0].contains("_"))
+					 {
+						 String [] splitLocalName = localName.split("\\_"); 
+						 if(splitLocalName.length ==2)
+							 localName = splitLocalName[0];
+					 }
+					 
+					 if(!(localName.compareToIgnoreCase(strNamespaceName)==0))
+						 continue;
+					 
+					 if(bPrevious)
+						 strCompleteRule+="; ";	 
+					 
+					 strCompleteRule+=rule;
+			    	 bPrevious = true;
+				 }
+			 }*/
+		 }
+		 
+		 List<String> alreadyInsertedTags = new ArrayList<String>();
+		 for (int i=0; i< completeRuleList.size();i++) 
+		 {
+			 String rule = completeRuleList.get(i);
+			 
+			 //if(!rule.contains("_attribute_"))
+				 //continue;
+			 if(rule.contains("attribute_xmlns_"+strNamespaceName.toLowerCase()))
+			 {
+				 String [] vetAttributeName = rule.split("\\_attribute_xmlns_");
+				 if(vetAttributeName.length >0 && !alreadyInsertedTags.contains(vetAttributeName[0]))
+				   alreadyInsertedTags.add(vetAttributeName[0]);
+			 }
+			 
+			 /*String [] splitRule = rule.split("\\(");
+			 if(splitRule.length >0)
+			 {
+                String localName = splitRule[0]; 
+				 if(rule.contains("attribute_xmlns_"+strNamespaceName.toLowerCase()))
+				 {
+					 String [] vetAttributeName = localName.split("\\attribute_xmlns_");
+					 if(vetAttributeName.length >0 && !alreadyInsertedTags.contains(vetAttributeName[0]))
+					   alreadyInsertedTags.add(vetAttributeName[0]);
+				 }
+			 }*/ 
+		 }
+		 
+		 for (int j=0; j< alreadyInsertedTags.size();j++) 
+		 {
+			 String namespaceElement = alreadyInsertedTags.get(j);
+			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement, "NOPARENT", false);
+			 
+			 
+			 if(bPrevious)
+				 strCompleteRule+="; ";
+			 
+			 if(isRoot(document,"element",namespaceElement))
+				 strCompleteRule+= namespaceElement.toLowerCase()+"(ID"+namespaceElement.toUpperCase()+")";
+			 else
+			 {
+				 if(bHasChilds)
+					 strCompleteRule+=namespaceElement.toLowerCase()+"(_,ID"+namespaceElement.toUpperCase()+")";
+				 else
+					 strCompleteRule+=namespaceElement.toLowerCase()+"(_,ID"+namespaceElement.toUpperCase()+",_)";
+			 }
+				
+			 bPrevious = true;
+		 }
+		  
+		 
+		 if(bPrevious)
+			 axisWildCard =" setof(_,( ("+strCompleteRule+ "),! ),_) ";
+		 
+		 /*for (int i=0; i< completeRuleList.size();i++) 
+		 {
+			 String rule = completeRuleList.get(i);
+			 
+			 String [] splitRule = rule.split("\\(");
+			 if(splitRule.length >0)
+			 {
+				 
+				 String localName = splitRule[0];
+				 if(splitRule[0].contains("_"))
+				 {
+					 String [] splitLocalName = localName.split("\\_"); 
+					 if(splitLocalName.length ==2)
+						 localName = splitLocalName[0];
+				 }
+				 
+				 if(!(localName.compareToIgnoreCase(strNamespaceName)==0))
+					 continue;
+				 
+				 if(bPrevious)
+					 strCompleteRule+="; ";	 
+				 
+				 strCompleteRule+=rule;
+		    	 bPrevious = true;
+			 }
+		 }
+		 
+		 
+		 if(bPrevious)
+			 axisWildCard =" setof(_,( "+strCompleteRule+ " ),_) ";*/
+		
+		return axisWildCard;
+	}
+	
+	private String obtainLangTags(Document document, String strFather, String langToCompare)
+	{
+		String langTags = "";
+		ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
+		List<String> alreadyInsertedTags = new ArrayList<String>();
+		boolean bPrevious = false;
+		String strCompleteRule  = "";
+		for (int i=0; i< completeRuleList.size();i++) 
+		{
+			 String rule = completeRuleList.get(i);
+			 String strTag = "";
+			 
+			 if(rule.contains("attribute_xml_lang"))
+			 {
+				 String [] vetAttributeName = rule.split("\\_attribute_xml_");
+				 if(vetAttributeName.length >0 && !alreadyInsertedTags.contains(vetAttributeName[0]))
+				 {
+				   alreadyInsertedTags.add(vetAttributeName[0]);
+				   strTag = vetAttributeName[0];
+				 }
+			 }
+			 
+			 if(!strTag.isEmpty())
+			 {
+				 boolean bHasChilds = hasChildNodes(document, "element", strTag, "NOPARENT", false);
+				 
+				 
+				 if(bPrevious)
+					 strCompleteRule+="; ";
+				 
+				 if(isRoot(document,"element",strTag))
+					 strCompleteRule+= "( "+strTag.toLowerCase()+"(ID"+strTag.toUpperCase()+")";
+				 else
+				 {
+					 if(bHasChilds)
+						 strCompleteRule+="( "+strTag.toLowerCase()+"(_,ID"+strTag.toUpperCase()+")";
+					 else
+						 strCompleteRule+="( "+strTag.toLowerCase()+"(_,ID"+strTag.toUpperCase()+",_)";
+				 }
+				 
+				 String strTagLang=  strTag.toLowerCase()+"_attribute_xml_lang";
+				 strCompleteRule+=", "+strTagLang+"(ID"+strTag.toUpperCase()+",ID"+strTagLang.toUpperCase()+","+strTagLang.toUpperCase()+") ";
+				 strCompleteRule+= ", "+strTagLang.toUpperCase()+" = '"+langToCompare.replace("'", "")+"' ) ";
+				 bPrevious = true;
+			 }
+		 }
+		
+		if(bPrevious)
+			langTags =" setof(_,("+strCompleteRule+ "),_) ";
+		
+		return langTags;
+	}
+	
+	private String invalidateTags(ArrayList<String> tagsToBeInvalidate)
+	{
+		String prologInvalidation = "";
+		
+		for(int i=0;i< tagsToBeInvalidate.size();i++)
+		{
+			prologInvalidation += "ID" +tagsToBeInvalidate.get(i).toUpperCase() + " is 0 ";
+			
+			prologInvalidation += ", ";
+		}
+		
+		return prologInvalidation;
+	}
 	
 	private ArrayList<String> getChildsNodeNames(Document document, Node node)
 	{
@@ -2201,7 +4272,7 @@ public class WrapperSchema extends Wrapper {
 		{
 			subTreeNames.add(lastTagchilds.get(i));
 			
-			Node nodeElement = getElementByTagName(document, "element", lastTagchilds.get(i),false);
+			Node nodeElement = getElementByTagName(document, "element","NOPARENT" ,lastTagchilds.get(i),false);
 			
 			subTreeNames.addAll(getSubTreeNames(document, nodeElement));
 		}
@@ -2370,6 +4441,21 @@ public class WrapperSchema extends Wrapper {
 		return prologSubTree;
 	}
 	
+	private  ArrayList<String> obtainAllTagsNames(Document doc)
+	{
+		HashMap<Document,HashMap<String, ArrayList<String>>> ruleHash = SchemaParser.getInstance().getRuleHash();
+		
+		ArrayList<String> ruleList = new ArrayList<String>();
+		
+		if(ruleHash.containsKey(doc))
+		{
+			 HashMap<String, ArrayList<String>> hashRuleNames = ruleHash.get(doc);
+			 ruleList.addAll(hashRuleNames.keySet());
+		}
+		
+		return ruleList;
+	}
+	
 	protected ArrayList<String> getRuleSchema(Document doc, String ruleName, boolean considerNamespace )
 	{
 		HashMap<Document,HashMap<String, ArrayList<String>>> ruleHash = SchemaParser.getInstance().getRuleHash();
@@ -2380,6 +4466,19 @@ public class WrapperSchema extends Wrapper {
 		{
             HashMap<String, ArrayList<String>> hashRuleNames = ruleHash.get(doc);
 			
+            
+            if(ruleName.compareToIgnoreCase("NOPARENT")==0)
+            {
+            	//Collection<ArrayList<String>> values =hashRuleNames.values();
+            	
+            	for(ArrayList<String> array : hashRuleNames.values())
+            	{
+            		ruleList.addAll(array);
+            	}
+            		
+            	return ruleList;
+            }
+            
 			
             if(considerNamespace)
             {
@@ -2479,7 +4578,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private Node getElementByTagName(Document _doc, String _typeElement, String _nameTypeElement,boolean bConsiderNamespaces){
+	private Node getElementByTagName(Document _doc, String _typeElement, String _nameTypeElement,String _parentNameTypeElement,boolean bConsiderNamespaces){
 		Node node = null;
 		NodeList listElements = _doc.getElementsByTagNameNS("*", _typeElement);
 		for ( int i = 0; i < listElements.getLength(); i++ ){
@@ -2489,10 +4588,25 @@ public class WrapperSchema extends Wrapper {
 			
 			if(bConsiderNamespaces)
 			{
-				if (nameElement.equals(_nameTypeElement) )
+				if (nameElement.trim().equals(_nameTypeElement.trim()) )
 				{
-					node = elementNode;
-					break;
+					boolean bOk = false;
+					
+					if(_parentNameTypeElement.trim().equals("NOPARENT"))
+						bOk= true;
+					else
+					{
+						String parentNameElement =   getParentName(_doc,elementNode);
+						
+						if (parentNameElement.trim().equals(_parentNameTypeElement.trim()) )
+							bOk= true;
+					}
+					
+					if(bOk)
+					{
+						node = elementNode;
+						break;
+					}
 				}
 			}
 			else
@@ -2503,19 +4617,61 @@ public class WrapperSchema extends Wrapper {
 					
 					if(list.length>1)
 					{
-						if(list[1].compareToIgnoreCase(_nameTypeElement)==0)
+						if(list[1].trim().compareToIgnoreCase(_nameTypeElement.trim())==0)
 						{
-							node = elementNode;
-							break;
+							boolean bOk = false;
+							
+							if(_parentNameTypeElement.trim().equals("NOPARENT"))
+								bOk= true;
+							else
+							{
+								String parentNameElement =   getParentName(_doc,elementNode);
+								if(parentNameElement.contains(":"))
+								{
+									String [] listParent = parentNameElement.split(":");
+									
+									if(listParent.length>1)
+									{
+										if(listParent[1].trim().compareToIgnoreCase(_parentNameTypeElement.trim())==0)
+											bOk= true;
+									}
+								}
+								else
+								{
+									if (parentNameElement.trim().equals(_parentNameTypeElement.trim()) )
+										bOk= true;
+								}
+							}
+							
+							if(bOk)
+							{
+								node = elementNode;
+								break;
+							}
 						}
 					}
 				}
 				else
 				{
-					if (nameElement.equals(_nameTypeElement) )
+					if (nameElement.trim().equals(_nameTypeElement.trim()) )
 					{
-						node = elementNode;
-						break;
+						boolean bOk = false;
+						
+						if(_parentNameTypeElement.trim().equals("NOPARENT"))
+							bOk= true;
+						else
+						{
+							String parentNameElement =   getParentName(_doc,elementNode);
+							String a = "";
+							if (parentNameElement.trim().equals(_parentNameTypeElement.trim()) )
+								bOk= true;
+						}
+						
+						if(bOk)
+						{
+							node = elementNode;
+							break;
+						}
 					}
 				}
 				
@@ -2553,7 +4709,7 @@ public class WrapperSchema extends Wrapper {
 						
 				if (!(typeElement.isEmpty()) && isComplexType(nameSpace, typeElement) )
 				{
-					Node nodeComplexType = getElementByTagName(doc, "complexType", typeElement,true);
+					Node nodeComplexType = getElementByTagName(doc, "complexType", "NOPARENT",typeElement,true);
 					if (nodeComplexType!= null && !isChild( elementNode, nodeComplexType) )
 					{
 					//if (!isChild( elementNode, nodeComplexType) ){
@@ -2752,6 +4908,22 @@ public class WrapperSchema extends Wrapper {
 			}
 		}
 		
+		if (nodeList.size() <=0 )
+		{
+			listElements = _doc.getElementsByTagNameNS("*", "complexType");
+			
+			for (int i = 0; i < listElements.getLength(); i++) 
+			{
+				Node elementNode = listElements.item(i);
+				
+				if (elementNode.getAttributes().getNamedItem("name")!= null 
+						&& elementNode.getAttributes().getNamedItem("name").getNodeValue().equals(_typeNameElement))
+				{
+					//break;
+					nodeList.add(elementNode);
+				}
+			}
+		}
 		
 		
 		return nodeList;
@@ -2764,23 +4936,77 @@ public class WrapperSchema extends Wrapper {
 		
 		NodeList listElements = nodeBegin.getChildNodes();
 		
+		ArrayList<Node> arrayListElements = new ArrayList<Node>();
+		
+		
+		if(listElements.getLength()<=0 && nodeBegin.getAttributes().getLength()>0)
+		{
+			String typeName = nodeBegin.getAttributes().getNamedItem("type").getNodeValue();
+			ArrayList<Node> nodeList =  getNodeByName(_doc,typeName);
+			if(nodeList.size() > 0)
+				listElements = nodeList.get(0).getChildNodes();
+		}
+		
+		
 		for(int i=0;i<listElements.getLength();i++)
 		{
-			Node nodeElement = listElements.item(i);
+			arrayListElements.add(listElements.item(i));
+		}
+		
+		for(int i=0;i<arrayListElements.size();i++)
+		{
+			Node nodeElement = arrayListElements.get(i);
 			String nameSpace = _doc.getDocumentElement().getPrefix();
-			String nodeName = "";
+			String nodeName = nodeElement.getNodeName();
+			if(nodeName.indexOf("sequence") > -1)
+			{
+				for(int j= 0; j<nodeElement.getChildNodes().getLength();j++)
+					arrayListElements.add(nodeElement.getChildNodes().item(j));
+				
+				continue;
+			}
+			
+			if(nodeName.indexOf("choice") > -1)
+			{
+				for(int j= 0; j<nodeElement.getChildNodes().getLength();j++)
+					arrayListElements.add(nodeElement.getChildNodes().item(j));
+				
+				continue;
+			}
+			
 			if(nodeElement.hasAttributes() && 
 					nodeElement.getAttributes().getNamedItem("name") != null)
 				nodeName = nodeElement.getAttributes().getNamedItem("name").getNodeValue();
+			else
+				continue;
 			
-			if(isComplexType(nodeName,nameSpace))
+			
+			if(nodeElement.getAttributes().getLength()>0)
+			{
+				String typeName = nodeElement.getAttributes().getNamedItem("type").getNodeValue();
+				ArrayList<Node> nodeList =  getNodeByName(_doc,typeName);
+				if(nodeList.size() > 0)
+				{
+					childList.add(nodeElement);
+					//childList.addAll( getComplexTypeNodeChilds(_doc, nodeElement));
+				}
+			}
+			
+			
+			//if(isComplexType(nodeName,nameSpace))
+			/*if(isNodeComplexType(nodeElement))
 			{
 				childList.add(nodeElement);
 			}
 			else
 			{
-				childList.addAll(getComplexTypeNodeChilds(_doc, nodeElement));
-			}
+				ArrayList<Node> tmpList = getComplexTypeNodeChilds(_doc, nodeElement);
+				if(tmpList.size()>0)
+				{
+					childList.add(nodeElement);
+					childList.addAll(tmpList);
+				}
+			}*/
 			
 		}
 		
@@ -2790,6 +5016,7 @@ public class WrapperSchema extends Wrapper {
 	private ArrayList<String> getRulesByLevel2(Document _doc,String _nameElementBegin, int _nLevel)
 	{
 		//Node nodeBegin = getNodeByName(_doc,_nameElementBegin);
+		ArrayList<String> pathArray = new ArrayList<String>();
 		ArrayList<Node> nodeList = getNodeByName(_doc,_nameElementBegin);
 		boolean bComplexType = false;
 		if(nodeList.size()<=0)
@@ -2797,7 +5024,7 @@ public class WrapperSchema extends Wrapper {
               nodeList = getComplexNodeByName(_doc,_nameElementBegin);
               bComplexType= true;
 		}
-		ArrayList<String> pathArray = new ArrayList<String>();
+		
 		boolean bBrake = false;
 		for (int i = 0; i <_nLevel; i++) 
 		{
@@ -2853,10 +5080,34 @@ public class WrapperSchema extends Wrapper {
 	
 	
 	
-	private String getWildCardQuery(Document doc, String strCommomParent, int nWildCardLevel)
+	private String getWildCardQuery(Document doc, String strCommomParent, int nWildCardLevel,int nCompareTag)
 	{
 		 //List<String> listaRegras = getRulesByLevel(document,strLastCommonParent,element.getElement(),nWildCardLevel);
-		 List<String> listaRegras = getRulesByLevel2(doc,strCommomParent,nWildCardLevel+1);
+		List<String> listaRegras = new ArrayList<String>();
+		//int nInitialCount = 1; 
+		if(strCommomParent.compareToIgnoreCase("NOPARENT")==0)
+		{
+			listaRegras = getRuleSchema(doc,strCommomParent,false);
+			//nInitialCount = 0;
+			String strWild =  " setof(_,(";
+			int nPos = 0;
+			for(String string : listaRegras) 
+			{
+				strWild+= string;
+				
+				if(nPos+1 < listaRegras.size())
+					strWild+=" , ! ; ";
+				
+				nPos++;
+			}
+			strWild+="),_) ";
+			return strWild;
+		}
+		else
+		{
+			listaRegras = getRulesByLevel2(doc,strCommomParent,nWildCardLevel+1);
+			//listaRegras = getRulesByLevel2(doc,strCommomParent,nWildCardLevel);
+		}
 		 
 		 if(listaRegras.isEmpty())
 			 return "";
@@ -2871,16 +5122,24 @@ public class WrapperSchema extends Wrapper {
 			 //strWild+="( ";
 			 String strParent = strCommomParent;
 			 boolean bHasRule= false;
-			 for(int j=1;j<itemArray.length;j++)
+			 //for(int j=1;j<itemArray.length;j++)
+			 for(int j=0;j<itemArray.length;j++)
 			 {
 				 //if(isComplexType(doc.getDocumentElement().getPrefix(), itemArray[j]))
 				   //continue; 
 				 
-				 if(j!=1)
+				 //if(j!=1)
+				 if(j!=0)
 					 tmpWild+=" , ";
 					 //strWild+=" , "; 
 				 
 				 String strChildRule = getQueryPrologFromSchema3(doc,"element",itemArray[j],strParent);
+				 if(nCompareTag>0)
+				 {
+					 strChildRule = strChildRule.replace("ID"+strParent.toUpperCase(), "ID"+strParent.toUpperCase()+nCompareTag);
+					 strChildRule = strChildRule.replace(itemArray[j].toUpperCase(), itemArray[j].toUpperCase()+nCompareTag);
+					 //strChildRule = strChildRule.replace("ID"+itemArray[j].toUpperCase(), "ID"+itemArray[j].toUpperCase()+nCompareTag);
+				 }
 				 if(!strChildRule.isEmpty())
 				 {
 					 tmpWild+= strChildRule;
@@ -2966,6 +5225,185 @@ public class WrapperSchema extends Wrapper {
 		
 		return strParentName;
 	}
+	
+	private String obtainPrecedinOrFollowingRules(Document document,String mainQuery ,QueryElement element,String strLastCommonParent,String strLastCommonGrandParent
+			,int[] nCompareTag,boolean bHasUsedWildCard,String strLastWildCardItem,int nLastWildCardLevel )
+	{
+		String strResult = "";
+		
+		if(element.getElement().toLowerCase().contains("preceding::") || element.getElement().toLowerCase().contains("following::") )
+		 {
+			
+			String strSplit = "preceding::";
+			String strOperator = " > ";
+			if(element.getElement().toLowerCase().contains("following::"))
+			{
+				strSplit ="following::";
+				strOperator = " < ";
+			}
+			
+			
+			 String[] filterSiblingArray = element.getVariable().split(strSplit);
+			 if(filterSiblingArray.length > 1)
+			 {
+				 nCompareTag[0]++;
+				 String CompareTag = filterSiblingArray[1];
+				 String commonParent = strLastCommonParent;
+				 String tempQuery = "";
+				 
+				 if(bHasUsedWildCard && commonParent.trim().equalsIgnoreCase(strLastWildCardItem))
+				 {
+					 QueryElement tmpElement  = new QueryElement();
+					 tmpElement.parseElement(CompareTag);
+					 tempQuery = getWildCardRules(document, tmpElement,strLastCommonGrandParent, nLastWildCardLevel,nCompareTag[0]);
+				 }
+				 else
+				 {
+					 if(commonParent.trim().equalsIgnoreCase(CompareTag))
+						 commonParent = strLastCommonGrandParent;
+					 
+					 tempQuery = getQueryPrologFromSchema3(document,"element",CompareTag,commonParent);
+					 tempQuery = tempQuery.replace(CompareTag.toUpperCase(), CompareTag.toUpperCase()+nCompareTag[0]);
+					 tempQuery = tempQuery.replace(commonParent.toUpperCase(), commonParent.toUpperCase()+nCompareTag[0]);
+				 }
+				 
+				 strResult+=tempQuery;
+				 strResult +=", ID"+CompareTag.toUpperCase() +strOperator+" ID"+CompareTag.toUpperCase()+nCompareTag[0];
+			 }
+		 }
+		 else if(element.getElement().toLowerCase().contains("preceding-sibling::") || element.getElement().toLowerCase().contains("following-sibling::"))
+		 {
+			    String strSplit = "preceding-sibling::";
+				String strOperator = " < ";
+				String strPrologVariable = "preceding";
+				if(element.getElement().toLowerCase().contains("following-sibling::"))
+				{
+					strSplit ="following-sibling::";
+					strOperator = " > ";
+					strPrologVariable = "following";
+				}	
+			 
+			 
+				String[] filterSiblingArray = element.getVariable().split(strSplit);
+				if(filterSiblingArray.length > 1)
+				{
+					nCompareTag[0]++;
+					String strFilterSibling = filterSiblingArray[1];
+					String commonParent = strLastCommonParent;
+					String tempQuery = "";
+					if(commonParent.trim().equalsIgnoreCase(strFilterSibling))
+						commonParent = strLastCommonGrandParent;
+					
+					if(bHasUsedWildCard && commonParent.trim().equalsIgnoreCase(strLastWildCardItem))
+					{
+						QueryElement tmpElement  = new QueryElement();
+						tmpElement.parseElement(strFilterSibling);
+						tempQuery = getWildCardRules(document, tmpElement,commonParent, nLastWildCardLevel,nCompareTag[0]);
+					}
+					else
+					{
+						tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);	
+					}
+					
+					tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag[0]);
+					
+					mainQuery = " findall(ID"+strFilterSibling.toUpperCase()+", ("+mainQuery;
+					int nComma = mainQuery.lastIndexOf(", ");
+					if(nComma != -1)
+						mainQuery = mainQuery.substring(0, nComma);
+					
+					mainQuery+=") , "+strPrologVariable.toUpperCase()+"LIST), preceding("+strPrologVariable.toUpperCase()+"LIST,"+strPrologVariable.toUpperCase()+"FINALLIST), member(ID"+strFilterSibling.toUpperCase()+nCompareTag[0]+", "+strPrologVariable.toUpperCase()+"FINALLIST)";
+					
+					strResult+=" ,"+tempQuery;
+					nCompareTag[0]++;
+					tempQuery = getQueryPrologFromSchema3(document,"element",strFilterSibling,commonParent);
+					tempQuery = tempQuery.replace(strFilterSibling.toUpperCase(), strFilterSibling.toUpperCase()+nCompareTag[0]);
+					strResult+=" ,"+tempQuery;
+					strResult +=", ID"+strFilterSibling.toUpperCase()+(nCompareTag[0]-1) +strOperator+" ID"+strFilterSibling.toUpperCase()+nCompareTag[0];
+					
+					//##queryConvert += tempQuery;
+					//##queryConvert +=", ID"+strFilterSibling.toUpperCase()+nCompareTag +" < ID"+strFilterSibling.toUpperCase(); 
+					//bSibling = true;
+				}
+		 }
+		 
+		return strResult;
+	}
+	
+	
+	
+	private String getWildCardRules(Document document, QueryElement element,String strLastCommonParent, int nWildCardLevel,int nCompareTag)
+	{
+		
+		 String strWildCardRules = "";
+		 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!=0)
+		 {
+			 strWildCardRules +=getWildCardQuery(document,strLastCommonParent,nWildCardLevel,nCompareTag);
+		 }
+		 else
+		 {
+			 ArrayList<String>  completeRuleList = getRuleSchema(document,strLastCommonParent,true);
+			 String strCompleteRule  = "";
+			 if(completeRuleList.size()>1)
+			 {
+				 strCompleteRule= " setof(_,( ";
+			 }
+			 
+			 boolean bPrevious = false;
+			 
+			 for (int j=0; j< completeRuleList.size();j++) 
+			 {
+				  
+
+				 String rule= completeRuleList.get(j);
+				 if(element.getVariable().contains("@"))
+				 {
+					 String elementName = element.getVariable().replace("@", "");
+					 if(rule.contains("_attribute_"+elementName.trim()))
+					 {
+					     String [] splitRule = rule.split("_attribute_"+elementName.trim());
+					     if(splitRule.length >0)
+					     {
+					    	 if(bPrevious)
+								 strCompleteRule+="; ";	 
+					    	 
+					    	 strCompleteRule += getQueryPrologFromSchema3(document,"element",splitRule[0],"_");
+					    	 String  currentElementRule =getQueryPrologFromSchema3(document,"element",element.getVariable(),splitRule[0]);
+					    	 //strWildCardItem = element.getVariable();
+					    	 strCompleteRule +=" , "+currentElementRule;
+					    	 bPrevious = true;
+					     }
+						 
+					 } 
+				 }
+				 else
+				 {
+					 String [] splitRule = rule.split("\\(");
+					 if(splitRule.length >0)
+					 {
+						 if(bPrevious)
+							 strCompleteRule+="; ";	 
+						 
+						 strCompleteRule+=rule; 
+						 String  currentElementRule =getQueryPrologFromSchema3(document,"element",element.getElement(),splitRule[0]);
+						 //strWildCardItem = element.getElement();
+				    	 strCompleteRule +=" , "+currentElementRule;
+				    	 bPrevious = true;
+					 }
+				 }
+				
+			 }
+			 
+			 if(completeRuleList.size()>1)
+				 strCompleteRule +=" ),_) ";
+			 
+			 strWildCardRules += strCompleteRule;
+		 }
+		 
+		 return strWildCardRules;
+	}
+	
+	
 	
 	private String getRulesBottomUp(Document _doc, String strCommomLeaf, int nUpLevel)
 	{
@@ -3086,6 +5524,174 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
+	private ArrayList<String> getTagParents(Document _doc, String strCommomLeaf, int nUpLevel)
+	{
+		ArrayList<String> tagList = new ArrayList<String>();
+		
+		ArrayList<Node> nodeList = getNodeByName(_doc,strCommomLeaf);
+		
+		if(nodeList.isEmpty())
+			return tagList;
+		
+		String nameSpace = _doc.getDocumentElement().getPrefix();
+		//String strParent = strCommomLeaf;
+		
+		
+		Node fatherNode = null;
+		
+		for(int j=0; j<nodeList.size();j++)
+		{
+			Node nodeBegin = nodeList.get(j);
+			String strRule = "";
+			for(int i=0;i<nUpLevel;i++)
+			{	
+				fatherNode = getComplexTypeFather(nodeBegin,nameSpace);
+				if(fatherNode != null)
+				{
+					
+					ArrayList<Node> nodes = getNodeByTypeName(_doc,getNodeName(fatherNode));
+					fatherNode = null;
+					if(nodes.size()>0)
+						fatherNode = nodes.get(0);
+					
+					if(fatherNode != null)
+					{
+						nodeBegin = fatherNode;
+					}
+				}
+			}
+			
+			tagList.add(getNodeName(nodeBegin));
+		}
+		
+		return tagList;
+	}
+	
+	
+	private ArrayList<String> getAncestorRule(Document _doc, String startTag, String targetTag,ArrayList<String> visitedTags)
+	{
+        ArrayList<String> tagList = new ArrayList<String>();
+		
+		ArrayList<Node> nodeList = getNodeByName(_doc,startTag);
+		
+		if(nodeList.isEmpty())
+			return tagList;
+		
+		String nameSpace = _doc.getDocumentElement().getPrefix();
+		//String strParent = strCommomLeaf;
+		
+		
+		Node fatherNode = null;
+		
+		for(int j=0; j<nodeList.size();j++)
+		{
+			Node nodeBegin = nodeList.get(j);
+			String strRule = "";
+			for(int i=0;i<1000;i++)
+			{	
+				String strNodeName = nodeBegin.getAttributes().getNamedItem("name").getNodeValue();
+				if(strNodeName.compareToIgnoreCase(targetTag)==0)
+					break;
+				
+				fatherNode = getComplexTypeFather(nodeBegin,nameSpace);
+				if(fatherNode != null)
+				{
+					
+					ArrayList<Node> nodes = getNodeByTypeName(_doc,getNodeName(fatherNode));
+					fatherNode = null;
+					if(nodes.size()>0)
+						fatherNode = nodes.get(0);
+					
+					if(fatherNode != null)
+					{
+						nodeBegin = fatherNode;
+					}
+				}
+			}
+			
+			tagList.add(getNodeName(nodeBegin));
+			tagList.addAll(getSubtreeTags(_doc,nodeBegin));
+		}
+		
+		return tagList;
+		
+//		//Node nodeBegin = getNodeByName(_doc,_nameElementBegin);
+//				ArrayList<String> pathArray = new ArrayList<String>();
+//				ArrayList<Node> nodeList = getNodeByName(_doc,startTag);
+//				boolean bComplexType = false;
+//				if(nodeList.size()<=0)
+//				{
+//		              nodeList = getComplexNodeByName(_doc,startTag);
+//		              bComplexType= true;
+//				}
+//				
+//				boolean bBrake = false;
+//				//for (int i = 0; i <_nLevel; i++)]
+//				while(!bBrake)
+//				{
+//					
+//					ArrayList<Node> listElements = new ArrayList<Node>();
+//					ArrayList<Node> listTmp = getComplexTypeNodeChilds(_doc,nodeList.get(0));
+//					if(listTmp != null)
+//						listElements.addAll(listTmp);	
+//					/*for(int l=0; l<nodeList.size();l++)
+//					{
+//						ArrayList<Node> listTmp = getComplexTypeNodeChilds(_doc,nodeList.get(l));
+//						if(listTmp != null)
+//							listElements.addAll(listTmp);	
+//					}*/
+//					
+//					
+//					if(listElements.size()<=0)
+//						bBrake = true;
+//
+//					String strPath = "";
+//					boolean alreadyVisited = true;
+//					for(int j= 0; j<listElements.size();j++)
+//					{
+//						Node nodeChild = listElements.get(j);
+//						strPath = nodeChild.getAttributes().getNamedItem("name").getNodeValue();
+//						
+//						if(visitedTags.contains(strPath))
+//							continue;
+//						
+//						//int newLevel = _nLevel -1;
+//						//_nLevel --;
+//						//if(newLevel >0)
+//						visitedTags.add(strPath);
+//						alreadyVisited = false;
+//						if(strPath.compareToIgnoreCase(targetTag)!=0)
+//						{
+//							ArrayList<String> childPathArray = getAncestorRule(_doc,strPath, targetTag,visitedTags);
+//							for(int k=0;k<childPathArray.size();k++)
+//							{
+//								String newPath = strPath+"/"+childPathArray.get(k);
+//								if(bComplexType)
+//									newPath = "/"+childPathArray.get(k);
+//								
+//								//int nCount = newPath.length() - newPath.replace("/", "").length();
+//								if(strPath.compareToIgnoreCase(targetTag)==0)
+//									bBrake = true;
+//								pathArray.add(newPath);
+//							}
+//							if(childPathArray.size()<=0)
+//								pathArray.add(strPath+"/");
+//						}
+//						else
+//						{
+//							pathArray.add(strPath);
+//						}
+//						
+//					}
+//					
+//					if(alreadyVisited)
+//						bBrake =true;
+//				}
+//				
+//				return pathArray;
+	}
+	
+	
 	ArrayList<String>  getSubtreeTags(Document _doc, Node nodeBegin)
 	{
 		ArrayList<String> tagSubTree = new ArrayList<String>();
@@ -3193,29 +5799,41 @@ public class WrapperSchema extends Wrapper {
 			childName = nodeChildName.getNodeValue();
 		
 		nodeParent = childNode.getParentNode();
-		if(nodeParent != null)
+		
+		
+		if(nodeParent != null && (nodeParent.getNodeName().toLowerCase().indexOf("sequence") > -1 || 
+				nodeParent.getNodeName().toLowerCase().indexOf("choice") > -1))
 		{
-			Node nodeParentName = nodeParent.getAttributes().getNamedItem("name");
-			if (nodeParentName != null)
+			nodeParent = nodeParent.getParentNode();
+		}
+		
+		if(nodeParent != null)
+		{	
+			if(nodeParent.hasAttributes())
 			{
-				String nameElement = "";
-				nameElement = nodeParentName.getNodeValue();
-				
-				if (!(nameElement.isEmpty()))
+				Node nodeParentName = nodeParent.getAttributes().getNamedItem("name");
+				if (nodeParentName != null)
 				{
-					if(isComplexType(nameSpace, nameElement))
+					String nameElement = "";
+					nameElement = nodeParentName.getNodeValue();
+					
+					if (!(nameElement.isEmpty()))
 					{
-					   return nodeParent;
-					}
-					else
-					{
-						nodeParent =  getComplexTypeFather(nodeParent,nameSpace);
+						//if(isComplexType(nameSpace, nameElement))]
+						if(isNodeComplexType(nodeParent))
+						{
+						   return nodeParent;
+						}
+						else
+						{
+							nodeParent =  getComplexTypeFather(nodeParent,nameSpace);
+						}
 					}
 				}
-			}
-			else
-			{
-				nodeParent =  getComplexTypeFather(nodeParent,nameSpace);
+				else
+				{
+					nodeParent =  getComplexTypeFather(nodeParent,nameSpace);
+				}
 			}
 		}
 		
@@ -3232,7 +5850,7 @@ public class WrapperSchema extends Wrapper {
 		 String strCompleteRule = "";
 		 boolean bMultRules = false;
 		 
-		 boolean bHasChildren = hasChildNodes(document, "element", strTag,bConsiderNamespaces);
+		 boolean bHasChildren = hasChildNodes(document, "element", strTag,strTagParent,bConsiderNamespaces);
 		 
 		 if(completeRuleList.size()>0)
 		 {
@@ -3311,7 +5929,7 @@ public class WrapperSchema extends Wrapper {
 		 String strCompleteRule = "";
 		 boolean bMultRules = false;
 		 
-		 boolean bHasChildren = hasChildNodes(document, "element", strNamespaceTag,bConsiderNamespaces);
+		 boolean bHasChildren = hasChildNodes(document, "element", strNamespaceTag,strTagParent,bConsiderNamespaces);
 		 
 		 if(completeRuleList.size()>0)
 		 {
@@ -3397,6 +6015,97 @@ public class WrapperSchema extends Wrapper {
 			 strCompleteRule +=" ),_) ";
 		 
 		 return strCompleteRule;
+	}
+	
+	
+	private String parseDivMathExpression(List<String> listArgs,Document document,String strTagFather,int[] nPositionVet)
+	{
+		List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(listArgs.toString());
+		String strMathResult = "";
+		StringBuilder sbMathResult = new StringBuilder("");
+		List<String> listArgsAux = listArgs;
+		
+		if(listArgs.contains("+")||listArgs.contains("-"))
+		{
+			int index = listArgs.indexOf("+");
+			String operator = "+";
+			if(index == -1 )
+			{
+				index = listArgs.indexOf("-");
+				operator = "-";
+			}
+			
+			String argLeft = listArgsAux.get(index-1);
+			String argRight = listArgsAux.get(index+1);
+			
+			listArgsAux.remove(argLeft);
+			listArgsAux.remove(argRight);
+			listArgsAux.remove(operator);
+			
+			String outArg = listArgs.get(0);
+			
+            for(int i=0;i< listArgs.size();i++)
+            {
+            	 String arg = listArgs.get(i);
+            	 
+            	 if(arg.trim().compareTo("(")==0 || arg.trim().compareTo(")")==0 || arg.trim().length()<=0)
+            		 continue;
+				 
+            	 outArg = arg;
+            	 
+				 boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT); 
+				 
+				 if(arg.toUpperCase().compareTo(strTagFather)!=0
+						&& !bArgIsresult)
+				{
+				    if(arg.contains("/") && !arg.contains("'"))
+				    {
+				       String [] vetArgs =  arg.split("/");
+				       String strTempFather = strTagFather;
+				       String strPreviousRules = "";
+				       for(int j=0;j<vetArgs.length;j++)
+				       {
+				    	   
+				    	   if(vetArgs[j].toUpperCase().compareTo(strTagFather)!=0)
+				    	   {
+				    		   
+				    		   if(j+1 == vetArgs.length)
+				    		   {   
+				    			   sbMathResult.insert(0, vetArgs[j]);
+				    		   }
+				    		   else
+				    		   {
+				    			   strPreviousRules += getQueryPrologFromSchema3(document,"element",vetArgs[j],strTempFather)+", ";
+				    			   strTempFather = vetArgs[j];   
+				    		   }
+				    	   }
+				       }
+				       
+				       sbMathResult.append(strPreviousRules);
+				    }
+				    else
+				    {
+						sbMathResult.append(getQueryPrologFromSchema3(document,"element",arg,strTagFather)+", ");
+				    }
+				    
+				}
+				/*else
+			    {
+					sbMathResult.append(arg);
+					if(i+1 < listArgs.size())
+						sbMathResult.append(", ");
+			    }*/
+            }
+			
+			//boolean bArgIsresult = argLeft.toUpperCase().contains(Function.FUNCTION_RESULT);
+			
+            String strMathResultVariable = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
+			sbMathResult.append(strMathResultVariable + " is "+argLeft+" "+operator+" "+argRight);
+			
+			listArgs.remove("(");
+			listArgs.remove(")");
+		}
+		return sbMathResult.toString();
 	}
 	
 	/*private String getRulesByLevel(Document _doc, String _nameTypeElementBegin, String _nameTypeElementEnd, int _nLevel){

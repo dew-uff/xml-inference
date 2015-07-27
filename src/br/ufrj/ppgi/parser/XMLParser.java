@@ -115,14 +115,15 @@ public class XMLParser extends DocumentParser{
             handler.setResetLastId(bResetLastId);
             SAXParserFactory factory = SAXParserFactory.newInstance();
             
-            String indexRule = "indexOf([Element|_], Element, 1). % We found the element";
-    		indexRule +="indexOf([_|Tail], Element, Index):-";
-    		indexRule +="indexOf(Tail, Element, Index1), % Check in the tail of the list";
-    		indexRule +="Index is Index1+1.  % and increment the resulting index \n";
+            String indexRule = "indexOf([Element|_], Element, 1):- !. \n";
+    		indexRule +="indexOf([_|Tail], Element, Index):- \n";
+    		indexRule +="indexOf(Tail, Element, Index1),!, \n";
+    		indexRule +="Index is Index1+1. \n";
     		
     		
     		String printRules = buildPrintRules();
             String functions = buildFunctionsRules();
+            String axes = buildAxesRules();
                        
             for(String name : keyNames){
                 try{
@@ -140,6 +141,7 @@ public class XMLParser extends DocumentParser{
                 fileManager.writeFacts(indexRule);
                 fileManager.writeFacts(printRules);
                 fileManager.writeFacts(functions);
+                fileManager.writeFacts(axes);
             }
 
             long tempoFinal = System.currentTimeMillis();  
@@ -283,10 +285,36 @@ public class XMLParser extends DocumentParser{
         printRules += "  indexOfElement(Tail, Element, Index1),\n";
         printRules += "  !,\n";
         printRules += "  Index is Index1+1.\n";
+ 
 	    
     	return printRules;
     }
 
+    private String buildAxesRules()
+    {
+    	String strAxesRules = "";
+    	
+    	strAxesRules += " listOfList([[H|_]|_]). \n";
+    	strAxesRules += " first_listOflist([],_). \n";
+    	strAxesRules += " first_listOflist([[H|_]|[]],[H]):- !. \n";
+    	strAxesRules += " first_listOflist([[H|_]|T],[H|T1]):- first_listOflist(T,T1). \n";
+    	
+    	strAxesRules += " following(LISTIN,LIST) :- listOfList(LISTIN) -> (first_listOflist(LISTIN,LIST));first_list(LISTIN,LIST). \n";
+    	strAxesRules += " first_list([Y|Tail],[Y]). \n";
+    	strAxesRules += " first_list([X],[X]). \n";
+    	
+    	strAxesRules += " last_listOflist([],_). \n";
+    	strAxesRules += " last_listOflist([[_|T]|[]],[H]):- last_list(T,H),!. \n";
+    	strAxesRules += " last_listOflist([[_|T]|T1],[H|T2]):- last_list(T,H),last_listOflist(T1,T2). \n";
+    	
+    	strAxesRules += " preceding(LISTIN,LIST) :- listOfList(LISTIN) -> (last_listOflist(LISTIN,LIST));last_list(LISTIN,X),LIST = [X]. \n";
+    	
+    	strAxesRules += " last_list([Y|Tail],LISTIN):-last_list(Tail,LISTIN). \n";
+    	strAxesRules += " last_list([X],X). \n";
+    	
+    	return strAxesRules;
+
+    }
     
     private String buildFunctionsRules()
     {
@@ -408,12 +436,17 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " compare([], _):- false.\n";
     	strFunctionRules+= " compare([H|T], [H1|T1]) :- H=H1 ->(compare(T,T1)).\n";
     	
-    	strFunctionRules+= " floor(INPUT, OUTPUT):- atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " floor(INPUT, OUTPUT):- atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " myfloor(INPUT, OUTPUT):- atom(INPUT)-> ( atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT); TMPOUTPUT is floor(INPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " myfloor(INPUT, OUTPUT):- atom(INPUT)-> ( num_atom(NINPUT,INPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT); TMPOUTPUT is floor(INPUT), OUTPUT = TMPOUTPUT.\n";
+    	strFunctionRules+= " myfloor(INPUT, OUTPUT):- TMPOUTPUT is floor(INPUT), OUTPUT = TMPOUTPUT.\n";
 
-    	strFunctionRules+= " ceiling(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " myceiling(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	strFunctionRules+= " myceiling(INPUT, OUTPUT):-   num_atom(NINPUT,INPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
 
 
-    	strFunctionRules+= " round(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " myround(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	strFunctionRules+= " myround(INPUT, OUTPUT):-  num_atom(NINPUT,INPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
 
 
     	strFunctionRules+= " sum(List, Sum) :-\n";
@@ -422,7 +455,8 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " sum([], Accumulator, Accumulator).\n";
 
     	strFunctionRules+= " sum([Head|Tail], Accumulator, Result) :-\n";
-    	strFunctionRules+= " 	  atom_number(Head,NHEAD),  NewAccumulator is Accumulator + NHEAD,\n";
+    	//strFunctionRules+= " 	  atom_number(Head,NHEAD),  NewAccumulator is Accumulator + NHEAD,\n";
+    	strFunctionRules+= " 	  num_atom(NHEAD,Head),  NewAccumulator is Accumulator + NHEAD,\n";
         strFunctionRules+= " sum(Tail, NewAccumulator, Result). \n"; 
     											
 		strFunctionRules+= " %Copy one List to another \n";
@@ -436,6 +470,27 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " addEndList(X,[A|L],[A|L1]):- \n";
     	strFunctionRules+= " addEndList(X,L,L1). \n";
     	
+    	strFunctionRules+= " mynumber(INPUT, OUTPUT):- atom(INPUT)-> ( num_atom(NINPUT,INPUT), OUTPUT = NINPUT); OUTPUT = INPUT. \n";
+    	strFunctionRules+= " count(List, Count) :- \n";
+    	strFunctionRules+= " 		count(List, 0, Count). \n";
+    	strFunctionRules+= " count([], Accumulator, Accumulator). \n";
+    	strFunctionRules+= " count([Head|Tail], Accumulator, Result) :- \n";
+    	strFunctionRules+= "    NewAccumulator is Accumulator + 1, \n";
+    	strFunctionRules+= " count(Tail, NewAccumulator, Result). \n";
+    	
+    	
+    	strFunctionRules+= "  minus([H|T1],L2,[H|L3]):- \n";
+    	strFunctionRules+= "     not(member(H,L2)), \n";
+    	strFunctionRules+= "     minus(T1,L2,L3). \n";
+    	strFunctionRules+= " minus([H|T1],L2,L3):- \n";
+    	strFunctionRules+= "     member(H,L2), \n";
+    	strFunctionRules+= "     minus(T1,L2,L3). \n";
+    	strFunctionRules+= " minus([],_,[]). \n";
+  
+    	strFunctionRules+= " boolean(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = true ; BOOLOUT = false. \n";		 
+    	strFunctionRules+= " not(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = false ; (BOOLOUT = true). \n";
+    	
+    	
     	return strFunctionRules;
     }
     
@@ -443,10 +498,10 @@ public class XMLParser extends DocumentParser{
 		ArrayList<String> factsList = new ArrayList<String>();
 		
 		
-		String indexRule = "indexOf([Element|_], Element, 1). % We found the element";
-		indexRule +="indexOf([_|Tail], Element, Index):-";
-		indexRule +="indexOf(Tail, Element, Index1), % Check in the tail of the list";
-		indexRule +="Index is Index1+1.  % and increment the resulting index \n";
+		String indexRule = "indexOf([Element|_], Element, 1):- !. \n";
+		indexRule +=" indexOf([_|Tail], Element, Index):- \n";
+		indexRule +=" indexOf(Tail, Element, Index1), !, \n";
+		indexRule +=" Index is Index1+1. \n";
 		factsList.add(indexRule);
 		
 		String printRules = buildPrintRules();
@@ -456,7 +511,8 @@ public class XMLParser extends DocumentParser{
 		Element raiz = doc.getDocumentElement();
 		factsList.add(raiz.getNodeName().toLowerCase() + "(" + contadorIdPai + "). \n");
 		
-		if(raiz.hasAttributes()){
+		if(raiz.hasAttributes())
+		{
 			NamedNodeMap attributeList = raiz.getAttributes();
 			
 			for(int j=0; j < attributeList.getLength(); j++){

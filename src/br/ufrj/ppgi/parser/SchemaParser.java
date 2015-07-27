@@ -89,6 +89,7 @@ public class SchemaParser extends DocumentParser{
 			String ruleHead = complexTypeSearch(doc, (Element) complexType);
 			boolean bRoot = isRootNode(doc, (Element) complexType);
 			
+			ruleHead = ruleHead.replace(":","_");
 						
 			NodeList nlComplexTypeChilds = complexType.getChildNodes();
 			
@@ -225,22 +226,23 @@ public class SchemaParser extends DocumentParser{
 				//####
 				
 				boolean bComplex = isComplexNode((Element)child);
+				boolean bMixedNode = isMixedNode((Element)child);
 					
 				for(int k = initialSize-1-temp; k < finalSize; k++)
 				{
 					String stringRule = tempRulesList.get(k);
 					String stringBody = bodyRuleList.get(k);
 					
-					if(bComplex)
+					if(bComplex && !bMixedNode)
 					{
-						tempRulesList.set(k, stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
-						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"), "));
+						tempRulesList.set(k, stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
+						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"), "));
 					}
 					else
 					{
 						tempRulesList.set(k, stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 						//bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," +child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
 					}
 										
 				}
@@ -291,6 +293,7 @@ public class SchemaParser extends DocumentParser{
 			if(child.getNodeName() == xsElement || child.getNodeName() == xsAttribute)
 			{
 				boolean bComplex = isComplexNode((Element)child);
+				boolean bMixedNode = isMixedNode((Element)child);
 				
 				if(flagSequenceChoice){
 					if(first){
@@ -304,18 +307,19 @@ public class SchemaParser extends DocumentParser{
 						String stringRule = tempRulesList.get(k);
 						String stringBody = bodyRuleList.get(k);
 						
-						if(bComplex)
+						if(bComplex && !bMixedNode)
 						{
-							auxRuleList.add(stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
+							auxRuleList.add(stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
 							auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+ "), "));
 							
 						}
 						else
 						{ 
-							auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
+							auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
 							//auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 							//auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-							auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+							auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+							
 							
 						}
 						
@@ -325,18 +329,18 @@ public class SchemaParser extends DocumentParser{
 				else
 				{
 					
-					if(bComplex)
+					if(bComplex && !bMixedNode)
 					{
-						tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
+						tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
 						//tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase());
-						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+ "), "));	
+						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+ "), "));	
 					}
 					else
 					{
-						tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
+						tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
 						//tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
 						//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));	
+						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
 					}	
 				}
 			} 
@@ -368,18 +372,19 @@ public class SchemaParser extends DocumentParser{
 			{
 				
 				boolean bComplex = isComplexNode((Element)child);
+				boolean bMixedNode = isMixedNode((Element)child);
 				
-				if(bComplex)
+				if(bComplex && !bMixedNode)
 				{
-					tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() );
+					tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") );
 					//tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() );
-					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+ "), "));
+					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+ "), "));
 				}
 				else
 				{
-					tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
+					tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
 					//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));	
+					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));	
 				}		
 			} 
 		}
@@ -403,14 +408,34 @@ public class SchemaParser extends DocumentParser{
 			
 			if(!a.isEmpty())
 			{
-				tempRulesList.set(k, stringRule.concat(", " + attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
-				bodyRuleList.set(k, stringBody.concat(attributeNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+"," +attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
+				tempRulesList.set(k, stringRule.concat(", " + attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
+				bodyRuleList.set(k, stringBody.concat(ruleParent.toLowerCase()+"_attribute_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase()+", " + "ID"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
 			}
 		}
 		
 		
 		return tempRulesList;
     }
+    
+    /*private ArrayList<String> processSimpleTypeAttributes(Node simpleTypeNode, ArrayList<String> tempRulesList)
+    {
+    	String ruleParent = "";
+    	if(simpleTypeNode.getAttributes().getNamedItem("name") != null)
+    	  ruleParent = simpleTypeNode.getAttributes().getNamedItem("name").getNodeValue();
+    		
+        if(ruleParent.isEmpty())
+        	return tempRulesList;
+        
+    	NodeList childNodes = simpleTypeNode.getChildNodes();
+    	
+    	for(int i=0; i< childNodes.getLength();i++)
+    	{
+    		if(childNodes.item(i).getNodeName() == xsAttribute)
+    			processAttributte(childNodes.item(i), tempRulesList,ruleParent);
+    	}
+    	
+    	return tempRulesList;
+    }*/
 	
 	private String complexTypeSearch(Document doc, Element element)
 	{
@@ -493,6 +518,36 @@ public class SchemaParser extends DocumentParser{
 		}
 		
 			
+		return false;
+	}
+	
+	private boolean isMixedNode(Element childElement)
+	{
+		
+		String typeName = childElement.getAttributes().getNamedItem("type").getNodeValue(); 
+		
+		if(nlComplexTypeList != null)
+		{
+			for(int k=0; k < nlComplexTypeList.getLength(); k++) 
+			{
+				Element e = (Element) nlComplexTypeList.item(k);
+	            if ( e.getAttributeNode("name") != null)
+	            {
+	                if ( e.getAttributeNode("name").getNodeValue() != null )
+	                {
+	                    if((e.getAttributeNode("name").getNodeValue().equals(typeName)))
+	                    {
+	                            if(e.getAttributeNode("mixed") != null)
+	                            {
+	                            	if(e.getAttributeNode("mixed").getNodeValue().toLowerCase().equals("true"))
+	                            		return true;
+	                            }
+	                    }
+	                }
+	            }
+			}	
+		}
+		
 		return false;
 	}
 }

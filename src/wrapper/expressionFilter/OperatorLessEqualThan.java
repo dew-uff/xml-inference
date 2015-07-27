@@ -18,7 +18,8 @@ public class OperatorLessEqualThan implements IExpression {
         }
 
         public String interpret()  {
-            return leftOperand.interpret() + " @<= " + "'" + rightOperand.interpret() + "'";
+            //return leftOperand.interpret() + " @<= " + "'" + rightOperand.interpret() + "'";
+        	return leftOperand.interpret() + " @<= " +rightOperand.interpret();
         }
         
         public IExpression leftOperand()

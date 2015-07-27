@@ -8,21 +8,31 @@ public class Function  implements IExpression {
 	 String functionName;
 	 
 	 public static final String FUNCTION_LOCAL_NAME = "localName";
+	 public static final String FUNCTION_NAME = "name";
+	 public static final String FUNCTION_LANG = "lang";
 	 public static final String FUNCTION_POSITION = "position";
+	 public static final String FUNCTION_LAST = "last";
 	 public static final String FUNCTION_NAMESPACE = "namespace::";
+	 public static final String FUNCTION_PARENT = "parent::";
 	 public static final String FUNCTION_SUBSTRING_BEFORE = "substringBefore";
 	 public static final String FUNCTION_SUBSTRING = "substring";
 	 public static final String FUNCTION_SUBSTRING_AFTER = "substringAfter";
 	 public static final String FUNCTION_NORMALIZE_SPACE = "normalizeSpace";
 	 public static final String FUNCTION_STRING_LENGTH = "stringLength";
 	 public static final String FUNCTION_FLOOR = "floor";
+	 public static final String FUNCTION_CEILING = "ceiling";
 	 public static final String FUNCTION_SUM = "sum";
 	 public static final String FUNCTION_ROUND = "round";
 	 public static final String FUNCTION_NUMBER = "number";
 	 public static final String FUNCTION_DIV = "div";
 	 public static final String FUNCTION_COUNT = "count";
 	 public static final String FUNCTION_BOOLEAN = "boolean";
+	 public static final String FUNCTION_CONCAT = "concat";
+	 public static final String FUNCTION_STRING = "string";
+	 public static final String FUNCTION_TRANSLATE = "translate";
 	 public static final String FUNCTION_NOT = "not";
+	 public static final String FUNCTION_TRUE = "true";
+	 public static final String FUNCTION_FALSE = "false";
 	 public static final String FUNCTION_RESULT = "RESULT";
 	 //true()
 	 //false()
@@ -147,10 +157,40 @@ public class Function  implements IExpression {
     	    return true;
     	else if(getFunctionName().compareToIgnoreCase(FUNCTION_SUBSTRING_AFTER)==0)
     		return true;
-    	else if(getFunctionName().compareToIgnoreCase(FUNCTION_NORMALIZE_SPACE)==0)
+    	else if(getFunctionName().replace("-","").compareToIgnoreCase(FUNCTION_NORMALIZE_SPACE)==0)
     		return true;
     		
     	return false;
     		
+    }
+    
+    static public String mountMathListFunction(String functionName,String tagName,String strPrevisousRules, String tagFatherName, String resultVarName,boolean bHasComplexChilds)
+    {
+    	String sumFormula = " findall(ID"+tagName.toUpperCase().trim()+",";
+    	sumFormula += " (";	
+    	sumFormula += strPrevisousRules;
+    	sumFormula +=   tagName.toLowerCase().trim(); //Last filter item, or last item 
+			
+		{
+			sumFormula +="(ID"+tagFatherName.toUpperCase().trim();
+			//sumFormula +=",IDSEARCH"+String.valueOf(nVarId);
+			//sumFormula +=",_";
+			sumFormula +=",ID"+tagName.toUpperCase().trim();
+			if(!bHasComplexChilds)
+			{
+				sumFormula += ",";
+				sumFormula +=",_";
+			}
+			
+			//sumFormula += tagName.toUpperCase().trim(); // Value for the search
+			sumFormula +=")";
+		}
+		sumFormula +=")";
+		sumFormula +=",LIST ) ";
+		
+		sumFormula +=", "+functionName+"(LIST,";
+		sumFormula +=resultVarName+" )";
+		
+		return sumFormula;
     }
 }

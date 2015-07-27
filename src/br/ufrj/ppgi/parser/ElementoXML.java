@@ -81,18 +81,23 @@ public class ElementoXML {
     	return this.conteudoTexto;
     }
     
-    public String getConteudo(){
+    public String getConteudo()
+    {
     	StringBuilder conteudo = new StringBuilder();
-    	if (conteudoTexto.size() == 0){
-    		int a = 0;conteudo.append("");
+    	if (conteudoTexto.size() == 0)
+    	{
+    		int a = 0;
+    		conteudo.append("");
     	}
     	else
     	{
-	    	for( int i = 0; i < conteudoTexto.size(); i++ ){
+	    	for( int i = 0; i < conteudoTexto.size(); i++ )
+	    	{
 	    		conteudo.append(conteudoTexto.get(i));
 	    	}
     	}
-    	return conteudo.toString();
+    	
+    	return conteudo.toString().replace("\r\n", "").replace("\n", "");
     }
     
     public Boolean temSomenteQuebraDeLinha(){

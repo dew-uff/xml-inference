@@ -22,6 +22,8 @@ public class QueryElement {
     private boolean filterPart = false;
     private boolean orFilterPart = false;
     private boolean isFunction = false;
+    private boolean isJoin = false;
+    private boolean isParenthesis = false;
 	
 	public void parseElement(String newElement){
 		int posToken = newElement.indexOf("[");
@@ -103,7 +105,7 @@ public class QueryElement {
 		return prologFormula;
 	}
 	
-	public String getExperimentalFormula(String strFather)
+	public String getExperimentalFormula(String strFather, int nCompareTag)
 	{
 		String prologFormula = "";
 		if ( queryFormula != null )
@@ -117,14 +119,36 @@ public class QueryElement {
 			if(queryFormula instanceof OperatorEqual)
 			{ 
 				OperatorEqual operator = (OperatorEqual)queryFormula;
+				
+				if(nCompareTag > 0)
+					prologFormula = prologFormula.replace(operator.getLeftOp().toUpperCase(), operator.getLeftOp().toUpperCase()+nCompareTag);
+				
 				String opRule= operator.getLeftOp().toLowerCase();
+				
+				if(opRule.contains("@"))
+				{
+					opRule = strFather.toLowerCase()+"_attribute_"+operator.getLeftOp().toLowerCase();
+				}
+				
 				opRule+="(ID"+strFather.toUpperCase();
+				if(nCompareTag > 0)
+					opRule+=nCompareTag;
+					
 				opRule+=",";
 				opRule+="ID"+operator.getLeftOp().toUpperCase();
+				if(nCompareTag > 0)
+					opRule+=nCompareTag;
+		
 				//opRule+="_";
 				opRule+=",";
-				opRule+=operator.getLeftOp().toUpperCase()+")";
+				opRule+=operator.getLeftOp().toUpperCase();
+				if(nCompareTag > 0)
+					opRule+=nCompareTag;
+				
+				opRule+=")";
 				prologFormula+=","+opRule;
+				
+				prologFormula = prologFormula.replace("@", "");
 				
 			}
 			else if(prologFormula.toUpperCase().contains("PARENT::"))
@@ -141,14 +165,56 @@ public class QueryElement {
 					if(vetAttribute.length >1)
 					{
 						String attributeName = vetAttribute[0].replace("@", "");
-						prologFormula = attributeName.toLowerCase()+"(ID"+strFather.toUpperCase()+",ID"+attributeName.toUpperCase()+","+attributeName.toUpperCase()+") ";
+						prologFormula = attributeName.toLowerCase()+"(ID"+strFather.toUpperCase();
+						if(nCompareTag > 0)
+							prologFormula+=nCompareTag;
+						
+						prologFormula+=",ID"+attributeName.toUpperCase()+","+attributeName.toUpperCase()+") ";
 						prologFormula+=", "+attributeName.toUpperCase() + " ="+vetAttribute[1];
 					}
 				}
 				else
 				   prologFormula = "nonvar("+prologFormula+") ";
+				
+				prologFormula = prologFormula.replace("@", "");
 			}
 			
+			
+			boolean bNumberComparation = false;
+			String strNumberOperator = "";
+			if(queryFormula instanceof OperatorGreaterThan)
+			{
+				strNumberOperator = "@>";
+				bNumberComparation = true;
+			}
+			else if(queryFormula instanceof OperatorGreaterEqualThan)
+			{
+				strNumberOperator = "@>=";
+				bNumberComparation = true;
+			}
+			else if(queryFormula instanceof OperatorLessThan)
+			{
+				strNumberOperator = "@<";
+				bNumberComparation = true;
+			}
+			else if(queryFormula instanceof OperatorLessEqualThan)
+			{
+				strNumberOperator = "@<=";
+				bNumberComparation = true;
+			}
+			
+			if(bNumberComparation)
+			{
+				String [] vetLeftOp = prologFormula.split(strNumberOperator);
+				if(vetLeftOp.length > 1)
+				{
+					String strLeftOp = vetLeftOp[0].trim();
+					nCompareTag++;
+					String strNCompRule = "number("+strLeftOp.toUpperCase()+", "+strLeftOp.toUpperCase()+nCompareTag+"), ";
+					strNCompRule += strLeftOp.toUpperCase()+nCompareTag+" ";
+					prologFormula = prologFormula.replace(strLeftOp,strNCompRule);
+				}
+			}
 		}
 		
 		return prologFormula;
@@ -237,6 +303,15 @@ public class QueryElement {
 		filterPart = bIsFilterPart;
 	}
 	
+	public void setIsJoin(boolean bIsJoin)
+	{
+		isJoin = bIsJoin;
+	}
+	
+	public void setIsParenthesis(boolean bIsParenthesis)
+	{
+		isParenthesis = bIsParenthesis;
+	}
 	
 	public boolean isFunction()
 	{
@@ -246,6 +321,16 @@ public class QueryElement {
 	public boolean isOrFilterPart()
 	{
 		return orFilterPart;
+	}
+	
+	public boolean isJoin()
+	{
+		return isJoin;
+	}
+	
+	public boolean isParenthesis()
+	{
+		return isParenthesis;
 	}
 	
 	public void setIsOrFilterpart(boolean bIsOrFilterPart)
@@ -318,6 +403,12 @@ public class QueryElement {
 		   return true;
 	   
 	   if(queryFormula instanceof OperatorGreaterEqualThan)
+		   return true;
+	   
+	   if(queryFormula instanceof OperatorLessEqualThan)
+		   return true;
+	   
+	   if(queryFormula instanceof OperatorLessThan)
 		   return true;
 		
 		return false;

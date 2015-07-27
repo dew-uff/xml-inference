@@ -27,7 +27,9 @@ public class OperatorGreaterThan implements IExpression {
         	return rightOperand;
         }
 
-        public String interpret()  {
-            return leftOperand.interpret() + " @> " + "'" + rightOperand.interpret() + "'";
+        public String interpret()  
+        {
+        	return leftOperand.interpret() + " @> " + rightOperand.interpret();
+        	//return leftOperand.interpret() + " @> " + "'" + rightOperand.interpret() + "'";
         }
 }

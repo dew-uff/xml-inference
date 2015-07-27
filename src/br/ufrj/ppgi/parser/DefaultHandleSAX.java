@@ -103,10 +103,11 @@ public class DefaultHandleSAX extends DefaultHandler {
         	ElementoXML novoElemento = new ElementoXML();
         	novoElemento.setTipo(ElementoXML.TipoElemento.ATRIBUTO);
             String atributo = atts.getQName(i);
+
             if (atributo.contains(":"))
             	atributo = atributo.replace(":", "_");
             
-            novoElemento.setNome(atributo);
+            novoElemento.setNome(atributo.toLowerCase());
             
             getElementoAtual().adicionarFilho(novoElemento);
             novoElemento.setPai(getElementoAtual());
@@ -152,15 +153,21 @@ public class DefaultHandleSAX extends DefaultHandler {
     	}*/
     	ElementoXML novoElemento = new ElementoXML();
     	novoElemento.setTipo(ElementoXML.TipoElemento.FILHO);
+    	qName = qName.replace(":", "_");
     	novoElemento.setNome(qName);
     	novoElemento.setId(++contadorIdPai);
-    	if ( pilha.size() == 0){ //elemento Raiz
+    	if ( pilha.size() == 0)
+    	{ //elemento Raiz
     		novoElemento.setPai(null);
     		pilha.push(novoElemento);
     		elementoAtual = novoElemento;
     		strConteudo += elementoAtual.getNome().toLowerCase();
 	    	strConteudo += "(" + elementoAtual.getId() + ").\n";
-    		return;
+	    	
+	    	processarAtributos( atts);
+	    	escreverElementoNoArquivo(elementoAtual);
+    		
+	    	return;
     	}
     	else{
     		novoElemento.setPai(getElementoAtual());
@@ -249,21 +256,27 @@ public class DefaultHandleSAX extends DefaultHandler {
     			if ( bElementoMisto && filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO){
     				if ( !filhos.get(i).getElementoImpresso() ){
                                     imprimirPai(filhos.get(i).getPai());
-                                    strConteudo += "xml/mixedElement";
+                                    strConteudo += "xmlMixedElement";
                                     strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
                                     filhos.get(i).setElementoImpresso(true);
                                 }
 	    		}
-	    		else{
-		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO ){
-		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO ){
-                                            if ( !filhos.get(i).getElementoImpresso() ){
-		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
-			    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
-                                                filhos.get(i).setElementoImpresso(true);
-                                            }
+	    		else
+	    		{
+		    		if( filhos.get(i).getTipo() == ElementoXML.TipoElemento.TEXTO )
+		    		{
+		    			if ( filhos.get(i).getPai().getTipo() == ElementoXML.TipoElemento.ATRIBUTO )
+		    			{
+                            if ( !filhos.get(i).getElementoImpresso() )
+                            {
+			    				strConteudo += filhos.get(i).getPai().getPai().getNome().toLowerCase()+"_attribute_"+filhos.get(i).getPai().getNome().toLowerCase();
+			    				//strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
+				    			strConteudo += "(" + filhos.get(i).getPai().getPai().getId() + ", " + filhos.get(i).getPai().getId() + ", '" + filhos.get(i).getConteudo().replace("'", "`") + "').\n";
+	                            filhos.get(i).setElementoImpresso(true);
+                            }
 		    			}
-		    			else{
+		    			else
+		    			{
 		    				//imprimirPai(filhos.get(i).getPai().getPai());
                                             if ( !filhos.get(i).getElementoImpresso() ){
 		    				strConteudo += filhos.get(i).getPai().getNome().toLowerCase();
@@ -274,11 +287,11 @@ public class DefaultHandleSAX extends DefaultHandler {
 			    			
 		    			}
 		    		}
-		    		/*else{
-		    			
-		    			strConteudo += filhos.get(i).getNome().toLowerCase();
-		    				strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
-		    		}*/
+		    		else
+		    		{
+		    			//strConteudo += filhos.get(i).getNome().toLowerCase();
+		    			//strConteudo += "(" + filhos.get(i).getPai().getId() + ", " + filhos.get(i).getId() + ", '" + filhos.get(i).getConteudo() + "').\n";
+		    		}
 	    		}
     		}
     		escreverElementoNoArquivo(filhos.get(i));

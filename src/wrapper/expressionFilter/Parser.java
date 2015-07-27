@@ -105,7 +105,7 @@ public class Parser implements IExpression {
     	
     	String[] listToken = expression.split(" ");
     	
-    	if(expression.indexOf("(") != -1 || expression.indexOf("namespace::") != -1)
+    	if((expression.indexOf("(") != -1 && expression.indexOf("(") !=0) || expression.indexOf("namespace::") != -1)
     	{
     		
     		int posToken = expression.indexOf("(");
@@ -144,7 +144,12 @@ public class Parser implements IExpression {
     	                    
     	                    int posEndToken = argument.length();
     	                    
-    	                    String tmpSubstring = expression.substring(posEndToken+1, expression.length());
+    	                    int nEnd = expression.length();
+    	                    int nBegin = posEndToken; 
+    	                    if(posEndToken+1 < nEnd)
+    	                    	nBegin = posEndToken+1; 
+    	                    
+    	                    String tmpSubstring = expression.substring(nBegin, nEnd);
     	                    listToken =  tmpSubstring.split(" ");	
     	                    
     	                    break;
@@ -164,7 +169,7 @@ public class Parser implements IExpression {
 	            			
 	            			//expressionStack.push(new Variable(functionName));
 	            			int posTokenEnd = expression.indexOf(")");
-	            			String  arguments =	arguments = expression.substring(posToken+1, posTokenEnd); 
+	            			String  arguments = expression.substring(posToken+1, posTokenEnd); 
 	            			
 	            			String[] listArguments = arguments.split(",");
 	            			
@@ -201,12 +206,32 @@ public class Parser implements IExpression {
 	        					argumentsList.add(arg);
 	        				}
 	        			}*/
-	        			expressionStack.addAll(parseFunction(expression));
+	        			
+	        			String strFunction = expression;
+	        			
+	        			List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(expression);
+	        			int nPosEndFunction = expression.lastIndexOf(")");
+	        			if(pairParenthesisList.size()>0)
+	        				nPosEndFunction = pairParenthesisList.get(pairParenthesisList.size()-1).getValue();
+	        			
+	        			
+	        			
+	        			if(nPosEndFunction != -1 && nPosEndFunction+1 <= expression.length())
+	        			{
+	        				strFunction  = expression.substring(0,nPosEndFunction+1);
+	        			}
+	        				
+	        			
+	        			expressionStack.addAll(parseFunction(strFunction));
 	        			//IExpression operator = new Function(functionName, argumentsList);
 	                    //expressionStack.push(operator);
-	        			int posEndFunction = expression.lastIndexOf(")");
+	        			if(nPosEndFunction == -1)
+	        				nPosEndFunction = expression.lastIndexOf(")");
 	        			
-	                    String tmpSubstring = expression.substring(posEndFunction+1, expression.length());
+	                    String tmpSubstring = expression.substring(nPosEndFunction+1, expression.length());
+	                    if(tmpSubstring.startsWith(")"))
+	                    	tmpSubstring = expression.substring(nPosEndFunction+2, expression.length());
+	                    
 	                    listToken =  tmpSubstring.split(" ");
 	        		}
     		}
@@ -235,7 +260,37 @@ public class Parser implements IExpression {
 	        		else
 	        		{
 		        		if ( !isElement(token) && nCountPlic == 0)
-		        			expressionStack.push(new Variable(token));
+		        		{
+		        			if(token.indexOf("(") != -1 && token.indexOf("(") !=0)
+		        			{
+		        				int posTokenEnd = token.indexOf(")");
+		        				int posToken = token.indexOf("(");
+		        				
+		        				String functionName = token.substring(0,posToken);
+		        				
+		            			String  arguments = token.substring(posToken+1, posTokenEnd); 
+		            			
+		            			String[] listArguments = arguments.split(",");
+		            			
+		            			ArrayList<IExpression> argumentsList = new ArrayList<IExpression>();
+		            			for (String argument : listArguments) 
+		            			{
+		            				if(!argument.isEmpty())
+		            				{
+		            					Element arg = new Element(argument);
+		            					argumentsList.add(arg);
+		            				}
+		            			}
+		                        
+		            			IExpression operator = new Function(functionName, argumentsList);
+		                        expressionStack.push(operator);
+		        			}
+		        			else
+		        			{
+		        				if(!(token.compareTo("(")==0) && !(token.compareTo(")")==0))
+		        					expressionStack.push(new Variable(token));
+		        			}
+		        		}
 		        		else
 		        		{
 		                    if ( token.indexOf("'") > -1 )
@@ -285,7 +340,9 @@ public class Parser implements IExpression {
     	}
         syntaxTree = expressionStack.pop();
     }
- 
+    
+    
+    
     public String interpret() {
         return syntaxTree.interpret();
     }
@@ -319,26 +376,75 @@ public class Parser implements IExpression {
 		
 		String[] listArguments = arguments.split(",(?![^(]*\\))");
 		ArrayList<IExpression> argumentsList = new ArrayList<IExpression>();
-		for (String argument : listArguments) 
+		
+		boolean bContainsLogicalOperators = false;
+		boolean bContainsMathOperators = false;
+		if(listArguments.length > 0)
 		{
-			if(!argument.isEmpty())
+			String argsUpper = listArguments[0].toUpperCase();
+			bContainsLogicalOperators = argsUpper.contains(" NOT")
+					|| argsUpper.contains(" AND");
+			
+			bContainsMathOperators = argsUpper.contains(" - ")
+					|| argsUpper.contains(" +")
+					|| argsUpper.contains(" *")
+			        || argsUpper.contains(" DIV")
+			        || argsUpper.contains(" MOD");
+ 		}
+			 
+		
+		if(!bContainsLogicalOperators && !bContainsMathOperators)
+		{
+			for (String argument : listArguments) 
 			{
-				int nArgParentesis = argument.indexOf("(");
-				if(nArgParentesis != -1)
+				if(!argument.isEmpty())
 				{
-				  argumentsList.addAll(parseFunction(argument));				
+					int nArgParentesis = argument.indexOf("(");
+					if(nArgParentesis == 0 && argument.length()>0)
+						nArgParentesis = argument.indexOf("(",1);
+						
+					if(nArgParentesis != -1)
+					{
+						argumentsList.addAll(parseFunction(argument));				
+					}
+					else
+					{
+						Element arg = new Element(argument);
+						argumentsList.add(arg);
+					}
 				}
-				else
-				{
-					Element arg = new Element(argument);
-					argumentsList.add(arg);
-				}
-			}
+			}  	
 		}
+		else
+		{
+			if(bContainsMathOperators && listArguments.length>0)
+				argumentsList.addAll(parseMathOperation(listArguments[0]));
+		}
+		
         
 		IExpression functionExp = new Function(functionName, argumentsList);
 		listExpression.add(functionExp);
     	return listExpression;
+    }
+    
+    boolean checkParenthesis(String s, int i, int open, int closed){
+        if(i == s.length())
+        {
+            if(open != closed) 
+            	return false;
+            return true;
+        }   
+
+        if(s.charAt(i) == '(') 
+        	open = open+1;
+
+        if(s.charAt(i) == ')'){
+            if(open > closed) 
+            	closed = closed+1;
+            else return false;
+        } 
+
+        return checkParenthesis(s, i+1, open, closed);
     }
     
     String findFunctionArguments(String in)
@@ -351,14 +457,142 @@ public class Parser implements IExpression {
         
         return in;*/
     	
-    	int nStart = in.indexOf("(");
+    	String tmp = in;
+    	/*if(!tmp.trim().endsWith(")"))
+    		tmp+=")";*/
+    	if(!checkParenthesis(tmp,0,0,0))
+    		tmp+=")";
+    	
+    	
+    	
+    	int nStart = tmp.indexOf("(");
     	if(nStart != -1)
     	{
-    		int nEnd = in.lastIndexOf(")");
+    		int nEnd = tmp.lastIndexOf(")");
     		if(nEnd != -1 && nStart < nEnd)
-    			return in.substring(nStart+1,nEnd);
+    			return tmp.substring(nStart+1,nEnd);
     	}
     	
-    	return in;
+    	return tmp;
     }
+    
+    ArrayList<IExpression> parseMathOperation(String mathSentence)
+    {
+    	ArrayList<IExpression> argumentsList = new ArrayList<IExpression>();
+    	
+    	/*List<Pair<Integer,Integer>> parenthesisPairList = mapParenthsis(mathSentence);
+    	
+    	if(parenthesisPairList.size()>0)
+    	{
+	    	List<String> listSentences = new ArrayList<String>();
+    		
+    		for(int i = parenthesisPairList.size()-1; i>=0;i--)
+	    	{
+	    		String subSentence =   mathSentence.substring(parenthesisPairList.get(i).getKey(),parenthesisPairList.get(i).getValue());
+	    		
+	    		for(int j=0;j<listSentences.size();j++)
+	    		{
+	    			subSentence = subSentence.replace(listSentences.get(j), "");
+	    		}
+	    		
+	    		
+	    		
+	    	}
+    	}
+    	else
+    	{
+    		
+    	}*/
+            	
+    	//Parser parser = new Parser("( number(current) - number(initial) ) div count(bidder) ) > 8");
+    	
+    	String[] listArguments = mathSentence.split(" ");
+    	//for (String argument : listArguments)
+    	for(int i=0; i<listArguments.length;i++)
+		{
+    		String argument = listArguments[i];
+    		if(!argument.isEmpty())
+			{
+				int nArgParentesis = argument.indexOf("(");
+				if(nArgParentesis == 0 && argument.length()>0)
+					nArgParentesis = argument.indexOf("(",1);
+				
+				if(argument.toUpperCase().trim().compareTo("DIV") == 0)
+				{
+					if(i+1 < listArguments.length)
+					{
+						String nextArg = listArguments[i+1];
+						
+						if(isFunction(nextArg))
+							argumentsList.addAll(parseFunction(nextArg));
+						else
+						{
+							Element arg = new Element(argument);
+							argumentsList.add(arg);
+						}
+							
+						i++;
+					}
+					
+					ArrayList<IExpression> divArgumentsList = new ArrayList<IExpression>(argumentsList);
+					Function divFunction = new Function(Function.FUNCTION_DIV,divArgumentsList);
+					argumentsList.clear();
+					argumentsList.add(divFunction);
+					
+					continue;
+				}
+					
+				if(nArgParentesis != -1 && nArgParentesis!= 0)
+				{
+					argumentsList.addAll(parseFunction(argument));				
+				}
+				else
+				{
+					Element arg = new Element(argument);
+					argumentsList.add(arg);
+				}
+			}
+		}
+    	
+    	
+    	return argumentsList;
+    	
+    }
+    
+    
+    private boolean isFunction(String argument)
+    {
+    	int nArgParentesis = argument.indexOf("(");
+		if(nArgParentesis == 0 && argument.length()>0)
+			nArgParentesis = argument.indexOf("(",1);
+		
+		if(nArgParentesis != -1 && nArgParentesis!= 0)
+			return true;
+		
+		return false;
+    }
+    
+    private List<Pair<Integer,Integer>> mapParenthsis(String text)  
+	{
+		
+		List<Pair<Integer,Integer>> pairParenthesisList = new ArrayList<Pair<Integer,Integer>>();
+		Stack<Integer> tmpStack  =new Stack<Integer>();
+		int beginPosParenthesis = text.indexOf("(",0);
+		while(beginPosParenthesis > -1)
+		{
+			tmpStack.add(beginPosParenthesis);
+			beginPosParenthesis = text.indexOf("(",beginPosParenthesis+1);
+		}
+		
+		while(!tmpStack.isEmpty())
+		{
+			beginPosParenthesis = tmpStack.pop();
+			int endPosParenthesis = text.indexOf(")",beginPosParenthesis+1);
+			
+			if(endPosParenthesis >-1)
+				pairParenthesisList.add(new Pair<Integer, Integer>(beginPosParenthesis,endPosParenthesis));
+		}
+		
+		return pairParenthesisList;
+	}
 }
