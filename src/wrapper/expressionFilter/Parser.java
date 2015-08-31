@@ -19,6 +19,7 @@ import wrapper.Pair;
 /**
  *
  * @author rpinheiro
+ * @author lmachado
  */
 public class Parser implements IExpression {
     

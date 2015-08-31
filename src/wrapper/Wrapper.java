@@ -1,5 +1,7 @@
 package wrapper;
 
+import alice.tuprologx.pj.engine.PrologInvocationKind;
+import br.ufrj.ppgi.parser.PrologOutputParser;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
 
 public abstract class Wrapper {
@@ -22,15 +24,21 @@ public abstract class Wrapper {
 	
 	public boolean executeQuery( String query )
 	{
+		//PrologOutputParser parser = new PrologOutputParser(PrologOutputParser.ParseType.TUPROLOG);
+		//System.out.println(parser.tuPrologParseTest());
+		
+		//return true;
+		
 		String queryProlog = convertQuery(query,false);
                 //queryProlog = "findall(G, (item(_, PRODUTO, QUANTIDADE, PRECO_UNIT), PRODUTO = 'caneta preta', quantidade(G,QUANTIDADE)), A).";
 		System.out.println(queryProlog);
-		return true;
-		/*PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog);
+		//return true;
+		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog);
+		//setResult(engineProlog.getResult());
 		setResult(engineProlog.getResult());
-		System.out.println(engineProlog.getResult());		
+		System.out.println(engineProlog.getOutputResult());		
 		
-		return true;*/
+		return true;
 	}
 	
 	public String getResult()

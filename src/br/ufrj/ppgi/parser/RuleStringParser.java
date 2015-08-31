@@ -129,6 +129,40 @@ public class RuleStringParser
 	       return strNewRule;
 	 }
 	 
+	 public String replaceIDRule(String strRule, String strToReplace)
+	 {
+	    	String strNewRule = strRule;
+		    int nIndexPar = strRule.indexOf("(");
+	        if(nIndexPar>=0)
+	        {
+	        		String strTagName = strRule.substring(0,nIndexPar);
+	        		if(strTagName.contains("_attribute_"))
+	        		{
+	        			String [] vetName = strTagName.split("\\_attribute_");
+	        			if(vetName.length>1)
+	        				strTagName = vetName[1];
+	        		}
+	        		
+	        		if(strRule.contains("ID"+strTagName.toUpperCase()))
+	        		{
+	        			int nFrom  = strRule.indexOf("ID"+strTagName.toUpperCase());
+	        			int nTo = strRule.indexOf(",",strRule.indexOf(",")+1);
+	        			if(nTo<=0)
+	        			{
+	        				nTo = strRule.indexOf(")");
+	        				if(nTo<=0)
+	        					nTo = strRule.length();
+	        			}
+	        			
+	        			
+	        			String temp = strRule.substring(nFrom, nTo);
+	        			strNewRule = strRule.replaceFirst(temp,strToReplace);
+	        		}
+	        } 
+		 
+	       return strNewRule;
+	 }
+	 
 	 public String replaceParentIDRule(String strRule,String strParent)
 	 {
 	    	String strNewRule = strRule;
@@ -142,7 +176,7 @@ public class RuleStringParser
 	        		String strID = strRule.substring(nIndexPar,nIndexComma);
 	        		if(strID.contains("ID"))
 	        		{
-	        			String strReplace = "(ID"+strParent.toUpperCase();
+	        			String strReplace = "(ID"+strParent.replace(":", "_").toUpperCase();
 	        			strNewRule = strRule.replaceFirst("\\"+strID,strReplace);
 	        		}
 	        	}

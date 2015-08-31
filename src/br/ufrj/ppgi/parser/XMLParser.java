@@ -490,6 +490,24 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " boolean(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = true ; BOOLOUT = false. \n";		 
     	strFunctionRules+= " not(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = false ; (BOOLOUT = true). \n";
     	
+    	strFunctionRules+= " quick_sort([X|Xs],Ys) :- \n";
+    	strFunctionRules+= " partition(Xs,X,Left,Right), \n";
+    	strFunctionRules+= "   quick_sort(Left,Ls), \n";
+    	strFunctionRules+= "   quick_sort(Right,Rs), \n";
+    	strFunctionRules+= "   append(Ls,[X|Rs],Ys). \n";
+    	strFunctionRules+= " quick_sort([],[]). \n";
+
+    	strFunctionRules+= " partition([X|Xs],Y,[X|Ls],Rs) :- nonvar(X),nonvar(Y),X =< Y, partition(Xs,Y,Ls,Rs). \n";
+    	strFunctionRules+= " partition([X|Xs],Y,Ls,[X|Rs]) :- nonvar(X),nonvar(Y), \n";
+    	strFunctionRules+= "   X > Y, partition(Xs,Y,Ls,Rs). \n";
+    	strFunctionRules+= " partition([],Y,[],[]). \n";
+
+    	strFunctionRules+= " append([],Ys,Ys). \n";
+    	strFunctionRules+= " append([X|Xs],Ys,[X|Zs]) :- append(Xs,Ys,Zs). \n";
+    	
+    	strFunctionRules+= " printnl(VAR):- print(VAR),print('\\n'). \n";
+    	strFunctionRules+= " nlprint(VAR):- print('\\n'),print(VAR). \n";
+    	
     	
     	return strFunctionRules;
     }
