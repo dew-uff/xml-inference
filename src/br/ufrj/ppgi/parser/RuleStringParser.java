@@ -143,9 +143,10 @@ public class RuleStringParser
 	        				strTagName = vetName[1];
 	        		}
 	        		
-	        		if(strRule.contains("ID"+strTagName.toUpperCase()))
-	        		{
-	        			int nFrom  = strRule.indexOf("ID"+strTagName.toUpperCase());
+	        		//if(strRule.contains("ID"+strTagName.toUpperCase()))
+	        		//{
+	        			//int nFrom  = strRule.indexOf("ID"+strTagName.toUpperCase());
+	        		    int nFrom  = strRule.indexOf(",");
 	        			int nTo = strRule.indexOf(",",strRule.indexOf(",")+1);
 	        			if(nTo<=0)
 	        			{
@@ -154,10 +155,12 @@ public class RuleStringParser
 	        					nTo = strRule.length();
 	        			}
 	        			
-	        			
-	        			String temp = strRule.substring(nFrom, nTo);
-	        			strNewRule = strRule.replaceFirst(temp,strToReplace);
-	        		}
+	        			if(nFrom+1 < nTo)
+	        			{
+	        				String temp = strRule.substring(nFrom+1, nTo);
+	        				strNewRule = strRule.replaceFirst(temp,strToReplace);
+	        			}
+	        		//}
 	        } 
 		 
 	       return strNewRule;
