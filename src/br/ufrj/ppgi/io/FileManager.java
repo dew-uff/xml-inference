@@ -27,6 +27,11 @@ public class FileManager {
 		return fileList;
 	}
 	
+	public String factsFileName()
+	{
+		return FACTS_FILE_NAME;
+	}
+	
 	public String loadFile(String fileType) {
 		String fileName = null;
 				
@@ -83,6 +88,38 @@ public class FileManager {
 	
 	public String readRules(){
 		File file = new File(RULES_FILE_NAME);
+		String texto = "";  
+		StringBuffer temp = new StringBuffer();    
+		
+		try {    
+			FileReader arquivo = new FileReader(file);  
+			BufferedReader ler = new BufferedReader(arquivo);  
+			 
+			boolean fim = false;  
+			  
+			while (!fim) {  
+				String linha = ler.readLine();  
+				if (linha == null)  
+					fim = true;  
+				else  
+					temp.append(linha + "\n");  
+			}  
+			
+			texto = temp.toString(); 
+			ler.close();  
+			arquivo.close();  
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
+		return texto;
+	}
+	
+	
+	public String readTestBase(){
+		File file = new File("BaseCompleta.pl");
 		String texto = "";  
 		StringBuffer temp = new StringBuffer();    
 		

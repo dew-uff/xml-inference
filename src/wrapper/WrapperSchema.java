@@ -1221,7 +1221,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strGrandFather,String strFather,QueryElement element,int[] nPositionVet)
+	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strGrandFather,String strFather,QueryElement element,int[] nPositionVet,ArrayList<String> targetNodeNameList)
 	{
 		String strPrologFunction = "";
 		Boolean bConsiderNamespaces = true;
@@ -1230,7 +1230,7 @@ public class WrapperSchema extends Wrapper {
 		{
 			IExpression expression = element.getExpressionFormula();
 			
-			strPrologFunction = getPrologOperatorFunction3(document,strGrandFather,strFather,expression,nPositionVet);
+			strPrologFunction = getPrologOperatorFunction3(document,strGrandFather,strFather,expression,nPositionVet,targetNodeNameList);
 		}	
 		
 		return new Pair<String, Boolean>(strPrologFunction, bConsiderNamespaces);
@@ -1461,7 +1461,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private String getPrologOperatorFunction3(Document document,String strGrandFather,String strFather,IExpression expression,int[] nPositionVet)
+	private String getPrologOperatorFunction3(Document document,String strGrandFather,String strFather,IExpression expression,int[] nPositionVet,ArrayList<String> targetNodeNameList)
 	{
 		String result = "";
 		
@@ -1534,7 +1534,7 @@ public class WrapperSchema extends Wrapper {
 	    		if(strFuncName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
 	    				bException = true;
 	    		
-	    		result = translateFunction(document,left,strGrandFather,strFather,nPositionVet);
+	    		result = translateFunction(document,left,strGrandFather,strFather,nPositionVet,targetNodeNameList);
 	    		bLeftIsFunction = true;	
 	    		leftValue  = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    		Function function = (Function) left;
@@ -1549,7 +1549,7 @@ public class WrapperSchema extends Wrapper {
 	    	{
 	    		if(bLeftIsFunction)
 	    			nPositionVet[0]++;
-	    		result += ", "+translateFunction(document,right,strGrandFather,strFather,nPositionVet);	    		
+	    		result += ", "+translateFunction(document,right,strGrandFather,strFather,nPositionVet,targetNodeNameList);	    		
 	    		bRightIsFunction = true;
 	    		rightValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    	}
@@ -1565,14 +1565,14 @@ public class WrapperSchema extends Wrapper {
 	    	if(!bException)
 	    		result += ", " +leftValue + strOperator +rightValue;
 	    	else
-	    		result = translateFunctionExceptions(document, strGrandFather, strFather, left, right, strOperator,nPositionVet);
+	    		result = translateFunctionExceptions(document, strGrandFather, strFather, left, right, strOperator,nPositionVet,targetNodeNameList);
 	    }
 		
 		return result;
 		
 	}
 	
-	private String translateFunctionExceptions(Document document,String strGrandFather,String strFather,IExpression left,IExpression right,String strOperator,int[] nPositionVet)
+	private String translateFunctionExceptions(Document document,String strGrandFather,String strFather,IExpression left,IExpression right,String strOperator,int[] nPositionVet,ArrayList<String> targetNodeNameList)
 	{
 		String strResult = "";
 		
@@ -1697,7 +1697,7 @@ public class WrapperSchema extends Wrapper {
 						/*if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0)
 						{*/
 							strResult+=
-									translateFunctionExceptions( document, strGrandFather, strFather,listArgs.get(0),funcBooleanResult, strOperator,nPositionVet);
+									translateFunctionExceptions( document, strGrandFather, strFather,listArgs.get(0),funcBooleanResult, strOperator,nPositionVet,targetNodeNameList);
 						/*}
 						else if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_NOT)==0)
 						{
@@ -1713,7 +1713,7 @@ public class WrapperSchema extends Wrapper {
 				OperatorEqual opEqual = new OperatorEqual(left,right);	
 				QueryElement element = new QueryElement();
 				element.parseElement("["+opEqual.interpret()+"]");
-				strResult+= obtainAxisNamespace(document,strFather,element);
+				strResult+= obtainAxisNamespace(document,strFather,element,targetNodeNameList);
 			}
 		}
 		
@@ -1858,7 +1858,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	String translateFunction(Document document,IExpression expression,String strGrandFather, String strTagFather,int[] nPositionVet)
+	String translateFunction(Document document,IExpression expression,String strGrandFather, String strTagFather,int[] nPositionVet,ArrayList<String> targetNodeNameList)
 	{
 		Function func = (Function)expression;	
 		List<String> functionArgs = new ArrayList<String>(); 
@@ -1873,7 +1873,7 @@ public class WrapperSchema extends Wrapper {
 			if(exp instanceof Function)
 			{
 				//getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
-				recursiveResult = translateFunction(document,exp,strGrandFather,strTagFather,nPositionVet) +", "+recursiveResult;
+				recursiveResult = translateFunction(document,exp,strGrandFather,strTagFather,nPositionVet,targetNodeNameList) +", "+recursiveResult;
 				
 				functionArgs.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
 				nPositionVet[0]++;
@@ -1914,13 +1914,14 @@ public class WrapperSchema extends Wrapper {
 		{
 			if(functionArgs.size() > 0 )
 			{
-				String namespaceResult = "!";
+				String namespaceResult = "";
 				if( !(functionArgs.get(0).compareToIgnoreCase("xml")==0))
 				{
 					String strTag = functionArgs.get(0);
 					QueryElement element = new QueryElement();
 					element.parseElement("["+Function.FUNCTION_NAMESPACE+strTag+"]");
-					namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element)+", !)";
+					//namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element,targetNodeNameList)+", !)";
+					namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element,targetNodeNameList)+")";
 				}
 				sbReturn.append(namespaceResult);
 				
@@ -2879,7 +2880,7 @@ public class WrapperSchema extends Wrapper {
 		return false;
 	}
 	
-	private boolean hasOnlyRequiredAttributes(Document document, String typeSchema, String nameElement,String nameParentElement,boolean bConsiderNamespaces)
+	public boolean hasOnlyRequiredAttributes(Document document, String typeSchema, String nameElement,String nameParentElement,boolean bConsiderNamespaces)
 	{
 		Node nodeElement = getElementByTagName(document, typeSchema, nameElement,nameParentElement,bConsiderNamespaces);
 		
@@ -3058,7 +3059,7 @@ public class WrapperSchema extends Wrapper {
 				
 				if(element.getElement().trim().contains(Function.FUNCTION_NAMESPACE))
 				{
-					queryConvert += obtainAxisNamespace(document,strLastCommonParent,element);
+					queryConvert += obtainAxisNamespace(document,strLastCommonParent,element,targetNodeNameList);
 					continue;
 				}
 				
@@ -3192,14 +3193,14 @@ public class WrapperSchema extends Wrapper {
 								bHasOnlyFunction = true;
 							if(element.hasOperator() )
 							{
-								Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet);
+								Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,targetNodeNameList);
 								strAfterWildCardFunction = pair.getKey();
 								/*else
 									queryConvert += ", "+pair.getKey();*/	
 							}
 							else
 							{
-								strAfterWildCardFunction = 	translateFunction(document,element.getExpressionFormula(), strLastCommonGrandParent, strLastCommonParent, nPositionVet);
+								strAfterWildCardFunction = 	translateFunction(document,element.getExpressionFormula(), strLastCommonGrandParent, strLastCommonParent, nPositionVet,targetNodeNameList);
 							}
 						}
 						 
@@ -3663,7 +3664,7 @@ public class WrapperSchema extends Wrapper {
 								//queryConvert += getPrologFunction(document,strLastCommonParent,element);
 								//strFunction = getPrologFunction(document,strLastCommonParent,element);
 								int[] nPositionVet = {nSearch};
-								strFunction = translateFunction(document,element.getExpressionFormula(),strLastCommonGrandParent, strLastCommonParent,nPositionVet);
+								strFunction = translateFunction(document,element.getExpressionFormula(),strLastCommonGrandParent, strLastCommonParent,nPositionVet,targetNodeNameList);
 								nPositionVet[0]++;
 								nSearch = nPositionVet[0];
 							}
@@ -3682,7 +3683,7 @@ public class WrapperSchema extends Wrapper {
 									{
 										int[] nPositionVet = {nSearch};
 
-										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet);
+										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,targetNodeNameList);
 
 										strFunction = pair.getKey();
 										ArrayList<String> tagOperatorList = getPrologOperatorTags(element,document);
@@ -3839,7 +3840,7 @@ public class WrapperSchema extends Wrapper {
 		 }
 		 else
 		 {  
-			 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!= 0)
+			 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!= 0 || targetNodeNameList.size()>0)
 				 bInsertAllRulesFromTag = true;
 		 }
 		 
@@ -3854,10 +3855,43 @@ public class WrapperSchema extends Wrapper {
 		 
 		 if(bInsertAllRulesFromTag)
 		 {
-			 HashMap<String,Pair<Integer,Integer>> recursionMap = new HashMap<String,Pair<Integer,Integer>>(); 
-			 int nRecursionLevel = 0;
-			 String strCompleteRule = insertAllRulesFromTag7(document,strLastCommonGrandParent,strLastCommonParent,nCompareTag,recursionMap,nRecursionLevel);
-			 if(strLastCommonGrandParent.compareToIgnoreCase("NOPARENT")==0)
+			 String strCompleteRule = "";
+			 if(targetNodeNameList.size() >0)
+			 {
+				 HashMap<String,Pair<Integer,Integer>> recursionMap = new HashMap<String,Pair<Integer,Integer>>();
+				 for(int tg =0; tg<targetNodeNameList.size();tg++)
+				 {
+					 int nRecursionLevel = 0;
+					 
+					 if(tg > 0)
+					 {
+						 strCompleteRule+= ", RESETQUERY"+tg;
+					     strCompleteRule+= "'TRUE' ;";
+					     
+					     for (String key : recursionMap.keySet()) 
+				    	 {
+				    		 Pair<Integer,Integer> pair = recursionMap.get(key);
+				    		 if(key.compareToIgnoreCase(targetNodeNameList.get(tg))==0)
+				    		 {
+				    			 pair.setKey(0);
+				    			 pair.setValue(0);
+				    			 recursionMap.put(key, pair);
+				    		 }
+				    	 }
+					 }
+					 
+					 strCompleteRule+= insertAllRulesFromTag7(document,strLastCommonGrandParent,targetNodeNameList.get(tg),nCompareTag,recursionMap,nRecursionLevel);
+				 }
+				 
+			 }
+			 else
+			 {
+				 HashMap<String,Pair<Integer,Integer>> recursionMap = new HashMap<String,Pair<Integer,Integer>>(); 
+				 int nRecursionLevel = 0;
+				 strCompleteRule = insertAllRulesFromTag7(document,strLastCommonGrandParent,strLastCommonParent,nCompareTag,recursionMap,nRecursionLevel);
+			 }
+			 
+			 if(strLastCommonGrandParent.compareToIgnoreCase("NOPARENT")==0 && targetNodeNameList.size()<=1)
 			 {
 				 queryConvert = "";
 				 /*if(strCompleteRule.startsWith(",  "))
@@ -5496,7 +5530,7 @@ public class WrapperSchema extends Wrapper {
 		 if(mapVisitedNodes.containsKey(strParent))
 		 {
 			 Pair<Integer,Integer> pair = mapVisitedNodes.get(strParent);
-			 if(pair.getValue()>=0)
+			 if(pair.getValue()>=1)
 				 bStopRecusrsion = true;
 		 }
 		 
@@ -5605,10 +5639,12 @@ public class WrapperSchema extends Wrapper {
 			 String  modifiedIDBaseRule = idBaseRule;
 			 String  modifiedValueBaseRule = valueBaseRule;
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
 			 
@@ -5622,7 +5658,20 @@ public class WrapperSchema extends Wrapper {
 				 else if(!bIsMixed)
 					 strTempRule = modifiedIDBaseRule;
 			 
-			 strCompleteRule = " findall(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+", ( ("+strTempRule+"),(  "+strCompleteRule+"  ";
+			 
+			 String [] arrayAttribute = strCompleteRule.split(";");
+			 String findAttributes = "";
+			 for(int nCount = 0; nCount < arrayAttribute.length;nCount++)
+			 {
+				 if(nCount>0)
+					 findAttributes+=";";
+				 findAttributes+= "("+strTempRule+", "+arrayAttribute[nCount]+")";
+				 
+				 
+			 }
+			 
+			 //##strCompleteRule = " findall(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+", ( ("+strTempRule+"),(  "+strCompleteRule+"  ";
+			 strCompleteRule = " findall(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+", ("+findAttributes+"  ";
 			 
 			 
 			 if(bIsMixed && bHasChoiceChildren)
@@ -5631,14 +5680,16 @@ public class WrapperSchema extends Wrapper {
 						 //+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
 				 
 				 String idfilter = "";
-				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 {
 				    idfilter = "IDCHILD"+normalizedParent.toUpperCase();
 					idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
 				    idfilter+= ", ";
 				 }
-				 strCompleteRule+=") ; ("+idfilter
-						 +stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+				 //##strCompleteRule+=") ; ("+idfilter
+				 strCompleteRule+=" ; ("+idfilter
+						 +stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+") ";
 			 }
 			 else 
 			 {
@@ -5646,30 +5697,34 @@ public class WrapperSchema extends Wrapper {
 				 {
 					 if(!bHasChildren && !bHasOnlyRequiredAttributes)
 					 {
-						 strCompleteRule+=") ; ("+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 //##strCompleteRule+=") ; ("+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 strCompleteRule+="; ("+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+")";
 					 }
 				 }
 				 else
 				 {
 					 
 					 String idfilter = "";
-					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+							 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 					 {
-					    idfilter = "IDCHILD"+normalizedParent.toUpperCase();
+					    idfilter = "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase();
 						idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
 					    idfilter+= ", ";
 					 }
 					 
 					 if(!bHasChildren && !bHasOnlyRequiredAttributes)
 					 {
-						 strCompleteRule+=") ; ("+idfilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 //##strCompleteRule+=") ; ("+idfilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 strCompleteRule+="; ("+idfilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+")";
 								 
 					 }
 					 /*else
 						 strCompleteRule+=")";*/
 				 }
 			 }
-			 strCompleteRule+=") ) ";
+			 //##strCompleteRule+=") ) ";
+			 strCompleteRule+=" ) ";
 			 
 			 strCompleteRule+= ",LISTCHILDATTRIBUTE"+normalizedParent.toUpperCase()+") ";
 			 
@@ -5689,14 +5744,21 @@ public class WrapperSchema extends Wrapper {
 			 strCompleteRule+=",( "+ bkpRule.replace("IDCHILDATTRIBUTE"+normalizedParent.toUpperCase(), "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED");
 			 
 			 //##########
-			 String orderedBaseRule =  stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 String orderedBaseRule =  modifiedValueBaseRule;
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 orderedBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 if(bIsMixed && bHasChoiceChildren)
 				 orderedBaseRule =  "("+stringParser.replaceIDRule(orderedBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED")+"; "+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED")+")"; 
 			 else if(!bIsMixed)
 			 {
-				 orderedBaseRule =  stringParser.replaceIDRule(orderedBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 orderedBaseRule =  stringParser.replaceIDRule(orderedBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 }
-				
+			 else
+				 orderedBaseRule =  stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED");
+			 
 			 //orderedBaseRule =  stringParser.replaceParentIDRule(orderedBaseRule,"IDCHILD"+strGrandParent.replace(":", "_").toUpperCase()+"SORTED");
 			 if(!bHasChildren && !bHasOnlyRequiredAttributes)
 				 strCompleteRule+=") ;"+orderedBaseRule;
@@ -5711,10 +5773,12 @@ public class WrapperSchema extends Wrapper {
 			 String  modifiedIDBaseRule = idBaseRule;
 			 String  modifiedValueBaseRule = valueBaseRule;
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
 			 String parentRule =modifiedValueBaseRule; 
@@ -5809,7 +5873,8 @@ public class WrapperSchema extends Wrapper {
 			 childBaseRule+=") ";
 			 	 
 			 childBaseRule =stringParser.replaceIDRule(childBaseRule,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase());
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 childBaseRule =stringParser.replaceParentIDRule(childBaseRule,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
 			 String orChildBaseRule ="";
@@ -5824,7 +5889,8 @@ public class WrapperSchema extends Wrapper {
 					 
 					 orChildBaseRule =stringParser.replaceIDRule(orChildBaseRule,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase());
 					 
-					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+							 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 						 orChildBaseRule =stringParser.replaceParentIDRule(orChildBaseRule,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 				 }
 			 }
@@ -5864,15 +5930,17 @@ public class WrapperSchema extends Wrapper {
 				 strBaseMixedElement+=","+"xmlMixedElement_".toUpperCase()+"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase();
 				 strBaseMixedElement+= ") ";
 				 strBaseMixedElement =stringParser.replaceIDRule(strBaseMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()); 
-				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDGRANDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 					 strBaseMixedElement =stringParser.replaceParentIDRule(strBaseMixedElement,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 						 
 				//###
-				 orChildRule+=";"+strBaseMixedElement;
+				 if(bIsMixed && bHasChoiceChildren)
+					 orChildRule+=";"+strBaseMixedElement;
 				 
                String simpleMixedElement = "xmlMixedElement(";
-               //simpleMixedElement +="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
-               simpleMixedElement +="_,";
+               simpleMixedElement +="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
+               //simpleMixedElement +="_,";
                simpleMixedElement += "IDxmlMixedElement".toUpperCase()+",";
                simpleMixedElement +="xmlMixedElement_".toUpperCase();
                simpleMixedElement +="IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+") ";
@@ -5881,18 +5949,22 @@ public class WrapperSchema extends Wrapper {
                //####
                simpleMixedElement =stringParser.replaceIDRule(simpleMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
 			   //###
-               //if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
-					 //simpleMixedElement =stringParser.replaceParentIDRule(simpleMixedElement,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+               if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+            		   && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 simpleMixedElement =stringParser.replaceParentIDRule(simpleMixedElement,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
                
                
                 //simpleMixedElement = stringParser.replaceIDRule(simpleMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
                 //###
-                childRules+=";"+simpleMixedElement;
+               if(bIsMixed && bHasChoiceChildren)
+            	   childRules+=";"+simpleMixedElement;
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			 
-			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
 				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
 			  
 			 strCompleteRule += "; "+"findall(IDCHILD"+normalizedParent.toUpperCase()+", ";
@@ -5911,7 +5983,7 @@ public class WrapperSchema extends Wrapper {
 			 {
 				 strCompleteRule +="( ";
 				 strCompleteRule += "( ("+parentRule+"), ("+orChildRule+") )";
-				 strCompleteRule += " ; ";
+				 //strCompleteRule += " ; ";
 				 
 				 String tmpModifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+normalizedParent.toUpperCase());
 				 String tmpModifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+normalizedParent.toUpperCase());
@@ -5924,14 +5996,16 @@ public class WrapperSchema extends Wrapper {
 					 //tmpParentRule = tmpModifiedIDBaseRule;
 				tmpParentRule = tmpModifiedValueBaseRule;
 				String idfilter = "";
-				if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						&& strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0	)
 				{
 				    idfilter = "IDCHILD"+normalizedParent.toUpperCase();
 					idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
 				    idfilter+= ", ";
 				}
 				 
-				 strCompleteRule += "("+idfilter+tmpParentRule+")";
+				if(bIsMixed)
+					strCompleteRule += "; ("+idfilter+tmpParentRule+")";
 				 strCompleteRule +=") ";
 			 }
 			 else
@@ -5957,7 +6031,9 @@ public class WrapperSchema extends Wrapper {
 			  else if(!bIsMixed)
 				 tmpParentRule = tmpModifiedIDBaseRule;*/
 			   tmpParentRule = tmpModifiedValueBaseRule;
-			   strCompleteRule += "; ("+tmpParentRule+") )";
+			   if(bIsMixed)
+				   strCompleteRule += "; ("+tmpParentRule+") ";
+			   strCompleteRule +=" )";
 			 }
 			 else
 				 strCompleteRule += ", ("+ childRules+") ";
@@ -5983,7 +6059,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private String obtainAxisNamespace(Document document, String strFather, QueryElement element)
+	private String obtainAxisNamespace(Document document, String strFather, QueryElement element,ArrayList<String> targetNodeNameList)
 	{
 		 String axisWildCard = "";
 		 ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
@@ -6124,6 +6200,7 @@ public class WrapperSchema extends Wrapper {
 			 String namespaceElement = alreadyInsertedTags.get(j);
 			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement, "NOPARENT", false);
 			 
+			 targetNodeNameList.add(namespaceElement);
 			 
 			 if(bPrevious)
 				 strCompleteRule+="; ";
@@ -6143,7 +6220,11 @@ public class WrapperSchema extends Wrapper {
 		  
 		 
 		 if(bPrevious)
-			 axisWildCard =" setof(_,( ("+strCompleteRule+ "),! ),_) ";
+			 axisWildCard =" setof(_,( ("+strCompleteRule+ ")),_) ";
+			 //axisWildCard =" setof(_,( ("+strCompleteRule+ "),! ),_) ";
+		 
+		 
+		  
 		 
 		 /*for (int i=0; i< completeRuleList.size();i++) 
 		 {

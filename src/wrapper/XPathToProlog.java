@@ -2,6 +2,7 @@ package wrapper;
 import java.util.ArrayList;
 
 import br.ufrj.ppgi.io.FileManager;
+import br.ufrj.ppgi.parser.PrologOutputParser;
 import br.ufrj.ppgi.prolog.*;
 
 
@@ -17,7 +18,7 @@ public class XPathToProlog {
 	{
 		String queryProlog = convertQueryToProlog(query);
 		System.out.println(queryProlog);
-		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog);
+		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog,PrologOutputParser.ParseType.SWI);
 		result = engineProlog.getResult();
 		System.out.println(engineProlog.getResult());		
 		

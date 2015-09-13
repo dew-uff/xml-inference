@@ -1,7 +1,6 @@
 package br.ufrj.ppgi.view;
 
 import java.awt.Dimension;
-
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
@@ -15,6 +14,7 @@ import org.jdesktop.application.FrameView;
 import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.io.Serializer;
 import br.ufrj.ppgi.main.XMLInference;
+import br.ufrj.ppgi.parser.PrologOutputParser;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
 import br.ufrj.ppgi.view.EnvironmentLoaderView;
 
@@ -22,6 +22,10 @@ import br.ufrj.ppgi.view.EnvironmentLoaderView;
 import wrapper.WrapperSchema;
 //
 
+
+
+
+import javax.swing.ButtonGroup;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JButton;
@@ -32,6 +36,7 @@ import javax.swing.GroupLayout;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.ActionMap;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
@@ -63,6 +68,10 @@ public class XMLInferenceView extends FrameView {
     private JFrame environmentLoaderView;
     private JLabel labelQueryXPath;
     private JLabel labelQueryProlog;
+    private JRadioButton tuPrologRadio;
+    private JRadioButton swiRadio;
+    ButtonGroup bG;
+    private JLabel	labelEngineType;
 	
     public XMLInferenceView(SingleFrameApplication app) {
         super(app);
@@ -134,7 +143,13 @@ public class XMLInferenceView extends FrameView {
     public void query() {
 		String query = queryTextField.getText();
 		long startTime = System.nanoTime();
-		PrologQueryProcessor prologQueryProcessor = new PrologQueryProcessor(query); 
+		
+		PrologOutputParser.ParseType parser = PrologOutputParser.ParseType.SWI;
+		
+		if(tuPrologRadio.isSelected())
+			parser = PrologOutputParser.ParseType.TUPROLOG;
+		
+		PrologQueryProcessor prologQueryProcessor = new PrologQueryProcessor(query,parser); 
 		resultTextArea.setText(prologQueryProcessor.getResult());
 		long stopTime = System.nanoTime();
 		long estimatedTime = stopTime - startTime;
@@ -146,12 +161,19 @@ public class XMLInferenceView extends FrameView {
     public void queryXPath() {
 		String query = queryTextFieldXPath.getText();
 		long startTime = System.nanoTime();
+		
+		PrologOutputParser.ParseType parser = PrologOutputParser.ParseType.SWI;
+		
+		if(tuPrologRadio.isSelected())
+			parser = PrologOutputParser.ParseType.TUPROLOG;
+		
+		
 		/*PrologQueryProcessor prologQueryProcessor = new PrologQueryProcessor(query); 
 		resultTextArea.setText(prologQueryProcessor.getResult());*/
 		/*WrapperProlog wrapperProlog = new WrapperProlog();
 		wrapperProlog.executeQuery(query);*/
 		WrapperSchema wrapperSchema = new WrapperSchema();
-		wrapperSchema.executeQuery(query);
+		wrapperSchema.executeQuery(query,parser);
 		resultTextArea.setText(wrapperSchema.getResult());
 		long stopTime = System.nanoTime();
 		long estimatedTime = stopTime - startTime;
@@ -183,6 +205,17 @@ public class XMLInferenceView extends FrameView {
         labelQueryProlog = new JLabel();
         queryButtonXpath = new JButton();
         
+        tuPrologRadio = new JRadioButton("TuProlog");
+        swiRadio = new JRadioButton("SWI prolog");
+        swiRadio.setToolTipText("Necessário a instalação e configuração do SWI Prolog");
+        bG = new ButtonGroup();
+        bG.add(tuPrologRadio);
+        bG.add(swiRadio);
+        tuPrologRadio.setSelected(true);
+        
+        labelEngineType = new JLabel();
+        labelEngineType.setText("Engine prolog:");
+        
         textAreaScroll = new JScrollPane(resultTextArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         resultTextArea.setEditable(false);
         
@@ -194,7 +227,7 @@ public class XMLInferenceView extends FrameView {
         schemaLoaderButton.setAction(actionMap.get("loadAutomaticRules")); 
         schemaLoaderButton.setToolTipText(resourceMap.getString("schemaLoaderButton.toolTipText"));
         schemaLoaderButton.setName(resourceMap.getString("schemaLoaderButton.name")); 
-        schemaLoaderButton.setText(" Regras AutomÃ¡ticas ");
+        schemaLoaderButton.setText(" Regras Automáticas ");
         
         manualRulesButton.setAction(actionMap.get("insertManualRules")); 
         manualRulesButton.setToolTipText(resourceMap.getString("manualRulesButton.toolTipText")); 
@@ -226,7 +259,6 @@ public class XMLInferenceView extends FrameView {
         queryButtonXpath.setName(resourceMap.getString("queryButtonXpath.name")); 
         queryButtonXpath.setText("Consultar");
         
-        
         GroupLayout mainPanelLayout = new GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
         mainPanelLayout.setAutoCreateContainerGaps(true);
@@ -238,6 +270,15 @@ public class XMLInferenceView extends FrameView {
         		.addComponent(xmlLoaderButton, GroupLayout.Alignment.TRAILING)
         		.addComponent(environmentLoaderButton, GroupLayout.Alignment.LEADING)
         		.addComponent(knowledgeBaseButton, GroupLayout.Alignment.TRAILING)
+        		
+        		.addGroup(mainPanelLayout.createSequentialGroup()
+        				.addGap(30,30,30)
+        				.addComponent(labelEngineType)
+        				.addGap(20,20,20)
+        				.addComponent(tuPrologRadio)
+        				.addGap(20,20,20)
+        				.addComponent(swiRadio))
+        		
         		.addComponent(jSeparator1, GroupLayout.PREFERRED_SIZE, 500, GroupLayout.PREFERRED_SIZE)
         		.addComponent(labelQueryProlog,  GroupLayout.Alignment.LEADING)
         		.addComponent(queryTextField, GroupLayout.Alignment.CENTER, GroupLayout.PREFERRED_SIZE, 340, GroupLayout.PREFERRED_SIZE)
@@ -248,11 +289,14 @@ public class XMLInferenceView extends FrameView {
         		.addComponent(textAreaScroll, GroupLayout.DEFAULT_SIZE, 500, GroupLayout.DEFAULT_SIZE));
         mainPanelLayout.setHorizontalGroup(hGroup);
         
+        
+        
         GroupLayout.SequentialGroup vGroup = mainPanelLayout.createSequentialGroup();
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(schemaLoaderButton)
         		.addComponent(manualRulesButton)
         		.addComponent(xmlLoaderButton));
+         
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(20));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
@@ -260,12 +304,20 @@ public class XMLInferenceView extends FrameView {
         		.addComponent(knowledgeBaseButton));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(20));
+        
+        vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+        		.addComponent(labelEngineType)
+        		.addComponent(tuPrologRadio)
+        		.addComponent(swiRadio)
+        		.addGap(40, 40, 40));
+        
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(jSeparator1));
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(labelQueryProlog, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         		.addComponent(queryTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         		.addComponent(queryButtonProlog, GroupLayout.Alignment.CENTER));
+        
 
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addGap(5));
@@ -280,6 +332,9 @@ public class XMLInferenceView extends FrameView {
         vGroup.addGroup(mainPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
         		.addComponent(textAreaScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 300, javax.swing.GroupLayout.DEFAULT_SIZE));		
         mainPanelLayout.setVerticalGroup(vGroup);    
+        
+        
+      
         
         labelQueryXPath.setText("Consulta xpath:");
         labelQueryProlog.setText("Consulta prolog:");
@@ -296,6 +351,8 @@ public class XMLInferenceView extends FrameView {
         menuBar.add(helpMenu);
 
         setComponent(mainPanel);
+        
+       
         setMenuBar(menuBar);
 
         getFrame().setResizable(false);

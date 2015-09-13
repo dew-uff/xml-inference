@@ -22,7 +22,7 @@ public abstract class Wrapper {
 	}
 
 	
-	public boolean executeQuery( String query )
+	public boolean executeQuery( String query,PrologOutputParser.ParseType engine )
 	{
 		//PrologOutputParser parser = new PrologOutputParser(PrologOutputParser.ParseType.TUPROLOG);
 		//System.out.println(parser.tuPrologParseTest());
@@ -33,7 +33,7 @@ public abstract class Wrapper {
                 //queryProlog = "findall(G, (item(_, PRODUTO, QUANTIDADE, PRECO_UNIT), PRODUTO = 'caneta preta', quantidade(G,QUANTIDADE)), A).";
 		System.out.println(queryProlog);
 		//return true;
-		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog);
+		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog,engine);
 		//setResult(engineProlog.getResult());
 		setResult(engineProlog.getResult());
 		System.out.println(engineProlog.getOutputResult());		
