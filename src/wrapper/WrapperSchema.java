@@ -15,6 +15,7 @@ import java.util.Stack;
 import java.util.logging.Level;
 
 import javax.lang.model.element.ElementVisitor;
+import javax.management.modelmbean.XMLParseException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -27,6 +28,7 @@ import javax.xml.transform.stream.StreamResult;
 import br.ufrj.ppgi.parser.DocumentParser;
 import br.ufrj.ppgi.parser.RuleStringParser;
 import br.ufrj.ppgi.parser.SchemaParser;
+import br.ufrj.ppgi.parser.XMLParser;
 import wrapper.QueryElement;
 import wrapper.expressionFilter.Function;
 import wrapper.expressionFilter.IExpression;
@@ -1221,7 +1223,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strGrandFather,String strFather,QueryElement element,int[] nPositionVet,ArrayList<String> targetNodeNameList)
+	private Pair<String,Boolean> getPrologOperatorFunction(Document document,String strGrandFather,String strFather,QueryElement element,int[] nPositionVet,HashMap<String,String> hashTagetNodeFilter)
 	{
 		String strPrologFunction = "";
 		Boolean bConsiderNamespaces = true;
@@ -1230,7 +1232,7 @@ public class WrapperSchema extends Wrapper {
 		{
 			IExpression expression = element.getExpressionFormula();
 			
-			strPrologFunction = getPrologOperatorFunction3(document,strGrandFather,strFather,expression,nPositionVet,targetNodeNameList);
+			strPrologFunction = getPrologOperatorFunction3(document,strGrandFather,strFather,expression,nPositionVet,hashTagetNodeFilter);
 		}	
 		
 		return new Pair<String, Boolean>(strPrologFunction, bConsiderNamespaces);
@@ -1461,7 +1463,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private String getPrologOperatorFunction3(Document document,String strGrandFather,String strFather,IExpression expression,int[] nPositionVet,ArrayList<String> targetNodeNameList)
+	private String getPrologOperatorFunction3(Document document,String strGrandFather,String strFather,IExpression expression,int[] nPositionVet,HashMap<String,String> hashTagetNodeFilter)
 	{
 		String result = "";
 		
@@ -1534,7 +1536,7 @@ public class WrapperSchema extends Wrapper {
 	    		if(strFuncName.compareToIgnoreCase(Function.FUNCTION_NAMESPACE)==0)
 	    				bException = true;
 	    		
-	    		result = translateFunction(document,left,strGrandFather,strFather,nPositionVet,targetNodeNameList);
+	    		result = translateFunction(document,left,strGrandFather,strFather,nPositionVet,hashTagetNodeFilter);
 	    		bLeftIsFunction = true;	
 	    		leftValue  = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    		Function function = (Function) left;
@@ -1549,7 +1551,7 @@ public class WrapperSchema extends Wrapper {
 	    	{
 	    		if(bLeftIsFunction)
 	    			nPositionVet[0]++;
-	    		result += ", "+translateFunction(document,right,strGrandFather,strFather,nPositionVet,targetNodeNameList);	    		
+	    		result += ", "+translateFunction(document,right,strGrandFather,strFather,nPositionVet,hashTagetNodeFilter);	    		
 	    		bRightIsFunction = true;
 	    		rightValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 	    	}
@@ -1565,14 +1567,14 @@ public class WrapperSchema extends Wrapper {
 	    	if(!bException)
 	    		result += ", " +leftValue + strOperator +rightValue;
 	    	else
-	    		result = translateFunctionExceptions(document, strGrandFather, strFather, left, right, strOperator,nPositionVet,targetNodeNameList);
+	    		result = translateFunctionExceptions(document, strGrandFather, strFather, left, right, strOperator,nPositionVet,hashTagetNodeFilter);
 	    }
 		
 		return result;
 		
 	}
 	
-	private String translateFunctionExceptions(Document document,String strGrandFather,String strFather,IExpression left,IExpression right,String strOperator,int[] nPositionVet,ArrayList<String> targetNodeNameList)
+	private String translateFunctionExceptions(Document document,String strGrandFather,String strFather,IExpression left,IExpression right,String strOperator,int[] nPositionVet,HashMap<String,String> hashTagetNodeFilter)
 	{
 		String strResult = "";
 		
@@ -1614,7 +1616,10 @@ public class WrapperSchema extends Wrapper {
 							 continue;
 						 
 						 if(bPrevious)
-							 strCompleteRule+="; ";	 
+							 strCompleteRule+="; ";	
+
+						 if(!hashTagetNodeFilter.containsKey(splitRule[0]))
+							 hashTagetNodeFilter.put(splitRule[0],"");
 						 
 						 strCompleteRule+=rule;
 				    	 bPrevious = true;
@@ -1697,7 +1702,7 @@ public class WrapperSchema extends Wrapper {
 						/*if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0)
 						{*/
 							strResult+=
-									translateFunctionExceptions( document, strGrandFather, strFather,listArgs.get(0),funcBooleanResult, strOperator,nPositionVet,targetNodeNameList);
+									translateFunctionExceptions( document, strGrandFather, strFather,listArgs.get(0),funcBooleanResult, strOperator,nPositionVet,hashTagetNodeFilter);
 						/*}
 						else if(argFunction.getFunctionName().compareToIgnoreCase(Function.FUNCTION_NOT)==0)
 						{
@@ -1713,7 +1718,7 @@ public class WrapperSchema extends Wrapper {
 				OperatorEqual opEqual = new OperatorEqual(left,right);	
 				QueryElement element = new QueryElement();
 				element.parseElement("["+opEqual.interpret()+"]");
-				strResult+= obtainAxisNamespace(document,strFather,element,targetNodeNameList);
+				strResult+= obtainAxisNamespace(document,strFather,element,hashTagetNodeFilter);
 			}
 		}
 		
@@ -1858,7 +1863,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	String translateFunction(Document document,IExpression expression,String strGrandFather, String strTagFather,int[] nPositionVet,ArrayList<String> targetNodeNameList)
+	String translateFunction(Document document,IExpression expression,String strGrandFather, String strTagFather,int[] nPositionVet,HashMap<String,String> hashTagetNodeFilter)
 	{
 		Function func = (Function)expression;	
 		List<String> functionArgs = new ArrayList<String>(); 
@@ -1873,7 +1878,7 @@ public class WrapperSchema extends Wrapper {
 			if(exp instanceof Function)
 			{
 				//getPrologOperatorFunction3(document,strFather,exp,nPositionVet);
-				recursiveResult = translateFunction(document,exp,strGrandFather,strTagFather,nPositionVet,targetNodeNameList) +", "+recursiveResult;
+				recursiveResult = translateFunction(document,exp,strGrandFather,strTagFather,nPositionVet,hashTagetNodeFilter) +", "+recursiveResult;
 				
 				functionArgs.add(Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]));
 				nPositionVet[0]++;
@@ -1906,7 +1911,7 @@ public class WrapperSchema extends Wrapper {
 			if(functionArgs.size() > 0)
 			{
 				String strTag = functionArgs.get(0);
-				sbReturn.append(obtainLangTags(document,strTagFather,strTag));
+				sbReturn.append(obtainLangTags(document,strTagFather,strTag,hashTagetNodeFilter));
 			}
 			
 		}
@@ -1921,7 +1926,7 @@ public class WrapperSchema extends Wrapper {
 					QueryElement element = new QueryElement();
 					element.parseElement("["+Function.FUNCTION_NAMESPACE+strTag+"]");
 					//namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element,targetNodeNameList)+", !)";
-					namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element,targetNodeNameList)+")";
+					namespaceResult = "("+obtainAxisNamespace(document,strTagFather,element,hashTagetNodeFilter)+")";
 				}
 				sbReturn.append(namespaceResult);
 				
@@ -2998,6 +3003,7 @@ public class WrapperSchema extends Wrapper {
 		
 		String strFunction = "";
 		boolean  bWildCard = false;
+		boolean bLasElementIsWildCard = false;
 		boolean bPrecOrFolw = false;
 		Document document = null;
 		int nWildCardLevel = 0;
@@ -3010,7 +3016,8 @@ public class WrapperSchema extends Wrapper {
 		//ArrayList<String> listaTags = new ArrayList<String>();
 		ArrayList<Pair<String,Boolean>> pairListTags = new ArrayList<Pair<String,Boolean>>();
 		//HashMap<String,Boolean> tagHash = new HashMap<String,Boolean>();
-		ArrayList<String> targetNodeNameList = new ArrayList<String>();
+		//ArrayList<String> targetNodeNameList = new ArrayList<String>();
+		HashMap<String, String> hashTargetNodeFilter = new HashMap<String, String>();
 		
 		for (String name : values)
 		{
@@ -3053,13 +3060,13 @@ public class WrapperSchema extends Wrapper {
 				
 				if(element.getElement().trim().endsWith(":*"))
 				{
-					queryConvert += obtainAxisWildCard(document,strLastCommonParent,element);
+					queryConvert += obtainAxisWildCard(document,strLastCommonParent,element,hashTargetNodeFilter);
 					continue;
 				}
 				
 				if(element.getElement().trim().contains(Function.FUNCTION_NAMESPACE))
 				{
-					queryConvert += obtainAxisNamespace(document,strLastCommonParent,element,targetNodeNameList);
+					queryConvert += obtainAxisNamespace(document,strLastCommonParent,element,hashTargetNodeFilter);
 					continue;
 				}
 				
@@ -3103,6 +3110,7 @@ public class WrapperSchema extends Wrapper {
 				 if(element.getElement().trim().compareTo("*")==0)
 				 {
 					 nWildCardLevel++;
+					 bLasElementIsWildCard = true;
 					 continue;
 				 }
 				 
@@ -3193,14 +3201,14 @@ public class WrapperSchema extends Wrapper {
 								bHasOnlyFunction = true;
 							if(element.hasOperator() )
 							{
-								Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,targetNodeNameList);
+								Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,hashTargetNodeFilter);
 								strAfterWildCardFunction = pair.getKey();
 								/*else
 									queryConvert += ", "+pair.getKey();*/	
 							}
 							else
 							{
-								strAfterWildCardFunction = 	translateFunction(document,element.getExpressionFormula(), strLastCommonGrandParent, strLastCommonParent, nPositionVet,targetNodeNameList);
+								strAfterWildCardFunction = 	translateFunction(document,element.getExpressionFormula(), strLastCommonGrandParent, strLastCommonParent, nPositionVet,hashTargetNodeFilter);
 							}
 						}
 						 
@@ -3215,6 +3223,24 @@ public class WrapperSchema extends Wrapper {
 						 
 						 if(bHasOnlyFunction)
 							 queryConvert = strAfterWildCardFunction;
+						 else if(queryConvert.isEmpty())
+						 {
+							 ArrayList<String>  completeOrderedTagList = XMLParser.getInstance().orderedElementList();//getRuleSchema(document,strLastCommonParent,true);
+							 for (int nWild=0; nWild< completeOrderedTagList.size();nWild++) 
+							 {
+								 /*if(completeOrderedTagList.get(nWild).contains("_attribute_") || completeOrderedTagList.get(nWild).contains("xmlMixedElement"))
+								  continue;
+								 
+								 String [] array = completeOrderedTagList.get(nWild).split("\\(");
+								 
+								 if(array.length<=1)
+									 continue;*/
+								 
+								 hashTargetNodeFilter.put(completeOrderedTagList.get(nWild),"");
+								 
+							 }
+							 
+						 }
 						 else
 						 {
 							 queryConvert+= getWildCardRules(document,element,strLastCommonParent,nWildCardLevel,nCompareTag);
@@ -3257,6 +3283,7 @@ public class WrapperSchema extends Wrapper {
 				
 				if(!element.isFilterpart())
 				{
+					bLasElementIsWildCard = false;
 					if(bFilter)
 					{
 						strLastCommonParent = strLastBkpCommonParent;
@@ -3664,7 +3691,7 @@ public class WrapperSchema extends Wrapper {
 								//queryConvert += getPrologFunction(document,strLastCommonParent,element);
 								//strFunction = getPrologFunction(document,strLastCommonParent,element);
 								int[] nPositionVet = {nSearch};
-								strFunction = translateFunction(document,element.getExpressionFormula(),strLastCommonGrandParent, strLastCommonParent,nPositionVet,targetNodeNameList);
+								strFunction = translateFunction(document,element.getExpressionFormula(),strLastCommonGrandParent, strLastCommonParent,nPositionVet,hashTargetNodeFilter);
 								nPositionVet[0]++;
 								nSearch = nPositionVet[0];
 							}
@@ -3683,7 +3710,7 @@ public class WrapperSchema extends Wrapper {
 									{
 										int[] nPositionVet = {nSearch};
 
-										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,targetNodeNameList);
+										Pair<String,Boolean> pair = getPrologOperatorFunction(document,strLastCommonGrandParent,strLastCommonParent,element,nPositionVet,hashTargetNodeFilter);
 
 										strFunction = pair.getKey();
 										ArrayList<String> tagOperatorList = getPrologOperatorTags(element,document);
@@ -3789,7 +3816,7 @@ public class WrapperSchema extends Wrapper {
 	    	bOrFilter = false;
 	     }
 		 
-		 boolean bInsertAllRulesFromTag = false;
+		 boolean bInsertAllRulesFromTag = true;
 		 
 		 if(nWildCardLevel>0 || nRefParent >0)
 		 {
@@ -3820,6 +3847,23 @@ public class WrapperSchema extends Wrapper {
 					 queryConvert += strCompleteRule;
 				 }
 			 }
+			 else if(nWildCardLevel >0 )
+			 {
+				 ArrayList<String>  completeOrderedTagNameList = XMLParser.getInstance().orderedElementList();////getRuleSchema(document,strLastCommonParent,true);
+				 for (int i=0; i< completeOrderedTagNameList.size();i++) 
+				 {
+					 //if(completeOrderedTagNameList.get(i).contains("_attribute_") || completeOrderedTagNameList.get(i).contains("xmlMixedElement"))
+					  //continue;
+					 
+					 /*String [] array = completeOrderedTagNameList.get(i).split("\\(");
+					 
+					 if(array.length<=1)
+						 continue;*/
+					 
+					 hashTargetNodeFilter.put(completeOrderedTagNameList.get(i),"");
+					 
+				 }
+			 }
 			 else if (nRefParent >0)
 			 {
 				 queryConvert = getRulesBottomUp(document,strLastCommonParent,nRefParent);
@@ -3840,7 +3884,7 @@ public class WrapperSchema extends Wrapper {
 		 }
 		 else
 		 {  
-			 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!= 0 || targetNodeNameList.size()>0)
+			 if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!= 0 || hashTargetNodeFilter.size()>0)
 				 bInsertAllRulesFromTag = true;
 		 }
 		 
@@ -3856,42 +3900,135 @@ public class WrapperSchema extends Wrapper {
 		 if(bInsertAllRulesFromTag)
 		 {
 			 String strCompleteRule = "";
-			 if(targetNodeNameList.size() >0)
+			 if(strLastCommonGrandParent.compareToIgnoreCase("NOGRANDPARENT")==0 ||strLastCommonGrandParent.compareToIgnoreCase("IDNOGRANDPARENT")==0)
+				 strLastCommonGrandParent = "NOPARENT";
+			 
+			 if(hashTargetNodeFilter.size() >0)
 			 {
 				 HashMap<String,Pair<Integer,Integer>> recursionMap = new HashMap<String,Pair<Integer,Integer>>();
-				 for(int tg =0; tg<targetNodeNameList.size();tg++)
+				 //for(int tg =0; tg<targetNodeNameList.size();tg++)
+				 int tg =0;
+				 
+				 String commonFilter = "";
+				 if(bLasElementIsWildCard)
 				 {
+					 for(String nodeKey : hashTargetNodeFilter.keySet())
+					 {
+						 if(!hashTargetNodeFilter.get(nodeKey).isEmpty())
+						 {
+							 commonFilter = hashTargetNodeFilter.get(nodeKey);
+							 break;
+						 }
+					 }
+				 }
+				 
+				 //for(String nodeKey : hashTargetNodeFilter.keySet())
+				 for(String nodeKey : XMLParser.getInstance().orderedElementList())
+				 {
+					 
+					 if(!hashTargetNodeFilter.containsKey(nodeKey))
+						 continue;
+					 
+					 
+					 /*ArrayList<String> tagchilds = new ArrayList<String>();
+					
+					 Node nodeLastElement = getElementByTagName(document, "element", nodeKey,"IDNOPARENT",true); 
+					 tagchilds = getChildsNodeNames( document, nodeLastElement);
+					
+					 if(tagchilds.size() >0)
+					 {
+						 
+						 strCompleteRule+= ", findall(IDPRINTCHILD"+nodeKey.toUpperCase()+",(";
+						 
+						 for(int nPrint = 0; nPrint<tagchilds.size();nPrint++)
+						 {
+							 String printChild =  tagchilds.get(nPrint).toLowerCase();
+							 printChild += "(ID"+nodeKey.toUpperCase()+", ";
+							 printChild += "(IDPRINTCHILD"+nodeKey.toUpperCase();
+							 
+							 boolean bHasChildren = hasChildNodes(document, "element", tagchilds.get(nPrint),nodeKey,true);
+							 boolean bHasOnlyAttributes = hasOnlyAttributes(document, "element", tagchilds.get(nPrint),nodeKey,true);
+							 boolean bIsMixed = isMixed(document, "element", tagchilds.get(nPrint),nodeKey,true);
+							 if(!bHasChildren)
+								 printChild += ",_";
+							 
+							 printChild += ")";
+							 
+							 if(nPrint>0)
+								 strCompleteRule+=";";
+							 
+							 //nodeKey.toLowerCase()+"(_,ID" 
+							 strCompleteRule+= printChild;
+						 }
+						 
+						 strCompleteRule+="), LISTPRINTCHILD"+nodeKey.toUpperCase()+"), quick_sort(LISTPRINTCHILD"+nodeKey.toUpperCase()+", ";
+						 strCompleteRule+=" LISTPRINTCHILD"+nodeKey.toUpperCase()+"SORTED), member( IDPRINTCHILD"+nodeKey.toUpperCase()+"SORTED, LISTPRINTCHILD"+nodeKey.toUpperCase()+"SORTED)";
+						 strCompleteRule+= ", ";
+						 for(int nPrint = 0; nPrint<tagchilds.size();nPrint++)
+						 {
+							 if(nPrint>0)
+							 {
+								 strCompleteRule+=";";
+								 strCompleteRule+= "RESETQUERY"+tg;
+								 strCompleteRule+= "='TRUE' ;";
+							 }
+							 
+							 strCompleteRule+="( ID"+tagchilds.get(nPrint) +" = IDPRINTCHILD"+nodeKey.toUpperCase()+"SORTED";
+							 strCompleteRule+= ", "+ insertAllRulesFromTag8(document,"IDNOGRANDGRANDPARENT",nodeKey,tagchilds.get(nPrint).replace("_", ":"),nCompareTag,recursionMap,0,"");
+							 
+							 boolean bHasChildren = hasChildNodes(document, "element", tagchilds.get(nPrint),nodeKey,true);
+							 //if(bHasChildren)
+						 }
+						 
+						 
+					 }*/
+					 
 					 int nRecursionLevel = 0;
 					 
-					 if(tg > 0)
+					 if(tg > 0 )
 					 {
-						 strCompleteRule+= ", RESETQUERY"+tg;
-					     strCompleteRule+= "'TRUE' ;";
+						 //if(tg+1<hashTargetNodeFilter.size())
+						 {
+							 if(!strCompleteRule.endsWith(";"))
+								 strCompleteRule+=";";
+							 
+							 strCompleteRule+= "RESETQUERY"+tg;
+							 strCompleteRule+= "='TRUE' ;";
+						 }
 					     
-					     for (String key : recursionMap.keySet()) 
+					     /*for (String key : recursionMap.keySet()) 
 				    	 {
 				    		 Pair<Integer,Integer> pair = recursionMap.get(key);
-				    		 if(key.compareToIgnoreCase(targetNodeNameList.get(tg))==0)
+				    		 if(key.compareToIgnoreCase(nodeKey)==0)
 				    		 {
 				    			 pair.setKey(0);
 				    			 pair.setValue(0);
 				    			 recursionMap.put(key, pair);
 				    		 }
-				    	 }
+				    	 }*/
+						 
+						 recursionMap.clear();
 					 }
+					 tg++;
 					 
-					 strCompleteRule+= insertAllRulesFromTag7(document,strLastCommonGrandParent,targetNodeNameList.get(tg),nCompareTag,recursionMap,nRecursionLevel);
+					 if(commonFilter.isEmpty())
+						 commonFilter = hashTargetNodeFilter.get(nodeKey);
+					 
+					 //strCompleteRule+= insertAllRulesFromTag7(document,strLastCommonGrandParent,nodeKey.replace("_", ":"),nCompareTag,recursionMap,nRecursionLevel);
+					 strCompleteRule+= insertAllRulesFromTag8(document,"IDNOGRANDGRANDPARENT",strLastCommonGrandParent,nodeKey.replace("_", ":"),nCompareTag,recursionMap,nRecursionLevel,commonFilter);
 				 }
-				 
+				 if(strCompleteRule.endsWith(";"))
+					 strCompleteRule = strCompleteRule.substring(0,strCompleteRule.length()-1);
 			 }
 			 else
 			 {
 				 HashMap<String,Pair<Integer,Integer>> recursionMap = new HashMap<String,Pair<Integer,Integer>>(); 
 				 int nRecursionLevel = 0;
-				 strCompleteRule = insertAllRulesFromTag7(document,strLastCommonGrandParent,strLastCommonParent,nCompareTag,recursionMap,nRecursionLevel);
+				 //strCompleteRule = insertAllRulesFromTag7(document,strLastCommonGrandParent,strLastCommonParent,nCompareTag,recursionMap,nRecursionLevel);
+				 strCompleteRule = insertAllRulesFromTag8(document,"IDNOGRANDGRANDPARENT",strLastCommonGrandParent,strLastCommonParent,nCompareTag,recursionMap,nRecursionLevel,"");
 			 }
 			 
-			 if(strLastCommonGrandParent.compareToIgnoreCase("NOPARENT")==0 && targetNodeNameList.size()<=1)
+			 if(strLastCommonGrandParent.compareToIgnoreCase("NOPARENT")==0 || hashTargetNodeFilter.size() > 0)
 			 {
 				 queryConvert = "";
 				 /*if(strCompleteRule.startsWith(",  "))
@@ -4005,6 +4142,7 @@ public class WrapperSchema extends Wrapper {
 		 
 		 queryConvert = queryConvert.replace(", ,", ",");
 		 queryConvert = queryConvert.replace(",  ,", ",");
+		 queryConvert = queryConvert.replace(",.", ".");
 		 
 		 String finalQuery =   "";
 		 
@@ -4159,6 +4297,10 @@ public class WrapperSchema extends Wrapper {
 		 
 		 finalQuery = finalQuery.trim().replace(", .","");
 		 finalQuery = finalQuery.trim().replace(",.",""); 
+		 finalQuery = finalQuery.trim().replace("; )",")");
+		 
+		 if(finalQuery.endsWith(","))
+			 finalQuery = finalQuery.substring(0,finalQuery.length()-1);
 		 
 		 if(!finalQuery.trim().endsWith("."))
 			 finalQuery += ". ";
@@ -4683,7 +4825,7 @@ public class WrapperSchema extends Wrapper {
 	
 	
 	
-	private String obtainAxisWildCard(Document document, String strFather, QueryElement element)
+	private String obtainAxisWildCard(Document document, String strFather, QueryElement element,HashMap<String,String> hashTagetNodeFilter)
 	{
 		 String axisWildCard = "";
 		 ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
@@ -4731,13 +4873,15 @@ public class WrapperSchema extends Wrapper {
 		 for (int i=0; i< alreadyInsertedTags.size();i++) 
 		 {
 			 String namespaceElement = alreadyInsertedTags.get(i);
-			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement, "NOPARENT", false);
+			 if(!hashTagetNodeFilter.containsKey(namespaceElement))
+				 hashTagetNodeFilter.put(namespaceElement,"");
+			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement.replace("_", ":"), "NOPARENT", true);
 			 
 			 
 			 if(bPrevious)
 				 strCompleteRule+="; ";
 			 
-			 if(isRoot(document,"element",namespaceElement))
+			 if(isRoot(document,"element",namespaceElement.replace("_", ":")))
 				 strCompleteRule+= namespaceElement.toLowerCase()+"(ID"+namespaceElement.toUpperCase()+")";
 			 else
 			 {
@@ -4753,7 +4897,7 @@ public class WrapperSchema extends Wrapper {
 		  
 		 
 		 if(bPrevious)
-			 axisWildCard =" setof(_,( ("+strCompleteRule+ "),! ),_) ";
+			 axisWildCard =" setof(_,( ("+strCompleteRule+ ")),_) ";
 		 /*
 		 for (int i=0; i< completeRuleList.size();i++) 
 		 {
@@ -6058,8 +6202,663 @@ public class WrapperSchema extends Wrapper {
 		 return strCompleteRule;
 	}
 	
-	
-	private String obtainAxisNamespace(Document document, String strFather, QueryElement element,ArrayList<String> targetNodeNameList)
+	private String insertAllRulesFromTag8(Document document,String strGrandGrandParent, String strGrandParent, String strParent,int nVariableNumber,HashMap<String,Pair<Integer,Integer>> mapVisitedNodes,int nRecursionLevel,String filter)
+	{
+		 String strAllRules = "";
+		 boolean bStopRecusrsion = false;
+		 String strRecursiveParentName = strParent;
+		 String strRecursiveGrandParentName = strGrandParent;
+		 String strRecursiveGrandGrandParentName = strGrandGrandParent;
+		 ArrayList<String>  completeRuleList = getRuleSchema(document,strParent,true);
+		 //queryConvert+=" .";
+		 RuleStringParser stringParser = new RuleStringParser();
+		 String strCompleteRule = "";
+		 boolean bMultRules = false;
+		 
+		 boolean bHasChildren = hasChildNodes(document, "element", strParent,strGrandParent,true);
+		 boolean bHasOnlyAttributes = hasOnlyAttributes(document, "element", strParent,strGrandParent,true);
+		 boolean bIsMixed = isMixed(document, "element", strParent,strGrandParent,true);
+		 boolean bIsRoot = isRoot(document, "element", strParent);
+		 boolean bHasChoiceChildren = hasAllChildrenChoice(document, "element", strParent,strGrandParent,true);
+		 boolean bHasOnlyRequiredAttributes  = hasOnlyRequiredAttributes(document, "element", strParent,strGrandParent,true);
+		 
+		 /*if(mapVisitedNodes.isEmpty())
+		 {
+			 String tmpParent = strRecursiveParentName.replace(":", "_");
+			 String tmpGrandParent = strRecursiveGrandParentName.replace(":", "_");
+			 
+			 strCompleteRule = " findall(ID"+tmpParent.toUpperCase()+"ORDERED, ("+tmpParent+"(ID"+tmpGrandParent.toUpperCase()+",ID"+tmpParent.toUpperCase()+"ORDERED);"+tmpParent+"(ID"+tmpGrandParent.toUpperCase()+",ID"+tmpParent.toUpperCase()+"ORDERED,"+tmpParent.toUpperCase()+")),LISTID"+tmpParent.toUpperCase()+"),"+
+			 "quick_sort(LISTID"+tmpParent.toUpperCase()+",LISTID"+tmpParent.toUpperCase()+"SORTED),"+
+			 " member(ID"+tmpParent.toUpperCase()+",LISTID"+tmpParent.toUpperCase()+"SORTED),";
+		 }*/
+		 
+		 if(mapVisitedNodes.containsKey(strParent))
+		 {
+			 Pair<Integer,Integer> pair = mapVisitedNodes.get(strParent);
+			 if(pair.getValue()>=1)
+				 bStopRecusrsion = true;
+		 }
+		 
+		 if(mapVisitedNodes.containsKey(strParent))
+		 {
+			 Pair<Integer,Integer> pair = mapVisitedNodes.get(strParent);
+			 pair.setValue(pair.getValue()+1);
+			 pair.setKey(pair.getKey()+1);
+			 mapVisitedNodes.put(strParent, pair);
+			 strRecursiveParentName+=pair.getKey();
+		 }
+		 else
+			 mapVisitedNodes.put(strParent, new Pair<Integer, Integer>(1,1));
+		 
+		 if((mapVisitedNodes.containsKey(strGrandParent)) )
+		 {
+			 Pair<Integer,Integer> pair = mapVisitedNodes.get(strGrandParent);
+			 if( pair.getKey()>1)
+				 strRecursiveGrandParentName+=pair.getKey();
+		 }
+		 
+		 if((mapVisitedNodes.containsKey(strGrandGrandParent)) )
+		 {
+			 Pair<Integer,Integer> pair = mapVisitedNodes.get(strGrandGrandParent);
+			 if( pair.getKey()>1)
+				 strRecursiveGrandGrandParentName+=pair.getKey();
+		 }
+			 
+			 
+		 
+		 
+		 ArrayList<String> tagchilds = new ArrayList<String>();
+		 if(bHasChildren)
+		 {
+			 Node nodeLastElement = getElementByTagName(document, "element", strParent,"IDNOPARENT",true); 
+		 	 tagchilds = getChildsNodeNames( document, nodeLastElement);
+		 }
+		 
+		 boolean bRuleAdded = false;
+		 String idBaseRule = "";
+		 String valueBaseRule = "";
+		 if(tagchilds.size()>0 || bHasOnlyAttributes )
+		 {
+			 idBaseRule = strParent.replace(":", "_").toLowerCase()+"(";
+			 if(!bIsRoot)
+				 idBaseRule+="ID"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+", ";
+			 idBaseRule+="ID"+strRecursiveParentName.replace(":", "_").toUpperCase();
+			 
+			 valueBaseRule = idBaseRule;
+			 
+			 //if(bIsMixed)		 
+				 //baseRule+=", "+strRecursiveParentName.replace(":", "_").toUpperCase();
+			 valueBaseRule+=", "+strRecursiveParentName.replace(":", "_").toUpperCase();
+			 
+			 idBaseRule+=") ";
+			 valueBaseRule+=") ";
+			 
+			 
+		 }
+		 else if (tagchilds.size()<=0)
+		 {
+			 valueBaseRule = strParent.replace(":", "_").toLowerCase()+"(";
+			 //if(!bIsRoot)
+			 valueBaseRule+="ID"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+", ";
+			 valueBaseRule+="ID"+strRecursiveParentName.replace(":", "_").toUpperCase();
+			 valueBaseRule+=", "+strRecursiveParentName.replace(":", "_").toUpperCase();
+			 valueBaseRule+=") ";
+		 }
+		  
+		 int nRulesAdded = 0;
+		 for(int i=0;i<completeRuleList.size();i++)
+		 {
+			 
+			 if(!completeRuleList.get(i).contains("_attribute_"))
+				 continue;
+			 
+			 String addRule = "";
+			 
+			 if(bHasChildren)
+			 {
+				 if(stringParser.getRuleParametersNumber(completeRuleList.get(i)) >2)
+				 {
+					 //String strToReplace = strGrandParent;
+					 String strToReplace = strRecursiveParentName;
+					 //strToReplace = strParent;
+						 
+					 addRule = stringParser.replaceParentIDRule(completeRuleList.get(i),strToReplace);
+				 }
+			 }
+			 else
+			 {
+				 addRule= completeRuleList.get(i);	 
+			 }
+			 
+			 if(!addRule.isEmpty())
+			 {
+				 String strJoin = ",";
+				 //if(!baseRule.isEmpty() && nRulesAdded==0)
+					 //strCompleteRule+=", (";
+				 addRule = stringParser.replaceIDRule(addRule,"IDCHILDATTRIBUTE"+strRecursiveParentName.replace(":", "_").toUpperCase());
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && nRecursionLevel >0)
+					 addRule = stringParser.replaceParentIDRule(addRule,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 
+				 if(bMultRules)
+					 strJoin = "; ";
+				 
+				 if(bMultRules && bRuleAdded)
+					 strCompleteRule+=strJoin+ addRule;
+				 else
+					 strCompleteRule+=addRule;
+				 
+				 nRulesAdded ++;
+				 bMultRules= true;
+				 if(!addRule.isEmpty())
+					 bRuleAdded = true;
+			 }
+		 }
+		 
+		
+		 if(bMultRules && nRulesAdded>1)
+		 {
+			 String bkpRule = strCompleteRule;
+			 String  modifiedIDBaseRule = idBaseRule;
+			 String  modifiedValueBaseRule = valueBaseRule;
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0
+					 && nRecursionLevel >0)
+				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0
+					 && nRecursionLevel >0)
+				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 
+			 
+			 String normalizedParent = strRecursiveParentName.replace(":", "_");
+			 
+			 String strTempRule = modifiedValueBaseRule;
+			 
+			 if(bIsMixed && bHasChoiceChildren)
+				 strTempRule = modifiedIDBaseRule+";"+modifiedValueBaseRule;
+				 else if(!bIsMixed)
+					 strTempRule = modifiedIDBaseRule;
+			 
+			 
+			 String [] arrayAttribute = strCompleteRule.split(";");
+			 String findAttributes = "";
+			
+			 
+			 for(int nCount = 0; nCount < arrayAttribute.length;nCount++)
+			 {
+				 if(nCount>0)
+					 findAttributes+=";";
+				
+				 String nodeFilter = "";
+				 if(nRecursionLevel == 0 && !filter.isEmpty())
+					 nodeFilter = ", "+"("+filter+")";
+				 
+				 findAttributes+= "("+strTempRule+nodeFilter+", "+arrayAttribute[nCount]+")";
+				 
+				 
+			 }
+			 
+			 //##strCompleteRule = " findall(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+", ( ("+strTempRule+"),(  "+strCompleteRule+"  ";
+			 strCompleteRule = " findall(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+", ("+findAttributes+"  ";
+			 
+			 
+			 if(bIsMixed && bHasChoiceChildren)
+			 {
+				 //strCompleteRule+=") ; ("+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+";"
+						 //+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+				 
+				 String idfilter = "";
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 {
+				    idfilter = "IDCHILD"+normalizedParent.toUpperCase();
+					idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
+				    idfilter+= ", ";
+				 }
+				 //##strCompleteRule+=") ; ("+idfilter
+				 
+				 String nodeFilter = "";
+				 if(nRecursionLevel == 0 && !filter.isEmpty())
+					 nodeFilter = "("+filter.replace("ID"+normalizedParent.toUpperCase(), "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+"), ";
+				 
+				 strCompleteRule+=" ; ("+idfilter
+						 +nodeFilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+") ";
+			 }
+			 else 
+			 {
+				 if(!bIsMixed)
+				 {
+					 if(!bHasChildren && !bHasOnlyRequiredAttributes)
+					 {
+						 //##strCompleteRule+=") ; ("+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 
+						 String nodeFilter = "";
+						 if(nRecursionLevel == 0 && !filter.isEmpty())
+							 nodeFilter = "("+filter.replace("ID"+normalizedParent.toUpperCase(), "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+") , ";
+						 
+						 strCompleteRule+="; ("+nodeFilter+stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+")";
+					 }
+				 }
+				 else
+				 {
+					 
+					 String idfilter = "";
+					 String nodeFilter = "";
+					 if(nRecursionLevel == 0 && !filter.isEmpty())
+						 nodeFilter = "("+filter.replace("ID"+normalizedParent.toUpperCase(), "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+"), ";
+					 
+					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+							 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 {
+					    idfilter = "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase();
+						idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
+					    idfilter+= ", ";
+					 }
+					 
+					 if(!bHasChildren && !bHasOnlyRequiredAttributes)
+					 {
+						 //##strCompleteRule+=") ; ("+idfilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase());
+						 
+						 strCompleteRule+="; ("+nodeFilter+idfilter+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase())+")";
+								 
+					 }
+					 /*else
+						 strCompleteRule+=")";*/
+				 }
+			 }
+			 //##strCompleteRule+=") ) ";
+			 strCompleteRule+=" ) ";
+			 
+			 strCompleteRule+= ",LISTCHILDATTRIBUTE"+normalizedParent.toUpperCase()+") ";
+			 
+			 //2º Passada- Ordenado
+			 strCompleteRule+= ",quick_sort(LISTCHILDATTRIBUTE"+normalizedParent.toUpperCase()+",LISTCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED),member(IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+
+					 "SORTED,LISTCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED)";
+			 
+             String strOrderedTempRule = modifiedValueBaseRule;
+			 
+			 if(bIsMixed && bHasChoiceChildren)
+				 strOrderedTempRule = modifiedIDBaseRule+";"+modifiedValueBaseRule;
+				 else if(!bIsMixed)
+					 strOrderedTempRule = modifiedIDBaseRule;
+			 
+			 
+			 strCompleteRule+= ", ( ("+strOrderedTempRule+")";
+			 strCompleteRule+=",( "+ bkpRule.replace("IDCHILDATTRIBUTE"+normalizedParent.toUpperCase(), "IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED");
+			 
+			 //##########
+			 String orderedBaseRule =  modifiedValueBaseRule;
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 orderedBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 if(bIsMixed && bHasChoiceChildren)
+				 orderedBaseRule =  "("+stringParser.replaceIDRule(orderedBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED")+"; "+stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED")+")"; 
+			 else if(!bIsMixed)
+			 {
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 orderedBaseRule =  stringParser.replaceIDRule(orderedBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 }
+			 else
+				 orderedBaseRule =  stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILDATTRIBUTE"+normalizedParent.toUpperCase()+"SORTED");
+			 
+			 //orderedBaseRule =  stringParser.replaceParentIDRule(orderedBaseRule,"IDCHILD"+strGrandParent.replace(":", "_").toUpperCase()+"SORTED");
+			 if(!bHasChildren && !bHasOnlyRequiredAttributes)
+				 strCompleteRule+=") ;"+orderedBaseRule;
+			 else
+				 strCompleteRule+=")";
+			 
+			 strCompleteRule+=" ) ";
+			 
+		 }
+		 else if(bMultRules)
+		 {
+			 String  modifiedIDBaseRule = idBaseRule;
+			 String  modifiedValueBaseRule = valueBaseRule;
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 String parentRule =modifiedValueBaseRule; 
+			 
+			 if(bIsMixed && bHasChoiceChildren)
+				 parentRule = modifiedIDBaseRule+";"+modifiedValueBaseRule;
+			 else if(!bIsMixed)
+					 parentRule = modifiedIDBaseRule;
+			 
+			 strCompleteRule = "( ( ("+parentRule+"),( "+strCompleteRule+") ) ; ("+parentRule+") ) ";
+		 }
+		 
+		 if(nVariableNumber > 0 )
+			 strCompleteRule = strCompleteRule.replace(strRecursiveParentName.toUpperCase(), strRecursiveParentName.toUpperCase()+nVariableNumber);
+		 
+		 String childRules = "";
+		 String orChildRule = "";
+		 
+		 if(strParent.compareToIgnoreCase("text") == 0)
+		 {
+			 int a= 0 ;
+			 a++;
+		 }
+		 for(int j=0; j< tagchilds.size();j++)
+		 {
+			 boolean bChildHasChildren = hasChildNodes(document, "element", tagchilds.get(j),strParent,true);
+			 boolean bChildHasOnlyAttributes = hasOnlyAttributes(document, "element", tagchilds.get(j),strParent,true);
+			 boolean bChildIsMixed = isMixed(document, "element", tagchilds.get(j),strParent,true);
+			 boolean bChildHasChoiceChildren = hasAllChildrenChoice(document, "element",tagchilds.get(j), strParent,true);
+			 boolean bChildHasOnlyRequiredAttributes  = hasOnlyRequiredAttributes(document, "element", tagchilds.get(j),strParent,true);
+			 
+			 String recursiveChildNodeName = tagchilds.get(j);
+			 
+			 if(bStopRecusrsion)
+			 {
+				 if(mapVisitedNodes.containsKey(recursiveChildNodeName))
+				 {
+					 Pair<Integer,Integer> pair = mapVisitedNodes.get(recursiveChildNodeName);
+					 pair.setValue(pair.getValue()+1);
+					 pair.setKey(pair.getKey()+1);
+					 mapVisitedNodes.put(recursiveChildNodeName, pair);
+					 recursiveChildNodeName+=pair.getKey();
+				 }	
+			 }
+			 
+			 String strAnd = "";
+			 if(j>0 && !childRules.isEmpty())
+				 strAnd = "; ";
+			 
+			 //if(mapVisitedNodes.containsKey( tagchilds.get(j)))
+				 //mapVisitedNodes.put(strParent, mapVisitedNodes.get( tagchilds.get(j))+1);
+			 
+			 if((bChildHasChildren || bChildHasOnlyAttributes) && !bStopRecusrsion)
+			 {
+					 nRecursionLevel ++;
+				     String childRule = insertAllRulesFromTag8(document, strGrandParent ,strParent, tagchilds.get(j),nVariableNumber,mapVisitedNodes,nRecursionLevel,"");
+				     nRecursionLevel --;
+				     
+				     //if(nRecursionLevel == 0)
+				     {
+				    	 for (String key : mapVisitedNodes.keySet()) 
+				    	 {
+				    		 Pair<Integer,Integer> pair = mapVisitedNodes.get(key);
+				    		 //if(key.compareToIgnoreCase(strParent)==0 || key.compareToIgnoreCase(strGrandParent)==0)
+				    		 {
+				    			 //pair.setKey(nRecursionLevel-1);
+				    			 //pair.setValue(nRecursionLevel-1);
+				    			 //mapVisitedNodes.put(key, pair);
+				    			 
+				    			 pair.setKey(nRecursionLevel);
+				    			 pair.setValue(nRecursionLevel);
+				    			 mapVisitedNodes.put(key, pair);
+				    		 }
+				    	 }
+				    	 
+				     }
+				     
+					 if(!childRule.isEmpty())
+						 childRules+=strAnd+  childRule;
+			 }
+			 else
+			 {
+				 
+				 String simpleChildRule = tagchilds.get(j).toLowerCase().replace(":", "_")+"(ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+",ID"+recursiveChildNodeName.toUpperCase()+","+recursiveChildNodeName.toUpperCase()+") ";
+				 if(bStopRecusrsion && (bChildHasChildren || bHasOnlyAttributes))
+				 {
+					 if(!bChildIsMixed)
+						 simpleChildRule = tagchilds.get(j).toLowerCase().replace(":", "_")+"(ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+",ID"+recursiveChildNodeName.toUpperCase()+") ";		 
+				 }
+				 
+				 simpleChildRule = stringParser.replaceIDRule(simpleChildRule,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 
+				 childRules += strAnd+simpleChildRule;
+				 
+			 }
+			 
+			 String childBaseRule = tagchilds.get(j).replace(":", "_").toLowerCase()+"(";
+			 childBaseRule+="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
+			 childBaseRule+="ID"+recursiveChildNodeName.replace(":", "_").toUpperCase();
+			 if(bChildIsMixed || (!bChildHasOnlyAttributes && !bChildHasChildren))		 
+				 childBaseRule+=", "+recursiveChildNodeName.replace(":", "_").toUpperCase();
+			 childBaseRule+=") ";
+			 	 
+			 childBaseRule =stringParser.replaceIDRule(childBaseRule,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase());
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 childBaseRule =stringParser.replaceParentIDRule(childBaseRule,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 String orChildBaseRule ="";
+			 if(bChildHasChoiceChildren)
+			 {
+				 boolean bHasValue =  bChildIsMixed || (!bChildHasOnlyAttributes && !bChildHasChildren);
+				 if(bHasValue)
+				 {
+					 orChildBaseRule = tagchilds.get(j).replace(":", "_").toLowerCase()+"(";
+					 orChildBaseRule+="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
+					 orChildBaseRule+="ID"+recursiveChildNodeName.toUpperCase()+") ";
+					 
+					 orChildBaseRule =stringParser.replaceIDRule(orChildBaseRule,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase());
+					 
+					 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+							 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+						 orChildBaseRule =stringParser.replaceParentIDRule(orChildBaseRule,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 }
+			 }
+			 
+			 if(!orChildBaseRule.isEmpty())
+			 {
+				 if(!orChildRule.isEmpty())
+					 orChildRule += ";"+ "( "+childBaseRule+";"+orChildBaseRule+")";
+				 else
+					 orChildRule += "( "+childBaseRule+";"+orChildBaseRule+")";
+			 }
+			 else
+			 {
+				 if(!orChildRule.isEmpty())
+					 orChildRule += ";"+ childBaseRule;
+				 else
+					 orChildRule += childBaseRule;	 
+			 }
+			 
+		 }
+		 
+		 if(bHasChildren && !childRules.isEmpty())
+		 {
+			 String normalizedParent = strRecursiveParentName.replace(":", "_");
+             //String  modifiedBaseRule = baseRule;
+			 String  modifiedIDBaseRule = idBaseRule;
+			 String  modifiedValueBaseRule = valueBaseRule;
+             
+             //Mixed Element
+	             String strBaseMixedElement = "xmlMixedElement(";
+	             strBaseMixedElement+="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
+	             //strBaseMixedElement+="_, ";
+	             strBaseMixedElement+="IDxmlMixedElement".toUpperCase();
+	             //strBaseMixedElement =stringParser.replaceParentIDRule(strBaseMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase());
+				 //if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 //strBaseMixedElement =stringParser.replaceParentIDRule(strBaseMixedElement,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 strBaseMixedElement+=","+"xmlMixedElement_".toUpperCase()+"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase();
+				 strBaseMixedElement+= ") ";
+				 strBaseMixedElement =stringParser.replaceIDRule(strBaseMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()); 
+				 if(strRecursiveGrandParentName.compareToIgnoreCase("IDGRANDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 strBaseMixedElement =stringParser.replaceParentIDRule(strBaseMixedElement,"CHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+						 
+				//###
+				 if(bIsMixed && bHasChoiceChildren)
+					 orChildRule+=";"+strBaseMixedElement;
+				 
+               String simpleMixedElement = "xmlMixedElement(";
+               simpleMixedElement +="ID"+strRecursiveParentName.replace(":", "_").toUpperCase()+", ";
+               //simpleMixedElement +="_,";
+               simpleMixedElement += "IDxmlMixedElement".toUpperCase()+",";
+               simpleMixedElement +="xmlMixedElement_".toUpperCase();
+               simpleMixedElement +="IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+") ";
+               
+               //simpleMixedElement =stringParser.replaceIDRule(simpleMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
+               //####
+               simpleMixedElement =stringParser.replaceIDRule(simpleMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
+			   //###
+               if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+            		   && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+					 simpleMixedElement =stringParser.replaceParentIDRule(simpleMixedElement,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+               
+               
+                //simpleMixedElement = stringParser.replaceIDRule(simpleMixedElement,"IDCHILD"+strRecursiveParentName.replace(":", "_").toUpperCase()+"SORTED");
+                //###
+               if(bIsMixed && bHasChoiceChildren)
+            	   childRules+=";"+simpleMixedElement;
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 modifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+					 && strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0)
+				 modifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+			 
+			 
+			 if(nRecursionLevel >0)
+			 {
+				 /*if(strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOPARENT")!=0
+						 && strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOGRANDGRANDPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOGRANDGRANDPARENT")!=0)
+					 modifiedIDBaseRule = stringParser.replaceParentIDRule(modifiedIDBaseRule,"IDCHILD"+strRecursiveGrandGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 
+				 if(strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						 && strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOPARENT")!=0
+						 && strRecursiveGrandGrandParentName.compareToIgnoreCase("IDNOGRANDGRANDPARENT")!=0 && strRecursiveGrandGrandParentName.compareToIgnoreCase("NOGRANDGRANDPARENT")!=0)
+					 modifiedValueBaseRule = stringParser.replaceParentIDRule(modifiedValueBaseRule,"IDCHILD"+strRecursiveGrandGrandParentName.replace(":", "_").toUpperCase()+"SORTED");
+				 
+				 */
+			 }
+			  
+			 //### E OU OU 
+			 strCompleteRule += "; "+"findall(IDCHILD"+normalizedParent.toUpperCase()+", ";
+			 
+			 
+			 
+			 /*String parentRule =modifiedValueBaseRule; 
+			 
+			 if(bIsMixed && bHasChoiceChildren)
+				 parentRule = modifiedIDBaseRule+";"+modifiedValueBaseRule;
+			 else if(!bIsMixed)
+					 parentRule = modifiedIDBaseRule;*/
+			 String parentRule = modifiedIDBaseRule;
+			 
+			 if(!bMultRules) // Não tem atributos
+			 {
+				 strCompleteRule +="( ";
+				 
+				 String nodeFilter = "";
+				 if(nRecursionLevel == 0 && !filter.isEmpty())
+					 nodeFilter = ", "+"("+filter+")";
+				 
+				 strCompleteRule += "( ("+parentRule+nodeFilter+"), ("+orChildRule+") )";
+				 //strCompleteRule += " ; ";
+				 
+				 String tmpModifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+normalizedParent.toUpperCase());
+				 String tmpModifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+normalizedParent.toUpperCase());
+				 
+				 String  tmpParentRule=tmpModifiedValueBaseRule; 
+				 
+				 //if(bIsMixed && bHasChoiceChildren)
+					 //tmpParentRule = tmpModifiedIDBaseRule+";"+tmpModifiedValueBaseRule;
+				//else if(!bIsMixed)
+					 //tmpParentRule = tmpModifiedIDBaseRule;
+				tmpParentRule = tmpModifiedValueBaseRule;
+				String idfilter = "";
+				if(strRecursiveGrandParentName.compareToIgnoreCase("IDNOGRANDPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOGRANDPARENT")!=0
+						&& strRecursiveGrandParentName.compareToIgnoreCase("IDNOPARENT")!=0 && strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!=0	)
+				{
+				    idfilter = "IDCHILD"+normalizedParent.toUpperCase();
+					idfilter += 	 "  = IDCHILD"+strRecursiveGrandParentName.replace(":", "_").toUpperCase()+"SORTED";
+				    idfilter+= ", ";
+				}
+				 
+				if(bIsMixed)
+					strCompleteRule += "; ("+idfilter+tmpParentRule+")";
+				 strCompleteRule +=") ";
+			 }
+			 else
+			 {
+				 String nodeFilter = "";
+				 if(nRecursionLevel == 0 && !filter.isEmpty())
+					 nodeFilter = ", "+"("+filter+")";
+				 
+				 strCompleteRule += "( ("+parentRule+nodeFilter+") , ("+orChildRule+") )";
+			 }
+			 
+			 
+             strCompleteRule+= ",LISTCHILD"+normalizedParent.toUpperCase()+") ";
+			 strCompleteRule+= ",quick_sort(LISTCHILD"+normalizedParent.toUpperCase()+",LISTCHILD"+normalizedParent.toUpperCase()+"SORTED),member(IDCHILD"+normalizedParent.toUpperCase()+
+					 "SORTED,LISTCHILD"+normalizedParent.toUpperCase()+"SORTED)";
+			 
+			 if(!bMultRules) // Não tem atributos
+			 {
+			   strCompleteRule += ", ( ("+ childRules+") ";
+			   
+			   String tmpModifiedIDBaseRule = stringParser.replaceIDRule(modifiedIDBaseRule,"IDCHILD"+normalizedParent.toUpperCase()+"SORTED");
+			   String tmpModifiedValueBaseRule = stringParser.replaceIDRule(modifiedValueBaseRule,"IDCHILD"+normalizedParent.toUpperCase()+"SORTED");
+			   
+			   
+			   String  tmpParentRule=tmpModifiedValueBaseRule; 
+				 
+			  /*if(bIsMixed && bHasChoiceChildren)
+				 tmpParentRule = tmpModifiedIDBaseRule+";"+tmpModifiedValueBaseRule;
+			  else if(!bIsMixed)
+				 tmpParentRule = tmpModifiedIDBaseRule;*/
+			   tmpParentRule = tmpModifiedValueBaseRule;
+			   
+			   String nodeFilter = "";
+				 if(nRecursionLevel == 0 && !filter.isEmpty())
+					 nodeFilter = "("+filter+"),";
+			   
+			   if(bIsMixed)
+			   {
+				   strCompleteRule += "; ("+nodeFilter+tmpParentRule+") ";
+			   }
+			   strCompleteRule +=" )";
+			 }
+			 else
+				 strCompleteRule += ", ("+ childRules+") ";
+		 }
+		 
+		 if(strCompleteRule.isEmpty())
+		 {
+			 strCompleteRule = valueBaseRule;
+		 }
+		 
+		 if(strRecursiveGrandParentName.compareToIgnoreCase("NOPARENT")!= 0)
+		 {
+			 String toReplace = strRecursiveGrandParentName.toUpperCase().replace(":", "_");
+			 if(nVariableNumber > 0)		 
+				 toReplace += nVariableNumber;
+			 
+			 strCompleteRule = strCompleteRule.replace("IDPARENT", "ID"+toReplace);
+			 
+			 strCompleteRule = strCompleteRule.replace(strRecursiveGrandParentName.replace(":", "_").toUpperCase(), toReplace);
+		 }
+		 
+		 if(strCompleteRule.startsWith("; "))
+		 {
+			 strCompleteRule  = strCompleteRule.substring(strCompleteRule.indexOf("; ")+1,strCompleteRule.length());
+		 }
+		 else if(strCompleteRule.startsWith(", "))
+		 {
+			 strCompleteRule  = strCompleteRule.substring(strCompleteRule.indexOf(", ")+1,strCompleteRule.length());
+		 } 
+		 
+		 return strCompleteRule;
+	}
+	private String obtainAxisNamespace(Document document, String strFather, QueryElement element,HashMap<String, String> hashTagetNodeFilter)
 	{
 		 String axisWildCard = "";
 		 ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
@@ -6200,7 +6999,8 @@ public class WrapperSchema extends Wrapper {
 			 String namespaceElement = alreadyInsertedTags.get(j);
 			 boolean bHasChilds = hasChildNodes(document, "element", namespaceElement, "NOPARENT", false);
 			 
-			 targetNodeNameList.add(namespaceElement);
+			 if(!hashTagetNodeFilter.containsKey(namespaceElement))
+				 hashTagetNodeFilter.put(namespaceElement,"");
 			 
 			 if(bPrevious)
 				 strCompleteRule+="; ";
@@ -6260,7 +7060,7 @@ public class WrapperSchema extends Wrapper {
 		return axisWildCard;
 	}
 	
-	private String obtainLangTags(Document document, String strFather, String langToCompare)
+	private String obtainLangTags(Document document, String strFather, String langToCompare,HashMap<String,String> hashTagetNodeFilter)
 	{
 		String langTags = "";
 		ArrayList<String>  completeRuleList = getRuleSchema(document,strFather,true);
@@ -6302,6 +7102,8 @@ public class WrapperSchema extends Wrapper {
 				 
 				 String strTagLang=  strTag.toLowerCase()+"_attribute_xml_lang";
 				 strCompleteRule+=", "+strTagLang+"(ID"+strTag.toUpperCase()+",ID"+strTagLang.toUpperCase()+","+strTagLang.toUpperCase()+") ";
+				 if(!hashTagetNodeFilter.containsKey(strTag))
+					 hashTagetNodeFilter.put(strTag,strTagLang+"(ID"+strTag.toUpperCase()+",ID"+strTagLang.toUpperCase()+",'it') ");
 				 strCompleteRule+= ", "+strTagLang.toUpperCase()+" = '"+langToCompare.replace("'", "")+"' ) ";
 				 bPrevious = true;
 			 }
@@ -6767,13 +7569,15 @@ public class WrapperSchema extends Wrapper {
 				{
 					boolean bOk = false;
 					
-					if(_parentNameTypeElement.trim().equals("NOPARENT") || _parentNameTypeElement.trim().equals("IDNOPARENT"))
+					if(_parentNameTypeElement.trim().equals("NOPARENT") || _parentNameTypeElement.trim().equals("IDNOPARENT") ||
+					   _parentNameTypeElement.trim().equals("NOGRANDPARENT") || _parentNameTypeElement.trim().equals("IDNOGRANDPARENT")	)
 						bOk= true;
 					else
 					{
 						String parentNameElement =   getParentName(_doc,elementNode);
 						
-						if (parentNameElement.trim().compareToIgnoreCase(_parentNameTypeElement.trim())==0 || (parentNameElement.trim().equals("NOPARENT") || parentNameElement.trim().equals("IDNOPARENT")) )
+						if (parentNameElement.trim().compareToIgnoreCase(_parentNameTypeElement.trim())==0 || (parentNameElement.trim().equals("NOPARENT") || parentNameElement.trim().equals("IDNOPARENT") || 
+								_parentNameTypeElement.trim().equals("NOGRANDPARENT") || _parentNameTypeElement.trim().equals("IDNOGRANDPARENT")))
 							bOk= true;
 					}
 					
@@ -6796,7 +7600,8 @@ public class WrapperSchema extends Wrapper {
 						{
 							boolean bOk = false;
 							
-							if(_parentNameTypeElement.trim().equals("NOPARENT")|| _parentNameTypeElement.trim().equals("IDNOPARENT"))
+							if(_parentNameTypeElement.trim().equals("NOPARENT")|| _parentNameTypeElement.trim().equals("IDNOPARENT") || 
+									_parentNameTypeElement.trim().equals("NOGRANDPARENT") || _parentNameTypeElement.trim().equals("IDNOGRANDPARENT"))
 								bOk= true;
 							else
 							{
@@ -6813,7 +7618,8 @@ public class WrapperSchema extends Wrapper {
 								}
 								else
 								{
-									if (parentNameElement.trim().compareToIgnoreCase(_parentNameTypeElement.trim())==0  || (parentNameElement.trim().equals("NOPARENT") || parentNameElement.trim().equals("IDNOPARENT")) )
+									if (parentNameElement.trim().compareToIgnoreCase(_parentNameTypeElement.trim())==0  || (parentNameElement.trim().equals("NOPARENT") || parentNameElement.trim().equals("IDNOPARENT") ||
+											_parentNameTypeElement.trim().equals("NOGRANDPARENT") || _parentNameTypeElement.trim().equals("IDNOGRANDPARENT") ))
 										bOk= true;
 								}
 							}
@@ -6832,7 +7638,8 @@ public class WrapperSchema extends Wrapper {
 					{
 						boolean bOk = false;
 						
-						if(_parentNameTypeElement.trim().equals("NOPARENT") || _parentNameTypeElement.trim().equals("IDNOPARENT") )
+						if(_parentNameTypeElement.trim().equals("NOPARENT") || _parentNameTypeElement.trim().equals("IDNOPARENT") ||
+								_parentNameTypeElement.trim().equals("NOGRANDPARENT") || _parentNameTypeElement.trim().equals("IDNOGRANDPARENT"))
 							bOk= true;
 						else
 						{
