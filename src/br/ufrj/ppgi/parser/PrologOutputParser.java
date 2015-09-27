@@ -21,6 +21,7 @@ public class PrologOutputParser {
 	Stack<Pair<Integer,String>> stack;
 	String rootNodeName;
 	boolean bPrintRoot;
+	boolean bPrintFather;
 	ArrayList<Pair<String,String>> rootNodeValues;
 	
 	ParseType outputType;
@@ -36,6 +37,8 @@ public class PrologOutputParser {
 	ArrayList<String> openNodes;
 	ArrayList<String> openNodesIDs;
 	ArrayList<Pair<String,String>> openNodesPair;
+	WrapperSchema wrapperSchema;
+	Document document = null;
 	
 	
 	public enum ParseType{
@@ -55,6 +58,16 @@ public class PrologOutputParser {
         openNodesIDs = new ArrayList<String>();
         bPrintRoot = false;
         rootNodeValues = new ArrayList<Pair<String,String>>();*/
+		
+		HashMap<String, Document> documentList = DocumentParser.getInstance().getDocumentList();
+        
+        if (documentList != null && ! documentList.isEmpty())
+        {
+        	Map.Entry<String, Document> entry = documentList.entrySet().iterator().next();
+        	document = entry.getValue();
+        }
+		
+	    wrapperSchema = new WrapperSchema();
 		outputType = outputParser;
 		reset();
 	}
@@ -74,6 +87,7 @@ public class PrologOutputParser {
 		openNodes = new ArrayList<String>();
         openNodesIDs = new ArrayList<String>();
         bPrintRoot = false;
+        bPrintFather = true;
         rootNodeValues = new ArrayList<Pair<String,String>>();
 		
 	}
@@ -154,15 +168,6 @@ public class PrologOutputParser {
         ArrayList<String> outPutLineList = new ArrayList<String>(Arrays.asList(outPutLineArray));
         //if(list.contains("IDCHILDATTRIBUTE"))
          
-        WrapperSchema wrapperSchema = new WrapperSchema();
-        HashMap<String, Document> documentList = DocumentParser.getInstance().getDocumentList();
-        Document document = null;
-        if (documentList != null && ! documentList.isEmpty())
-        {
-        	Map.Entry<String, Document> entry = documentList.entrySet().iterator().next();
-        	document = entry.getValue();
-        }
-
         boolean bOpenNode = false;
         for (int i = 0; i < outPutLineList.size(); i++)
         {
@@ -174,8 +179,21 @@ public class PrologOutputParser {
             boolean bNodeHasAttribute = false;
             boolean bNodeHasValue = false;
             
-            if(pairVariableValueList.get(i).startsWith("yes") || pairVariableValueList.get(i).startsWith("no"))
+            if(outPutLineList.get(i).startsWith("yes") || outPutLineList.get(i).startsWith("no"))
             	continue;
+            
+            if(outPutLineList.get(i).contains("RESETQUERY"))
+        	{
+        		xmlOutPut+= endOutputParser();
+        		reset();
+        		continue;
+        	}
+            
+            if(outPutLineList.get(i).contains("NOTPRINTFATHER"))
+            {
+            	bPrintFather = false;
+            	continue;
+            }
             
             ArrayList<String> openNodeIteration = new ArrayList<String>();
             ArrayList<String> openNodeIDIteration = new ArrayList<String>();
@@ -219,8 +237,10 @@ public class PrologOutputParser {
             	}
             	
             	
-            	if(bFirstChild && !bisSingle)
+            	if(bFirstChild && !bisSingle && bPrintFather)
+            	{
             		xmlOutPut+=openNodeWithAttributes(currentFatherNodeName, new ArrayList<Pair<String,String>>());
+            	}
             	else if(bFirstChild)
             	{
             		String mixedNodeName = "";
@@ -233,6 +253,9 @@ public class PrologOutputParser {
             		if(mixedNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
             			xmlOutPut+=openNodeWithAttributes(currentFatherNodeName, new ArrayList<Pair<String,String>>());
             	}
+            	
+            	if(!bPrintFather)
+            		bPrintFather = true;
             	
             	xmlOutPut+=openNodeWithAttributes(currentNodeName, currentNodeValues);
             	
@@ -282,12 +305,6 @@ public class PrologOutputParser {
             
             if(currentNodeName.isEmpty())
             	currentNodeName = tempNodeName;
-            
-            if(outPutLineList.get(i).contains("RESETQUERY"))
-        	{
-        		xmlOutPut+= endOutputParser();
-        		reset();
-        	}
             
             /*for (int j = 0; j < pairVariableValueList.size(); j++)
             {
@@ -930,21 +947,52 @@ public class PrologOutputParser {
 	private String obtainCurrentID(ArrayList<String> pairVariableValueList)
 	{
 		String id = "-1";
+		String tempId = "-1";
+		String tempDirectId = "-1";
+        boolean bHasAttribute = false;
 		for (int i=0;i<pairVariableValueList.size();i++)
 		{
-			if (pairVariableValueList.get(i).startsWith("IDCHILD") && ! pairVariableValueList.get(i).startsWith("IDCHILDATTRIBUTE"))
+			if(pairVariableValueList.get(i).startsWith("ATTRIBUTE_"))
+				bHasAttribute = true;
+			
+			String[] arrayCurrentNodeID = pairVariableValueList.get(i).split("/(?=(?:[^']*'[^']*')*[^']*$)");
+			if (pairVariableValueList.get(i).startsWith("IDCHILD"))
             {
-            	String[] arrayCurrentNodeID = pairVariableValueList.get(i).split("/(?=(?:[^']*'[^']*')*[^']*$)");
                 if (arrayCurrentNodeID.length > 1)
                 {
                     if (arrayCurrentNodeID[0].endsWith("SORTED"))
                     {
-                    	if(Integer.parseInt(arrayCurrentNodeID[1]) >= Integer.parseInt(id))
-                    		id = arrayCurrentNodeID[1];
+                    	if(! pairVariableValueList.get(i).startsWith("IDCHILDATTRIBUTE") )
+                    	{
+                    		if(Integer.parseInt(arrayCurrentNodeID[1]) >= Integer.parseInt(id))
+                    			id = arrayCurrentNodeID[1];
+                    	}
+                    	else
+                    		tempId = arrayCurrentNodeID[1];
                     }
                 }
             }
+			else
+			{
+				if (pairVariableValueList.get(i).startsWith("ID") &&
+						!pairVariableValueList.get(i).startsWith("IDNOPARENT") && !pairVariableValueList.get(i).startsWith("IDGRANDNOPARENT"))
+				{
+					if (arrayCurrentNodeID.length > 1)
+					{
+						if(Integer.parseInt(arrayCurrentNodeID[1]) >= Integer.parseInt(tempDirectId))
+							tempDirectId = arrayCurrentNodeID[1];
+					}
+					
+					
+				}
+			}
 		}
+		
+		
+		if(id.compareToIgnoreCase("-1")==0 && tempId.compareToIgnoreCase("-1")!=0  && !bHasAttribute)
+		   id = tempId;
+		else if(id.compareToIgnoreCase("-1")==0 && tempDirectId.compareToIgnoreCase("-1")!=0)
+			id = tempDirectId;
 		
 		return id;
 	}
@@ -956,7 +1004,8 @@ public class PrologOutputParser {
 		for (int i=0;i<pairVariableValueList.size();i++)
 		{
 			if(pairVariableValueList.get(i).startsWith("ID") || pairVariableValueList.get(i).startsWith("LIST")
-					|| pairVariableValueList.get(i).startsWith("yes") || pairVariableValueList.get(i).isEmpty())
+					|| pairVariableValueList.get(i).startsWith("yes") || pairVariableValueList.get(i).isEmpty()
+					|| pairVariableValueList.get(i).startsWith("RESETQUERY"))
 				continue;
 			    
 				
@@ -1028,7 +1077,8 @@ public class PrologOutputParser {
 		for (int i=0;i<pairVariableValueList.size();i++)
 		{
 			if(pairVariableValueList.get(i).startsWith("ID") && !pairVariableValueList.get(i).startsWith("IDCHILD")
-					&& !pairVariableValueList.get(i).startsWith("IDNOPARENT") && !pairVariableValueList.get(i).isEmpty())
+					&& !pairVariableValueList.get(i).startsWith("IDNOPARENT") && !pairVariableValueList.get(i).isEmpty()
+					&& !pairVariableValueList.get(i).contains("_ATTRIBUTE_"))
 	        {
 	            String[] vetPairValue = pairVariableValueList.get(i).split("/(?=(?:[^']*'[^']*')*[^']*$)");
 	            if (vetPairValue.length > 1)
@@ -1071,6 +1121,22 @@ public class PrologOutputParser {
 	{
 		String endOutput = ""; 
 		
+		
+		boolean bFirstChild = false;
+    	if(!currentNodeID.isEmpty() && !currentFatherNodeID.isEmpty())
+    	{
+    		bFirstChild = Integer.parseInt(currentNodeID) - 1 == Integer.parseInt(currentFatherNodeID);
+    	}
+    	
+    	
+    	
+    	boolean bisSingle=  wrapperSchema.isMixed(document,"element",currentFatherNodeName,"NOPARENT",true) || 
+    			wrapperSchema.hasAttributes(document,"element",currentFatherNodeName,"NOPARENT");
+    	if(bFirstChild && !bisSingle && bPrintFather)
+    		endOutput+=openNodeWithAttributes(currentFatherNodeName, new ArrayList<Pair<String,String>>());
+		
+    	bPrintFather = true;
+    	
 		if(currentNodeValues.size() >0 )
 		{
 			endOutput+= openNodeWithAttributes(currentNodeName, currentNodeValues);
@@ -1116,8 +1182,8 @@ public class PrologOutputParser {
             openNodes.remove(k);
         }*/
 		
-		if(!bCloseOpenNodes && !rootNodeName.isEmpty())
-			endOutput+=closeNode(rootNodeName);
+		//##if(!bCloseOpenNodes && !rootNodeName.isEmpty())
+			//##endOutput+=closeNode(rootNodeName);
 		
 		return endOutput;
 	}
@@ -1147,11 +1213,11 @@ public class PrologOutputParser {
     		bIsXmlMixedElement = true;
         
         String returnNode = "";
-        if(!rootNodeName.isEmpty() && (nodeName.compareTo(rootNodeName) !=0)  && !bPrintRoot)
+        /*if(!rootNodeName.isEmpty() && (nodeName.compareTo(rootNodeName) !=0)  && !bPrintRoot)
         {
         	bPrintRoot= true;
         	returnNode += openNodeWithAttributes( rootNodeName, rootNodeValues);
-        }
+        }*/
         
         if(bIsXmlMixedElement && attributesList.size()>0)
         {
@@ -1174,13 +1240,14 @@ public class PrologOutputParser {
             if (pair.getKey().length()<=0)
                 continue;
             
-            if (removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(nodeName) == 0 || removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(tempNodeName)==0)
+            if (removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(nodeName) == 0 || removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(tempNodeName)==0
+            		|| ! removeNodeNameNumbers(pair.getKey()).startsWith("ATTRIBUTE_"))
             {
                 nodeValue = pair.getValue();
                 continue;
             }
 
-            returnNode += " " + pair.getKey().replace("_", ":").toLowerCase();
+            returnNode += " " + pair.getKey().replace("ATTRIBUTE_", "").replace("_", ":").toLowerCase();
             returnNode += "=";
             returnNode += "\"";
             returnNode += pair.getValue().trim().replace("'","");

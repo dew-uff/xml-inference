@@ -33,6 +33,8 @@ public class DefaultHandleSAX extends DefaultHandler {
     private ElementoXML elementoRaiz = null;
     private Boolean bElementoAberto = false;
     private ElementoXML elementoAtual;
+    
+    private ArrayList<String> orderedElementList = new ArrayList<String>();
         
     public DefaultHandleSAX() {
         super(); 
@@ -43,6 +45,11 @@ public class DefaultHandleSAX extends DefaultHandler {
     public void setResetLastId(Boolean _bResetLastId)
     {
     	bResetLastId = _bResetLastId;
+    }
+    
+    public ArrayList<String> orderedElementList()
+    {
+    	return orderedElementList;
     }
     
     private void escreverId(Integer contadorId)
@@ -151,6 +158,10 @@ public class DefaultHandleSAX extends DefaultHandler {
     	/*if (qName.equals("ss")){
     		int a =0;
     	}*/
+    	
+    	if(!orderedElementList.contains(qName))
+    		orderedElementList.add(qName);
+    	
     	ElementoXML novoElemento = new ElementoXML();
     	novoElemento.setTipo(ElementoXML.TipoElemento.FILHO);
     	qName = qName.replace(":", "_");

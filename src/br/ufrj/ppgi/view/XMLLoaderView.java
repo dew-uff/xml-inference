@@ -96,18 +96,18 @@ public class XMLLoaderView extends JFrame{
     
     @Action
     public void translateXML() {
-    	XMLParser xmlParser = new XMLParser();
-    	xmlParser.setClearData(isCheckClearDataSelected());
-    	xmlParser.setResetLastId(isCheckResetLastId());
+    	//XMLParser xmlParser = new XMLParser();
+    	XMLParser.getInstance().setClearData(isCheckClearDataSelected());
+    	XMLParser.getInstance().setResetLastId(isCheckResetLastId());
     	
     	if ( isParserSAXSelected())
-    		xmlParser.executeParseSax(fileList);
+    		XMLParser.getInstance().executeParseSax(fileList);
     	else
-    		xmlParser.executeParse(fileList);
+    		XMLParser.getInstance().executeParse(fileList);
     	
     	JOptionPane.showMessageDialog(mainPanel, "Base de fatos gerada com sucesso.\n" 
     												+ "Tempo de execução: "
-    												+ xmlParser.getTotalTime() + " segundo(s)");
+    												+ XMLParser.getInstance().getTotalTime() + " segundo(s)");
 
     	component.setEnabled(true);
     	listModel.clear();

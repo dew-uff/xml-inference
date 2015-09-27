@@ -31,6 +31,28 @@ public class XMLParser extends DocumentParser{
 	private Boolean bResetLastId = false;
 	private static final String PATHCONFIG = "config.txt";
 	
+	private ArrayList<String> orderedElementList = new ArrayList<String>();
+	
+	private static XMLParser xmlParser = null;
+	
+	public synchronized static XMLParser getInstance() 
+	{
+		if ( xmlParser == null )
+			xmlParser = new XMLParser();
+		
+		return xmlParser;
+	}
+	
+	public void destroyInstance() 
+	{
+		xmlParser = null;
+	}
+	
+	 public ArrayList<String> orderedElementList()
+    {
+    	return orderedElementList;
+    }
+	
     private void escreverId(Integer contadorId)
     {
     	File file = new File(PATHCONFIG);   
@@ -146,8 +168,10 @@ public class XMLParser extends DocumentParser{
 
             long tempoFinal = System.currentTimeMillis();  
             setTotalTime((tempoFinal - tempoInicial) / 1000);
-
+             
             System.out.printf("Tempo em segundos: " + getTotalTime());
+            orderedElementList = handler.orderedElementList();
+            
 	}
 	
     
@@ -496,6 +520,9 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= "   quick_sort(Right,Rs), \n";
     	strFunctionRules+= "   append(Ls,[X|Rs],Ys). \n";
     	strFunctionRules+= " quick_sort([],[]). \n";
+    	
+    	
+    	
 
     	strFunctionRules+= " partition([X|Xs],Y,[X|Ls],Rs) :- nonvar(X),nonvar(Y),X =< Y, partition(Xs,Y,Ls,Rs). \n";
     	strFunctionRules+= " partition([X|Xs],Y,Ls,[X|Rs]) :- nonvar(X),nonvar(Y), \n";

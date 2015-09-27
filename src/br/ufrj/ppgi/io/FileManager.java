@@ -32,6 +32,11 @@ public class FileManager {
 		return FACTS_FILE_NAME;
 	}
 	
+	public String rulesFileName()
+	{
+		return RULES_FILE_NAME;
+	}
+	
 	public String loadFile(String fileType) {
 		String fileName = null;
 				

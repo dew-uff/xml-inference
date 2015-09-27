@@ -55,6 +55,13 @@ public class SchemaParser extends DocumentParser{
 	
 	public HashMap<Document,HashMap<String, ArrayList<String>>> getRuleHash()
 	{
+		/*if(ruleHash.size() <= 0 )
+		{
+			HashMap<String,ArrayList<String>> docHash = new HashMap<String,ArrayList<String>>();
+			
+			FileManager fileManager = new FileManager();
+			fileManager.rulesFileName();
+		}*/
 		
 		return ruleHash;
 	}
@@ -409,7 +416,7 @@ public class SchemaParser extends DocumentParser{
 			if(!a.isEmpty())
 			{
 				tempRulesList.set(k, stringRule.concat(", " + attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
-				bodyRuleList.set(k, stringBody.concat(ruleParent.toLowerCase()+"_attribute_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase()+", " + "ID"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+				bodyRuleList.set(k, stringBody.concat(ruleParent.toLowerCase()+"_attribute_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase()+", " + "ID"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +"ATTRIBUTE_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
 			}
 		}
 		
