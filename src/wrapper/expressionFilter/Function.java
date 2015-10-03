@@ -30,10 +30,12 @@ public class Function  implements IExpression {
 	 public static final String FUNCTION_CONCAT = "concat";
 	 public static final String FUNCTION_STRING = "string";
 	 public static final String FUNCTION_TRANSLATE = "translate";
+	 public static final String FUNCION_NAMESPACE_URI = "namespaceUri";
 	 public static final String FUNCTION_NOT = "not";
 	 public static final String FUNCTION_TRUE = "true";
 	 public static final String FUNCTION_FALSE = "false";
 	 public static final String FUNCTION_RESULT = "RESULT";
+	 
 	 //true()
 	 //false()
 	 
