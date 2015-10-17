@@ -12,6 +12,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import alice.tuprolog.Int;
 import wrapper.Pair;
 import wrapper.Stack;
 import wrapper.WrapperSchema;
@@ -36,7 +37,7 @@ public class PrologOutputParser {
 	ArrayList<Pair<String,String>> currentNodeValues;
 	ArrayList<String> openNodes;
 	ArrayList<String> openNodesIDs;
-	ArrayList<Pair<String,String>> openNodesPair;
+	ArrayList<Pair<String,String>> openNodesPairs;
 	WrapperSchema wrapperSchema;
 	Document document = null;
 	
@@ -83,7 +84,7 @@ public class PrologOutputParser {
 		stack = new Stack<Pair<Integer,String>>();
 		rootNodeName = "";
 		currentNodeValues = new ArrayList<Pair<String,String>>();
-		openNodesPair =  new ArrayList<Pair<String,String>>();
+		openNodesPairs =  new ArrayList<Pair<String,String>>();
 		openNodes = new ArrayList<String>();
         openNodesIDs = new ArrayList<String>();
         bPrintRoot = false;
@@ -199,11 +200,12 @@ public class PrologOutputParser {
             ArrayList<String> openNodeIDIteration = new ArrayList<String>();
             ArrayList<Pair<String,String>> openNodesPairIteration = new ArrayList<Pair<String,String>>();
             
-            
+            String tempFatherNodeName = "";
             String tempCurrentNodeID = obtainCurrentID(pairVariableValueList);
             ArrayList<Pair<String,String>> tempValues = obtainIterationValues(pairVariableValueList);
             String tempNodeName = obtainNodeName(pairVariableValueList);
-            Pair<String,String> parentInfo = obtainParentInfo(pairVariableValueList,openNodeIteration,openNodeIDIteration);
+            Pair<String,String> parentInfo = obtainParentInfo(pairVariableValueList,openNodeIteration,openNodeIDIteration,tempCurrentNodeID);
+            
             openNodesPairIteration = obtainOpenNodesPairs(pairVariableValueList);
             boolean bAddIteration = addOpenNodes(openNodesPairIteration);
             
@@ -227,19 +229,93 @@ public class PrologOutputParser {
             	if(tempFatherName.startsWith("ID"))
             		tempFatherName = tempFatherName.substring(2);
             	
+            	if(currentNodeName.compareToIgnoreCase("text")== 0 )
+            	{
+            		int a = 1;
+            		a++;
+            	}
+            	
             	boolean bisSingle=  wrapperSchema.isMixed(document,"element",tempFatherName,"NOPARENT",true) || 
             			wrapperSchema.hasAttributes(document,"element",tempFatherName,"NOPARENT");
             	
             	boolean bFirstChild = false;
+            	ArrayList<String> nodesToOpen = new ArrayList<String>();
             	if(!currentNodeID.isEmpty() && !currentFatherNodeID.isEmpty())
             	{
             		bFirstChild = Integer.parseInt(currentNodeID) - 1 == Integer.parseInt(currentFatherNodeID);
             	}
             	
+        		int IdToOpen  = Integer.parseInt(currentNodeID);
+        		boolean bIsOpenNodeMixed = false;
+    			if (currentNodeValues.size() == 1)
+                {
+                     Pair<String, String> pair = currentNodeValues.get(0);
+                     String mixedNodeName = pair.getKey();
+                     if(mixedNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
+                    	 bIsOpenNodeMixed = true;
+                }
+    			
+    			int nLastPosition = -1;
+        		for(int k=openNodesPairs.size()-1; k>=0;k--)
+        		{
+        			Pair<String,String> openNodesPair = openNodesPairs.get(k);
+        			//[17,22]
+        			 String strNodeIds =  openNodesPair.getKey();
+        			 strNodeIds = strNodeIds.replace("[", "");
+        			 strNodeIds = strNodeIds.replace("]", "");
+        			 String [] vetIds = strNodeIds.split(",");
+        			 //int firstIdOpen = 0;
+        			 
+        			 for(int l = 0;l<vetIds.length;l++)
+        			 {
+        				 int nId = Integer.parseInt(vetIds[l]);
+        				 //if(nId <= firstIdOpen || firstIdOpen ==0)
+        					 //firstIdOpen = nId;	
+        				 
+        				 boolean bMiddleRoot  = (vetIds.length ==1) && (k +1 == nLastPosition);
+	        			 
+	        			 if(IdToOpen-1 == nId || (IdToOpen==nId && bIsOpenNodeMixed) || bMiddleRoot )
+	        			 {
+	        				 String ancestral = removeNodeNameNumbers(openNodesPair.getValue());
+	        				 
+	        				 boolean bParentisSingle=  wrapperSchema.isMixed(document,"element",ancestral,"NOPARENT",true) || 
+	        	            			wrapperSchema.hasAttributes(document,"element",ancestral,"NOPARENT");
+	        				 if(!bParentisSingle || (IdToOpen==nId && bIsOpenNodeMixed))
+	        				 {
+	        					 if(bFirstChild && !currentFatherNodeName.isEmpty() 
+	        							 && currentFatherNodeName.compareToIgnoreCase(ancestral)!=0 )
+	        						 nodesToOpen.add(currentFatherNodeName);
+	        					 
+	        					 nodesToOpen.add(ancestral);
+	        					 nLastPosition = k;
+	        					 if(bMiddleRoot)
+	        						 nLastPosition = -1 ;
+	        					 bFirstChild = false;
+	        				 }
+	        				 
+	        				 IdToOpen = nId;
+	        				 
+	        				 break;
+	        			 }
+        			 
+        			 }
+        				 
+        		}
+            		
+            	
             	
             	if(bFirstChild && !bisSingle && bPrintFather)
             	{
             		xmlOutPut+=openNodeWithAttributes(currentFatherNodeName, new ArrayList<Pair<String,String>>());
+            	}
+            	else if(nodesToOpen.size() > 0)
+            	{
+            		for(int l=nodesToOpen.size()-1; l>=0;l--)
+            		{
+            			xmlOutPut+=openNodeWithAttributes(nodesToOpen.get(l), new ArrayList<Pair<String,String>>());
+            		}
+            		
+            		bFirstChild = false;
             	}
             	else if(bFirstChild)
             	{
@@ -270,6 +346,10 @@ public class PrologOutputParser {
             	else
             		if(bHasChoiceChildren && tempNextName.compareToIgnoreCase(currentNodeName) ==0 
             				 && !currentNodeName.isEmpty() && !currentNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
+            			xmlOutPut+= closeNode(currentNodeName );
+            	else
+            		if(bHasChoiceChildren && currentNodeValues.size()==1
+            		   && !currentNodeName.isEmpty() && !currentNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
             			xmlOutPut+= closeNode(currentNodeName );
             	//else if (bHasChoiceChildren && containsNodeValue(currentNodeName,currentNodeValues)
             			//&& !currentNodeName.isEmpty() && !currentNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
@@ -541,6 +621,22 @@ public class PrologOutputParser {
 	String removeNodeNameNumbers(String nodeName)
 	{
 		String newNodeName = nodeName;
+		
+		
+		boolean bRemove = true;
+
+		if(document != null)
+		{
+			Node nodeElement = wrapperSchema.getElementByTagName(document, "element", nodeName, "NOPARENT", false);
+			if(nodeElement != null)
+				bRemove = false;
+		}
+
+		if(!bRemove)
+			return newNodeName;
+		
+		
+		
 		int nTo = newNodeName.length();
 		for(int i=newNodeName.length();i>0;i--)
 		{
@@ -891,16 +987,16 @@ public class PrologOutputParser {
 	{
 		ArrayList<String> keyList = new ArrayList<String>();
 		boolean bAdd = false;
-		for (int i=0;i<openNodesPair.size();i++)
+		for (int i=0;i<openNodesPairs.size();i++)
 		{
-			keyList.add(openNodesPair.get(i).getKey());
+			keyList.add(openNodesPairs.get(i).getKey());
 		}
 		
 		for (int i=0;i<openNodesPairIteration.size();i++)
         {
 			if(!keyList.contains(openNodesPairIteration.get(i).getKey()))
 			{
-				openNodesPair.add(openNodesPairIteration.get(i));
+				openNodesPairs.add(openNodesPairIteration.get(i));
 				bAdd = true;
 			}
 			
@@ -912,9 +1008,9 @@ public class PrologOutputParser {
 	private String closeOpenNodes(ArrayList<Pair<String,String>> openNodesPairIteration)
 	{
 		String xmlOutPut = "";
-		for (int k = openNodesPair.size()-1; k >=0; k--)
+		for (int k = openNodesPairs.size()-1; k >=0; k--)
         {
-        	Pair<String,String> pair = openNodesPair.get(k);
+        	Pair<String,String> pair = openNodesPairs.get(k);
         	boolean bIsOpen = false;
         	for (int l = 0; l <openNodesPairIteration.size(); l++)
         	{
@@ -937,7 +1033,7 @@ public class PrologOutputParser {
             	//if(bIsComplex)
             	xmlOutPut+="\n"+closeNode(currentNodeName);
             	
-            	openNodesPair.remove(k);
+            	openNodesPairs.remove(k);
         	}
         }
 		
@@ -949,6 +1045,7 @@ public class PrologOutputParser {
 		String id = "-1";
 		String tempId = "-1";
 		String tempDirectId = "-1";
+		//String tempFatherName = "";
         boolean bHasAttribute = false;
 		for (int i=0;i<pairVariableValueList.size();i++)
 		{
@@ -965,7 +1062,11 @@ public class PrologOutputParser {
                     	if(! pairVariableValueList.get(i).startsWith("IDCHILDATTRIBUTE") )
                     	{
                     		if(Integer.parseInt(arrayCurrentNodeID[1]) >= Integer.parseInt(id))
+                    		{
                     			id = arrayCurrentNodeID[1];
+                    			String tempFatherName =   arrayCurrentNodeID[0].replace("IDCHILD", "").replace("SORTED", "");
+                    			tempFatherName+= "";
+                    		}
                     	}
                     	else
                     		tempId = arrayCurrentNodeID[1];
@@ -1036,6 +1137,10 @@ public class PrologOutputParser {
                          {
                         	 NodeName = vetCurrNodeName[0].replace("SORTED", "");
                          }
+                         else
+                         {
+                        	 NodeName =  currentNodeName;
+                         }
                      }
                  }
 			}
@@ -1071,14 +1176,14 @@ public class PrologOutputParser {
 		return pairList;
 	}
 	
-	private Pair<String,String> obtainParentInfo(ArrayList<String> pairVariableValueList,ArrayList<String> openNodeIteration,ArrayList<String> openNodeIDIteration)
+	private Pair<String,String> obtainParentInfo(ArrayList<String> pairVariableValueList,ArrayList<String> openNodeIteration,ArrayList<String> openNodeIDIteration,String strCurrentID)
 	{
 		Pair<String,String> parentInfo = new Pair<String, String>("", "-1");
 		for (int i=0;i<pairVariableValueList.size();i++)
 		{
-			if(pairVariableValueList.get(i).startsWith("ID") && !pairVariableValueList.get(i).startsWith("IDCHILD")
+			if(pairVariableValueList.get(i).startsWith("ID") /*&& !pairVariableValueList.get(i).startsWith("IDCHILD")*/
 					&& !pairVariableValueList.get(i).startsWith("IDNOPARENT") && !pairVariableValueList.get(i).isEmpty()
-					&& !pairVariableValueList.get(i).contains("_ATTRIBUTE_"))
+					&& !pairVariableValueList.get(i).contains("_ATTRIBUTE_") && !pairVariableValueList.get(i).startsWith("IDNODEORDER"))
 	        {
 	            String[] vetPairValue = pairVariableValueList.get(i).split("/(?=(?:[^']*'[^']*')*[^']*$)");
 	            if (vetPairValue.length > 1)
@@ -1103,13 +1208,47 @@ public class PrologOutputParser {
                     	}
                     }
 	            	
-	            	String pairNodeName = removeNodeNameNumbers(vetPairValue[0]);
+	            	
+	            	String pairNodeName = vetPairValue[0];
+	            	pairNodeName = pairNodeName.replace("IDCHILD", "");
+	            	pairNodeName = pairNodeName.replace("SORTED", "");
+	            	
+	            	pairNodeName= removeNodeNameNumbers(pairNodeName);
 	            	
                     openNodeIteration.add(pairNodeName);    
                     openNodeIDIteration.add(vetPairValue[1]);
 	            	
-	            	parentInfo.setKey(pairNodeName);
-	            	parentInfo.setValue(vetPairValue[1]);
+                    boolean bSetvalue= true;
+                    if(strCurrentID.compareTo("-1") != 0 && parentInfo.getValue().compareTo("-1") != 0)
+                    {
+                    	int currentId = Integer.parseInt(strCurrentID);
+                    	int possibleFatherId = Integer.parseInt(vetPairValue[1]);
+                    	int fatherId = Integer.parseInt(parentInfo.getValue());
+                    	
+                    	bSetvalue =  (possibleFatherId > fatherId && possibleFatherId < currentId);
+                    	
+                    }
+                    
+                    if(bSetvalue)
+                    {
+                    	//if(!vetPairValue[1].contains("IDCHILD"))
+                    		//parentInfo.setKey(pairNodeName);
+                    	
+	            		parentInfo.setValue(vetPairValue[1]);
+                    }
+                    
+                    if(vetPairValue[0].contains("IDCHILD") && vetPairValue[1].compareTo(strCurrentID)==0)
+                    {
+                    	parentInfo.setKey(pairNodeName);
+                    }
+                    
+                    /*else
+                    {
+                    	int possibleFatherId = Integer.parseInt(vetPairValue[1]);
+                    	int currentId = Integer.parseInt(strCurrentID);
+                    	if(possibleFatherId == currentId && strCurrentID.compareTo("-1") != 0)
+                    		parentInfo.setKey(pairNodeName);
+                    }*/
 	            }
 	        }
 		}
@@ -1128,12 +1267,76 @@ public class PrologOutputParser {
     		bFirstChild = Integer.parseInt(currentNodeID) - 1 == Integer.parseInt(currentFatherNodeID);
     	}
     	
+    	ArrayList<String> nodesToOpen = new ArrayList<String>();
+    	int IdToOpen  = Integer.parseInt(currentNodeID);
+		boolean bIsOpenNodeMixed = false;
+		if (currentNodeValues.size() == 1)
+        {
+             Pair<String, String> pair = currentNodeValues.get(0);
+             String mixedNodeName = pair.getKey();
+             if(mixedNodeName.contains("XMLMIXEDELEMENT_IDCHILD"))
+            	 bIsOpenNodeMixed = true;
+        }
+		
+		for(int k=openNodesPairs.size()-1; k>=0;k--)
+		{
+			Pair<String,String> openPair = openNodesPairs.get(k);
+			//[17,22]
+			 String strNodeIds =  openPair.getKey();
+			 strNodeIds = strNodeIds.replace("[", "");
+			 strNodeIds = strNodeIds.replace("]", "");
+			 String [] vetIds = strNodeIds.split(",");
+			 //int firstIdOpen = 0;
+			 
+			 for(int l = 0;l<vetIds.length;l++)
+			 {
+				 int nId = Integer.parseInt(vetIds[l]);
+				 //if(nId <= firstIdOpen || firstIdOpen ==0)
+					 //firstIdOpen = nId;	
+    			 
+    			 if((IdToOpen-1 == nId || (IdToOpen==nId)) && vetIds.length == 1)
+    			 {
+    				 String ancestral = removeNodeNameNumbers(openPair.getValue());
+    				 String currentNode = currentNodeName;
+    				 if(currentNode.isEmpty())
+    					 currentNode = tryGetNodeName(currentNodeValues);
+    				 
+    		         if(ancestral.compareToIgnoreCase(currentNode)==0 && k == openNodesPairs.size()-1)
+    		        	 continue;
+    				 
+    				 boolean bParentisSingle=  wrapperSchema.isMixed(document,"element",ancestral,"NOPARENT",true) || 
+    	            			wrapperSchema.hasAttributes(document,"element",ancestral,"NOPARENT");
+    				 
+    				 if(bFirstChild && !currentFatherNodeName.isEmpty() 
+							 && currentFatherNodeName.compareToIgnoreCase(ancestral)!=0 )
+						 nodesToOpen.add(currentFatherNodeName);
+    				 
+    				 if(!bParentisSingle || (IdToOpen==nId))
+    					 nodesToOpen.add(ancestral);
+    				 
+    				 bFirstChild = false;
+    				 IdToOpen = nId;
+    				 break;
+    			 }
+			 
+			 }		 
+		}
+    	
     	
     	
     	boolean bisSingle=  wrapperSchema.isMixed(document,"element",currentFatherNodeName,"NOPARENT",true) || 
     			wrapperSchema.hasAttributes(document,"element",currentFatherNodeName,"NOPARENT");
+    	
     	if(bFirstChild && !bisSingle && bPrintFather)
     		endOutput+=openNodeWithAttributes(currentFatherNodeName, new ArrayList<Pair<String,String>>());
+    	else if(nodesToOpen.size() > 0)
+    	{
+    		for(int l=nodesToOpen.size()-1; l>=0;l--)
+    		{
+    			endOutput+=openNodeWithAttributes(nodesToOpen.get(l), new ArrayList<Pair<String,String>>());
+    		}
+    		
+    	}
 		
     	bPrintFather = true;
     	
@@ -1146,23 +1349,23 @@ public class PrologOutputParser {
 		
 		//rootNodeName = "";
 		boolean bCloseOpenNodes = false;
-		for (int k = openNodesPair.size()-1; k >=0; k--)
+		for (int k = openNodesPairs.size()-1; k >=0; k--)
 		{
-			Pair<String,String> pair = openNodesPair.get(k);
+			Pair<String,String> pair = openNodesPairs.get(k);
 			String tmpcurrentNodeName = pair.getValue();
         	if(tmpcurrentNodeName.startsWith("ID"))
         		tmpcurrentNodeName = tmpcurrentNodeName.substring(2);
         	tmpcurrentNodeName = tmpcurrentNodeName.replace("_", ":");
 			
         	bCloseOpenNodes = true;
-        	if(tmpcurrentNodeName.compareToIgnoreCase(currentNodeName)==0 && k == openNodesPair.size()-1)
+        	if(tmpcurrentNodeName.compareToIgnoreCase(currentNodeName)==0 && k == openNodesPairs.size()-1)
         	{
-        		openNodesPair.remove(k);
+        		openNodesPairs.remove(k);
         		continue;
         	}
         	
         	endOutput+="\n"+closeNode(tmpcurrentNodeName);
-        	openNodesPair.remove(k);
+        	openNodesPairs.remove(k);
 		}
 		
 		/*for (int k = openNodes.size()-1; k >=0; k--)
@@ -1231,6 +1434,9 @@ public class PrologOutputParser {
         if(tempNodeName.startsWith("ID"))
         	tempNodeName = tempNodeName.substring(2);
         
+        //if(tempNodeName.contains("ATTRIBUTE_"))
+        	//tempNodeName = tempNodeName.replace("ATTRIBUTE_", "");
+        
         returnNode += "\n<" + tempNodeName.toLowerCase().replace("_", ":");
 
         String nodeValue = "";
@@ -1241,7 +1447,7 @@ public class PrologOutputParser {
                 continue;
             
             if (removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(nodeName) == 0 || removeNodeNameNumbers(pair.getKey()).compareToIgnoreCase(tempNodeName)==0
-            		|| ! removeNodeNameNumbers(pair.getKey()).startsWith("ATTRIBUTE_"))
+            		&& ! removeNodeNameNumbers(pair.getKey()).startsWith("ATTRIBUTE_"))
             {
                 nodeValue = pair.getValue();
                 continue;
@@ -1257,7 +1463,13 @@ public class PrologOutputParser {
 
         if (nodeValue.trim().replace("'","").length() > 0)
             returnNode += "\n" + nodeValue.trim().replace("'","");
-        	
+        
+        if(returnNode.contains("incategory"))
+        {
+        	int a = 1 ; 
+        	a++;
+        }
+        
         return returnNode;
     }
 

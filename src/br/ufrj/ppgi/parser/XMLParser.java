@@ -133,9 +133,10 @@ public class XMLParser extends DocumentParser{
             
             long tempoInicial = System.currentTimeMillis();
             
-            DefaultHandleSAX handler = new DefaultHandleSAX();
+            /* JAVA PARSER */
+            /*DefaultHandleSAX handler = new DefaultHandleSAX();
             handler.setResetLastId(bResetLastId);
-            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParserFactory factory = SAXParserFactory.newInstance();*/
             
             String indexRule = "indexOf([Element|_], Element, 1):- !. \n";
     		indexRule +="indexOf([_|Tail], Element, Index):- \n";
@@ -146,20 +147,39 @@ public class XMLParser extends DocumentParser{
     		String printRules = buildPrintRules();
             String functions = buildFunctionsRules();
             String axes = buildAxesRules();
-                       
-            for(String name : keyNames){
-                try{
+            FileManager fileManager = new FileManager();           
+            for(String name : keyNames)
+            {
+                
+            	/* JAVA PARSER */
+            	 /* try
+                {
                      SAXParser saxParser = factory.newSAXParser();
                      String path = fileList.get(name).getAbsolutePath();
                      saxParser.parse( new File(path), handler ); 
-                }catch (Throwable t) {
-                    t.printStackTrace();
                 }
+                catch (Throwable t) 
+                {
+                    t.printStackTrace();
+                }*/
+            	
+            	/* C++  PARSER */
+            	try
+            	{
+            		String path = fileList.get(name).getAbsolutePath();
+            		ISaxParserC saxParserC = new SaxParserC();
+            		String factFilePath = fileManager.factsFilePath();
+            		saxParserC.createBaseFacts(path,factFilePath);
+            	}
+            	catch(Exception ex)
+            	{
+            		
+            	}
                 contadorIdPai++;
                /* String stringProlog = process(documentList.get(name));
                 //System.out.println(stringProlog);*/
                 
-                FileManager fileManager = new FileManager();
+                
                 fileManager.writeFacts(indexRule);
                 fileManager.writeFacts(printRules);
                 fileManager.writeFacts(functions);
@@ -170,7 +190,7 @@ public class XMLParser extends DocumentParser{
             setTotalTime((tempoFinal - tempoInicial) / 1000);
              
             System.out.printf("Tempo em segundos: " + getTotalTime());
-            orderedElementList = handler.orderedElementList();
+            //orderedElementList = handler.orderedElementList();
             
 	}
 	

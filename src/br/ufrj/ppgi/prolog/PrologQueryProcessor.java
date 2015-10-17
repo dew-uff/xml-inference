@@ -41,9 +41,10 @@ public class PrologQueryProcessor {
 			if(PrologOutputParser.ParseType.SWI == engine)
 			{
 				Query qFactBase = new Query("consult", new Term[]{new Atom( fileManager.factsFileName())});
-				qFactBase.query();
+				//qFactBase.query();
+				qFactBase.hasSolution();
 				Query q1 = new Query(query);
-				q1.query();
+				//q1.query();
 				
 				if(q1.hasSolution())
 				{

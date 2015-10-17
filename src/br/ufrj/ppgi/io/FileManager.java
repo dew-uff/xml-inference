@@ -37,6 +37,13 @@ public class FileManager {
 		return RULES_FILE_NAME;
 	}
 	
+	public String factsFilePath()
+	{
+		File file = new File(FACTS_FILE_NAME);
+		return file.getAbsolutePath();
+		
+	}
+	
 	public String loadFile(String fileType) {
 		String fileName = null;
 				
