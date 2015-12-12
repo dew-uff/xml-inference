@@ -1,0 +1,1 @@
+SWIPath=C:\Program Files\swipl
