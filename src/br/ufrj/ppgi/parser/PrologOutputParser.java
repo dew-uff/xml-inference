@@ -45,7 +45,8 @@ public class PrologOutputParser {
 	public enum ParseType{
 	    
 		TUPROLOG,
-		SWI
+		SWI,
+		SWI_C
 	}
 	
 	public PrologOutputParser(ParseType outputParser)

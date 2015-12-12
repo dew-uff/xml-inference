@@ -16,10 +16,12 @@ import javax.swing.JButton;
 import javax.swing.LayoutStyle;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class AboutBox extends JDialog {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private JButton closeButton;
 
 	public AboutBox() {
@@ -40,7 +42,6 @@ public class AboutBox extends JDialog {
         JLabel vendorLabel = new JLabel();
         JLabel appVendorLabel = new JLabel();
         JLabel appDescLabel = new JLabel();
-        JLabel imageLabel = new JLabel();
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         ResourceMap resourceMap = Application.getInstance(XMLInference.class).getContext().getResourceMap(AboutBox.class);
@@ -73,59 +74,88 @@ public class AboutBox extends JDialog {
         appVendorLabel.setName("appVendorLabel"); 
 
         appDescLabel.setText(resourceMap.getString("appDescLabel.text")); 
-        appDescLabel.setName("appDescLabel"); 
-
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageLabel.setIcon(resourceMap.getIcon("imageLabel.icon")); 
-        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
-        imageLabel.setName("imageLabel"); 
+        appDescLabel.setName("appDescLabel");
+        
+        JLabel label = new JLabel();
+        label.setText("Vers\u00E3o:");
+        label.setName("versionLabel");
+        label.setFont(label.getFont().deriveFont(label.getFont().getStyle() | Font.BOLD));
+        
+        JLabel label_1 = new JLabel();
+        label_1.setText("Equipe:");
+        label_1.setName("vendorLabel");
+        label_1.setFont(label_1.getFont().deriveFont(label_1.getFont().getStyle() | Font.BOLD));
+        
+        JLabel label_2 = new JLabel();
+        label_2.setText("2.0");
+        label_2.setName("appVersionLabel");
+        
+        JLabel lblProjetoDaDissertao = new JLabel();
+        lblProjetoDaDissertao.setText("Projeto da Disserta\u00E7\u00E3o de Mestrado de Leonardo Cesar Machado");
+        lblProjetoDaDissertao.setName("appDescLabel");
+        
+        JLabel lblLeonardoCesarMachado = new JLabel();
+        lblLeonardoCesarMachado.setText("Leonardo Cesar Machado, Vanessa Braganholo Murta e Leonardo Paulino Gresta Murta");
+        lblLeonardoCesarMachado.setName("appVendorLabel");
 
         
         GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(20)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
-                    .addGroup(GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                        .addComponent(imageLabel, GroupLayout.PREFERRED_SIZE, 750, GroupLayout.PREFERRED_SIZE)
-                        .addGap(20))
-                    .addComponent(appTitleLabel, GroupLayout.Alignment.LEADING)
-                    .addComponent(appDescLabel, GroupLayout.Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 506, Short.MAX_VALUE)
-                    .addComponent(versionLabel, GroupLayout.Alignment.LEADING)
-                    .addComponent(vendorLabel, GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    	.addComponent(appVersionLabel)
-                        .addComponent(appVendorLabel))
-                    .addComponent(closeButton, GroupLayout.Alignment.CENTER))
-                .addContainerGap()));
+        	layout.createParallelGroup(Alignment.LEADING)
+        		.addGroup(layout.createSequentialGroup()
+        			.addGap(20)
+        			.addGroup(layout.createParallelGroup(Alignment.LEADING)
+        				.addGroup(layout.createSequentialGroup()
+        					.addComponent(label, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
+        					.addPreferredGap(ComponentPlacement.UNRELATED)
+        					.addComponent(label_2, GroupLayout.PREFERRED_SIZE, 16, GroupLayout.PREFERRED_SIZE)
+        					.addPreferredGap(ComponentPlacement.RELATED)
+        					.addComponent(lblProjetoDaDissertao, GroupLayout.PREFERRED_SIZE, 770, GroupLayout.PREFERRED_SIZE))
+        				.addGroup(layout.createSequentialGroup()
+        					.addComponent(label_1, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+        					.addPreferredGap(ComponentPlacement.UNRELATED)
+        					.addComponent(lblLeonardoCesarMachado, GroupLayout.PREFERRED_SIZE, 423, GroupLayout.PREFERRED_SIZE))
+        				.addComponent(appTitleLabel)
+        				.addGroup(layout.createSequentialGroup()
+        					.addComponent(vendorLabel)
+        					.addPreferredGap(ComponentPlacement.UNRELATED)
+        					.addComponent(appVendorLabel))
+        				.addComponent(closeButton, Alignment.CENTER)
+        				.addGroup(layout.createSequentialGroup()
+        					.addComponent(versionLabel)
+        					.addPreferredGap(ComponentPlacement.UNRELATED)
+        					.addComponent(appVersionLabel)
+        					.addPreferredGap(ComponentPlacement.UNRELATED)
+        					.addComponent(appDescLabel, GroupLayout.DEFAULT_SIZE, 770, Short.MAX_VALUE)))
+        			.addContainerGap())
+        );
         layout.setVerticalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGap(150, 150, 150)
-                        .addComponent(appTitleLabel)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(appDescLabel)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                            .addComponent(versionLabel)
-                            .addComponent(appVersionLabel))
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                            .addComponent(vendorLabel)
-                            .addComponent(appVendorLabel))
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 70, Short.MAX_VALUE)
-                        .addComponent(closeButton))
-                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
-                    .addGroup(GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addGap(20, 20, 20)
-                        .addComponent(imageLabel, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap()));
+        	layout.createParallelGroup(Alignment.LEADING)
+        		.addGroup(layout.createSequentialGroup()
+        			.addContainerGap()
+        			.addComponent(appTitleLabel)
+        			.addGap(26)
+        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        				.addComponent(versionLabel)
+        				.addComponent(appVersionLabel)
+        				.addComponent(appDescLabel))
+        			.addPreferredGap(ComponentPlacement.RELATED)
+        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        				.addComponent(vendorLabel)
+        				.addComponent(appVendorLabel))
+        			.addGap(18)
+        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        				.addComponent(label)
+        				.addComponent(label_2)
+        				.addComponent(lblProjetoDaDissertao))
+        			.addGap(6)
+        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        				.addComponent(label_1)
+        				.addComponent(lblLeonardoCesarMachado))
+        			.addComponent(closeButton)
+        			.addContainerGap())
+        );
+        getContentPane().setLayout(layout);
         pack();
     }
 }

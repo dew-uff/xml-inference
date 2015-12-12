@@ -212,7 +212,7 @@ public class Parser implements IExpression {
 	        			
 	        			List<Pair<Integer,Integer>> pairParenthesisList = mapParenthsis(expression);
 	        			int nPosEndFunction = expression.lastIndexOf(")");
-	        			if(pairParenthesisList.size()>0)
+	        			if(pairParenthesisList.size()>0 && pairParenthesisList.get(pairParenthesisList.size()-1).getValue() > nPosEndFunction)
 	        				nPosEndFunction = pairParenthesisList.get(pairParenthesisList.size()-1).getValue();
 	        			
 	        			
@@ -228,6 +228,23 @@ public class Parser implements IExpression {
 	                    //expressionStack.push(operator);
 	        			if(nPosEndFunction == -1)
 	        				nPosEndFunction = expression.lastIndexOf(")");
+	        			
+	        			if(expression.length()==nPosEndFunction+1)
+	        			{
+	        				String strOperator = "";
+	        				
+	        				if(expression.contains("true") )
+	        					strOperator = "true";
+	        				if(expression.contains("false"))
+	        					strOperator = "false";
+	        				if(expression.contains("=") )
+	        					strOperator = "=";
+	        			     if(!strOperator.isEmpty())
+	        			     {
+	        			    	 nPosEndFunction = expression.indexOf(strOperator);
+	        			    	 nPosEndFunction--;
+	        			     }
+	        			}
 	        			
 	                    String tmpSubstring = expression.substring(nPosEndFunction+1, expression.length());
 	                    if(tmpSubstring.startsWith(")"))
@@ -469,7 +486,10 @@ public class Parser implements IExpression {
     	int nStart = tmp.indexOf("(");
     	if(nStart != -1)
     	{
+    		//###int nEnd = tmp.lastIndexOf(")");
     		int nEnd = tmp.lastIndexOf(")");
+    		if(tmp.contains("true")|| tmp.contains("false"))
+    			nEnd = tmp.indexOf(")");
     		if(nEnd != -1 && nStart < nEnd)
     			return tmp.substring(nStart+1,nEnd);
     	}
@@ -585,10 +605,15 @@ public class Parser implements IExpression {
 			beginPosParenthesis = text.indexOf("(",beginPosParenthesis+1);
 		}
 		
+		
+		int endPosParenthesis = -1 ;
 		while(!tmpStack.isEmpty())
 		{
 			beginPosParenthesis = tmpStack.pop();
-			int endPosParenthesis = text.indexOf(")",beginPosParenthesis+1);
+			if(endPosParenthesis == -1)
+			    endPosParenthesis = beginPosParenthesis;
+			
+			endPosParenthesis = text.indexOf(")",endPosParenthesis+1);
 			
 			if(endPosParenthesis >-1)
 				pairParenthesisList.add(new Pair<Integer, Integer>(beginPosParenthesis,endPosParenthesis));

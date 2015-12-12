@@ -19,8 +19,10 @@ import br.ufrj.ppgi.prolog.PrologQueryProcessor;
 import br.ufrj.ppgi.view.EnvironmentLoaderView;
 
 
+import test.BenchMark;
 import wrapper.WrapperSchema;
 //
+
 
 
 
@@ -61,6 +63,7 @@ public class XMLInferenceView extends FrameView {
     private JPanel mainPanel;
     private JMenuBar menuBar;  
     private JDialog aboutBox;
+    private JDialog swiInstallPath;
     private JScrollPane textAreaScroll;
     private JFrame xmlLoaderView;
     private JFrame xmlSchemaLoaderView;
@@ -88,6 +91,23 @@ public class XMLInferenceView extends FrameView {
         aboutBox.setVisible(true);
     }
     
+    @Action
+    public void SWIInstallPath() {
+        if (swiInstallPath == null) {
+        	swiInstallPath = new SWIInstallPath();
+        	swiInstallPath.setLocationRelativeTo(null);
+        }
+        swiInstallPath.setVisible(true);
+    }
+    
+    /*@Action
+    public void benchMark() {
+        
+    	BenchMark bench = new BenchMark();
+    	bench.runBenchMark();
+    }*/
+    
+    
 	@Action
     public void loadAutomaticRules() {
 		if(xmlSchemaLoaderView == null){
@@ -103,7 +123,8 @@ public class XMLInferenceView extends FrameView {
 	@Action
     public void insertManualRules() {
 		manualRulesView = new ManualRulesView(xmlLoaderButton);
-		manualRulesView.setSize(new Dimension(800, 400));
+		//manualRulesView.setSize(new Dimension(800, 400));
+		manualRulesView.setSize(new Dimension(250, 350));
 		manualRulesView.setResizable(false);
 		manualRulesView.setLocationRelativeTo(null);
     	manualRulesView.setVisible(true);
@@ -200,13 +221,17 @@ public class XMLInferenceView extends FrameView {
         JMenu fileMenu = new JMenu();
         JMenuItem exitMenuItem = new JMenuItem();
         JMenu helpMenu = new JMenu();
+        JMenu configMenu = new JMenu();
         JMenuItem aboutMenuItem = new JMenuItem();
+        JMenuItem installSWIMenuItem = new JMenuItem();
+        //JMenu benchMarkMenu = new JMenu();
+        //JMenuItem benchMarkMenuItem = new JMenuItem();
         labelQueryXPath = new JLabel();
         labelQueryProlog = new JLabel();
         queryButtonXpath = new JButton();
         
         tuPrologRadio = new JRadioButton("TuProlog");
-        swiRadio = new JRadioButton("SWI prolog");
+        swiRadio = new JRadioButton("SWI Prolog");
         swiRadio.setToolTipText("Necessário a instalação e configuração do SWI Prolog");
         bG = new ButtonGroup();
         bG.add(tuPrologRadio);
@@ -214,7 +239,7 @@ public class XMLInferenceView extends FrameView {
         tuPrologRadio.setSelected(true);
         
         labelEngineType = new JLabel();
-        labelEngineType.setText("Engine prolog:");
+        labelEngineType.setText("Engine Prolog:");
         
         textAreaScroll = new JScrollPane(resultTextArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         resultTextArea.setEditable(false);
@@ -337,18 +362,32 @@ public class XMLInferenceView extends FrameView {
       
         
         labelQueryXPath.setText("Consulta xpath:");
-        labelQueryProlog.setText("Consulta prolog:");
+        labelQueryProlog.setText("Consulta Prolog:");
         
         fileMenu.setText(resourceMap.getString("fileMenu.text")); 
         exitMenuItem.setAction(actionMap.get("quit")); 
         fileMenu.add(exitMenuItem);
         menuBar.add(fileMenu);
+        
+        configMenu.setText(resourceMap.getString("configMenu.text"));
+        installSWIMenuItem.setAction(actionMap.get("SWIInstallPath"));
+        installSWIMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_MASK));
+        configMenu.add(installSWIMenuItem);
+        menuBar.add(configMenu);
 
+        /*benchMarkMenu.setText(resourceMap.getString("benchMarkMenu.text"));
+        benchMarkMenuItem.setAction(actionMap.get("benchMark"));
+        benchMarkMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_MASK));
+        benchMarkMenu.add(benchMarkMenuItem);
+        menuBar.add(benchMarkMenu);*/
+        
         helpMenu.setText(resourceMap.getString("helpMenu.text")); 
         aboutMenuItem.setAction(actionMap.get("showAboutBox")); 
         aboutMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.CTRL_MASK));
         helpMenu.add(aboutMenuItem);
         menuBar.add(helpMenu);
+        
+        
 
         setComponent(mainPanel);
         

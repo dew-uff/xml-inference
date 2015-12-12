@@ -134,9 +134,9 @@ public class XMLParser extends DocumentParser{
             long tempoInicial = System.currentTimeMillis();
             
             /* JAVA PARSER */
-            /*DefaultHandleSAX handler = new DefaultHandleSAX();
+            DefaultHandleSAX handler = new DefaultHandleSAX();
             handler.setResetLastId(bResetLastId);
-            SAXParserFactory factory = SAXParserFactory.newInstance();*/
+            SAXParserFactory factory = SAXParserFactory.newInstance();
             
             String indexRule = "indexOf([Element|_], Element, 1):- !. \n";
     		indexRule +="indexOf([_|Tail], Element, Index):- \n";
@@ -152,7 +152,7 @@ public class XMLParser extends DocumentParser{
             {
                 
             	/* JAVA PARSER */
-            	 /* try
+            	try
                 {
                      SAXParser saxParser = factory.newSAXParser();
                      String path = fileList.get(name).getAbsolutePath();
@@ -161,10 +161,10 @@ public class XMLParser extends DocumentParser{
                 catch (Throwable t) 
                 {
                     t.printStackTrace();
-                }*/
+                }
             	
             	/* C++  PARSER */
-            	try
+            	/*try
             	{
             		String path = fileList.get(name).getAbsolutePath();
             		ISaxParserC saxParserC = new SaxParserC();
@@ -174,7 +174,7 @@ public class XMLParser extends DocumentParser{
             	catch(Exception ex)
             	{
             		
-            	}
+            	}*/
                 contadorIdPai++;
                /* String stringProlog = process(documentList.get(name));
                 //System.out.println(stringProlog);*/
@@ -199,7 +199,7 @@ public class XMLParser extends DocumentParser{
     {
     	String printRules = "";
     	
-    	printRules = " printXML(LISTVAR,NODENAMESLIST,TREE,RULE) :- "; 
+    	/*printRules = " printXML(LISTVAR,NODENAMESLIST,TREE,RULE) :- "; 
     	printRules +=  " findall( LISTVAR,RULE,RESULTLIST),printXMLRuleList(RESULTLIST,NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT),!.\n";
     	
     	printRules += " printXMLRuleList([HRESULT|TRESULT],NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT) :- \n"; 
@@ -210,19 +210,23 @@ public class XMLParser extends DocumentParser{
     	printRules += "  printXMLRuleList([],NODENAMESLIST,TREE,STACK,LASTTAG,LASTDEPHT):-printCloseNodes(LASTTAG).\n";
     	
     	printRules += "  printXMLRule([],[],TREE,STACK,RESULTSTACK,LASTDEPHT,NEWLASTDEPHT,LASTTAG,NEWLASTTAG):- \n";
-    	printRules += "     (nonvar(STACK)->copy(STACK,RESULTSTACK);true), (nonvar(LASTTAG)->copy(LASTTAG,NEWLASTTAG);true), \n";
+    	//printRules += "     (nonvar(STACK)->copy(STACK,RESULTSTACK);true), (nonvar(LASTTAG)->copy(LASTTAG,NEWLASTTAG);true), \n";
+    	printRules += "     (nonvar(STACK),copy(STACK,RESULTSTACK);true), (nonvar(LASTTAG),copy(LASTTAG,NEWLASTTAG);true), \n";
     	printRules += "   (NEWLASTDEPHT = LASTDEPHT). \n";
     	
     	
     	printRules += "  printXMLRule([HNODE|TNODE],[HVAR|TVAR],TREE,STACK,RESULTSTACK,LASTDEPHT,NEWLASTDEPHT,LASTTAG,NEWLASTTAG) :-  \n";
     	printRules += "    depht(TREE,HNODE,NEXTNEWLASTDEPHT), checkPrintCLoseNode(LASTDEPHT,NEXTNEWLASTDEPHT,HVAR,LASTTAG,STACK,TMPNEWSTACK),checkPrintOpenNode(TREE,HNODE,HVAR,STACK), \n";
-    	printRules += "    addElementId(TREE,HNODE,HVAR,STACK,NEWSTACK),(var(NEWSTACK)->copy(STACK,NEWSTACK);true), \n";
-    	printRules += "    addMapElementId(TREE,HNODE,HNODE,HVAR,TMPNEWSTACK,NEXTLASTTAG),(var(NEXTLASTTAG)-> (nonvar(TMPNEWSTACK)-> copy(TMPNEWSTACK,NEXTLASTTAG);true);true), \n";
+    	//printRules += "    addElementId(TREE,HNODE,HVAR,STACK,NEWSTACK),(var(NEWSTACK)->copy(STACK,NEWSTACK);true), \n";
+    	printRules += "    addElementId(TREE,HNODE,HVAR,STACK,NEWSTACK),(var(NEWSTACK),copy(STACK,NEWSTACK);true), \n";
+    	//printRules += "    addMapElementId(TREE,HNODE,HNODE,HVAR,TMPNEWSTACK,NEXTLASTTAG),(var(NEXTLASTTAG)-> (nonvar(TMPNEWSTACK)-> copy(TMPNEWSTACK,NEXTLASTTAG);true);true), \n";
+    	printRules += "    addMapElementId(TREE,HNODE,HNODE,HVAR,TMPNEWSTACK,NEXTLASTTAG),(var(NEXTLASTTAG), (nonvar(TMPNEWSTACK),copy(TMPNEWSTACK,NEXTLASTTAG);true);true), \n";
     	printRules += "    printXMLRule(TNODE,TVAR,TREE,NEWSTACK,NEWRESULTSTACK,NEXTNEWLASTDEPHT,RETURNLASTDEPHT,NEXTLASTTAG,NEWRESULTTAG), \n";
     	printRules += "    joinLists(NEWRESULTTAG,NEXTLASTTAG,TMPTAG),distinct(TMPTAG,NEWLASTTAG),cleanList(TMPTAG,NEWLASTTAG), \n";	
     	printRules += "    joinLists(NEWRESULTSTACK,NEWSTACK,TMP),distinct(TMP,RESULTSTACK),cleanList(TMP,RESULTSTACK),NEWLASTDEPHT = RETURNLASTDEPHT . \n";
     	
-    	printRules += "  printNode(TREE,NODENAME,NODEVALUE) :-  nonvar(NODEVALUE) ->  (isLeaf(TREE,NODENAME) ->  depht(TREE,NODENAME,NSPACE),printOpenNode(NODENAME,NODEVALUE,NSPACE), \n";
+    	//printRules += "  printNode(TREE,NODENAME,NODEVALUE) :-  nonvar(NODEVALUE) ->  (isLeaf(TREE,NODENAME) ->  depht(TREE,NODENAME,NSPACE),printOpenNode(NODENAME,NODEVALUE,NSPACE), \n";
+    	printRules += "  printNode(TREE,NODENAME,NODEVALUE) :-  nonvar(NODEVALUE) ,  (isLeaf(TREE,NODENAME) ,  depht(TREE,NODENAME,NSPACE),printOpenNode(NODENAME,NODEVALUE,NSPACE), \n";
     	printRules += "    	printCloseNode(NODENAME,NODEVALUE,NSPACE) \n";
     	printRules += "    	; depht(TREE,NODENAME,NSPACE), printOpenNode(NODENAME,NODEVALUE,NSPACE) ); true. \n";
     	
@@ -285,7 +289,7 @@ public class XMLParser extends DocumentParser{
     	
     	
         printRules += "  addMapElementId(TREE,NODENAME,NODEVALUE,NODEID,OLDLIST,NEWLIST):-  \\+isLeaf(TREE,NODENAME) ->(nonvar(NODEID),nonvar(NODEVALUE), \n";
-        printRules += "     num_atom(NODEID, NODEIDSTRING),text_concat(NODEIDSTRING,'-',NODEIDHIFEN),text_concat(NODEIDHIFEN,NODEVALUE,NODEMAP), \n";
+        printRules += "     mynumber(NODEID, NODEIDSTRING),text_concat(NODEIDSTRING,'-',NODEIDHIFEN),text_concat(NODEIDHIFEN,NODEVALUE,NODEMAP), \n";
         printRules += "  	addElement(TREE,NODENAME,NODEMAP,OLDLIST, NEWLIST));true. \n";
 				
 		
@@ -303,7 +307,7 @@ public class XMLParser extends DocumentParser{
 	    
 	    
         printRules += "  joinLists(LISTA,LISTB,RESULTLIST) :- (nonvar(LISTA),nonvar(LISTB)) -> (append(LISTA,LISTB,RESULTLIST)) ; (nonvar(LISTA),copy(LISTA,RESULTLIST)); (nonvar(LISTB),copy(LISTB,RESULTLIST));true. \n";
-    	
+    	*/
 	    
         printRules += "  member1(X,[H|_]) :- X==H,!. \n";
         printRules += "  member1(X,[_|T]) :- member1(X,T). \n";
@@ -316,7 +320,7 @@ public class XMLParser extends DocumentParser{
         printRules += "  remv([H|T], N) :- var(H), !, remv(T, N).\n";
         printRules += "  remv([H|T], [H|N]) :- remv(T, N).\n";
   
-        printRules += "  cleanList(LISTA, LISTB) :- nonvar(LISTA)->(remv(LISTA,LISTC),distinct(LISTC,LISTB));true.\n";
+        printRules += "  cleanList(LISTA, LISTB) :- nonvar(LISTA),(remv(LISTA,LISTC),distinct(LISTC,LISTB));true.\n";
         
         printRules += "  %atom chars(Atom,List)\n";    
         printRules += "  %element(Pos, List, Element) i\n";
@@ -343,7 +347,7 @@ public class XMLParser extends DocumentParser{
     	strAxesRules += " first_listOflist([[H|_]|[]],[H]):- !. \n";
     	strAxesRules += " first_listOflist([[H|_]|T],[H|T1]):- first_listOflist(T,T1). \n";
     	
-    	strAxesRules += " following(LISTIN,LIST) :- listOfList(LISTIN) -> (first_listOflist(LISTIN,LIST));first_list(LISTIN,LIST). \n";
+    	strAxesRules += " following(LISTIN,LIST) :- listOfList(LISTIN) , (first_listOflist(LISTIN,LIST));first_list(LISTIN,LIST). \n";
     	strAxesRules += " first_list([Y|Tail],[Y]). \n";
     	strAxesRules += " first_list([X],[X]). \n";
     	
@@ -351,7 +355,7 @@ public class XMLParser extends DocumentParser{
     	strAxesRules += " last_listOflist([[_|T]|[]],[H]):- last_list(T,H),!. \n";
     	strAxesRules += " last_listOflist([[_|T]|T1],[H|T2]):- last_list(T,H),last_listOflist(T1,T2). \n";
     	
-    	strAxesRules += " preceding(LISTIN,LIST) :- listOfList(LISTIN) -> (last_listOflist(LISTIN,LIST));last_list(LISTIN,X),LIST = [X]. \n";
+    	strAxesRules += " preceding(LISTIN,LIST) :- listOfList(LISTIN) , (last_listOflist(LISTIN,LIST));last_list(LISTIN,X),LIST = [X]. \n";
     	
     	strAxesRules += " last_list([Y|Tail],LISTIN):-last_list(Tail,LISTIN). \n";
     	strAxesRules += " last_list([X],X). \n";
@@ -367,21 +371,21 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " substringBefore(STRING1, STRING2, STRINGRESULT) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2), \n";
     	strFunctionRules+= " substringBeforeList(STR1,STR2,STRINGRESULT,_). \n";         
     	strFunctionRules+= " substringBeforeList([],_,STRINGRESULT,_):-  STRINGRESULT = ''. \n";
-    	strFunctionRules+= " substringBeforeList([H|T], [H1|T1],STRINGRESULT,STRINGRESULTAUX):- H=H1 -> ( (var(STRINGRESULTAUX)-> STRINGRESULT = ''; atom_chars(STRINGRESULT,STRINGRESULTAUX)),!); addEndList(H,STRINGRESULTAUX,STRINGRESULTTEMP),substringBeforeList(T,[H1|T1],STRINGRESULT,STRINGRESULTTEMP),!.\n";
+    	strFunctionRules+= " substringBeforeList([H|T], [H1|T1],STRINGRESULT,STRINGRESULTAUX):- H==H1 , ( (var(STRINGRESULTAUX), STRINGRESULT = ''; atom_chars(STRINGRESULT,STRINGRESULTAUX)),!); addEndList(H,STRINGRESULTAUX,STRINGRESULTTEMP),substringBeforeList(T,[H1|T1],STRINGRESULT,STRINGRESULTTEMP),!.\n";
     	
     	
     	strFunctionRules+= " substringAfter(STRING1, STRING2, STRINGRESULT) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
 		strFunctionRules+= " substringAfterList(STR1,STR2,STRINGRESULT).\n";
 
 		strFunctionRules+= " substringAfterList([],_,STRINGRESULT):-  STRINGRESULT = ''.\n";
-		strFunctionRules+= " substringAfterList([H|T], [H1|T1],STRINGRESULT):- H=H1 -> (copyList(T,STRINGRESULTLIST),atom_chars(STRINGRESULT,STRINGRESULTLIST),!);substringAfterList(T,[H1|T1],STRINGRESULT),!.\n";
+		strFunctionRules+= " substringAfterList([H|T], [H1|T1],STRINGRESULT):- H==H1 , (copyList(T,STRINGRESULTLIST),atom_chars(STRINGRESULT,STRINGRESULTLIST),!);substringAfterList(T,[H1|T1],STRINGRESULT),!.\n";
 		
 		
 		strFunctionRules+= " normalizeSpace(TEXT,STRINGRESULT) :- atom_chars(TEXT,STR),\n";
 		strFunctionRules+= " normalizeSpaceList(STR,STRINGRESULT).\n";
      
         strFunctionRules+= " normalizeSpaceList(STR,STRINGRESULT) :- normalizeSpaceList(STR,STRINGRESULT,TMPSTRINGRESULT), write(STRINGRESULT), atom_chars(TMPSTRINGRESULT,STRINGRESULT),!.\n";
-        strFunctionRules+= " normalizeSpaceList([H|T],STRINGRESULT,TMPSTRINGRESULT) :- \\+ H=' ' -> (addEndList(H,TMPSTRINGRESULT,NEWTMP),normalizeSpaceList(T,STRINGRESULT,NEWTMP),!); normalizeSpaceList(T,STRINGRESULT,TMPSTRINGRESULT).\n";
+        strFunctionRules+= " normalizeSpaceList([H|T],STRINGRESULT,TMPSTRINGRESULT) :- \\+ H=' ' , (addEndList(H,TMPSTRINGRESULT,NEWTMP),normalizeSpaceList(T,STRINGRESULT,NEWTMP),!); normalizeSpaceList(T,STRINGRESULT,TMPSTRINGRESULT).\n";
         strFunctionRules+= " normalizeSpaceList([],STRINGRESULT,TMPRESULTLIST).%var(TMPRESULTLIST) -> STRINGRESULT = []; STRINGRESULT = TMPRESULTLIST.\n";
         
         
@@ -389,27 +393,27 @@ public class XMLParser extends DocumentParser{
         strFunctionRules+= " containsListOrder(X,Y).\n";
      
         strFunctionRules+= " containsListOrder([],_) :- false.\n"; 
-        strFunctionRules+= " containsListOrder([H|T], [H1|T1]) :- H=H1 -> (compare(T,T1),!);containsListOrder(T,[H1|T1]).\n";
+        strFunctionRules+= " containsListOrder([H|T], [H1|T1]) :- H==H1 , (compare(T,T1),!);containsListOrder(T,[H1|T1]).\n";
         
         
         strFunctionRules+= " startsWith(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
 		strFunctionRules+= " startsWithList(STR1,STR2).\n";            
 		strFunctionRules+= " startsWithList([],_):-  false,!.\n";
 		strFunctionRules+= " startsWithList(_,[]):-  true,!. \n";
-		strFunctionRules+= " startsWithList([H|T], [H1|T1]):- H=H1 -> (startsWithList(T,T1)); false.\n";     
+		strFunctionRules+= " startsWithList([H|T], [H1|T1]):- H==H1 , (startsWithList(T,T1)); false.\n";     
 
 		strFunctionRules+= " endsWith(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
 		strFunctionRules+= " endsWithList(STR1,STR2).\n";            
 		strFunctionRules+= " endsWithList(_,[]):-  false,!.\n"; 
 		strFunctionRules+= " endsWithList([],_):-  false,!.\n"; 
-		strFunctionRules+= " endsWithList([H|T], [H1|T1]):- H=H1 -> ( compareList(T,T1),!);endsWithList(T,[H1|T1]).\n";
+		strFunctionRules+= " endsWithList([H|T], [H1|T1]):- H==H1 , ( compareList(T,T1),!);endsWithList(T,[H1|T1]).\n";
 		
 		
 		
 		strFunctionRules+= " concat(STRINGINPUT,RESULT) :- tokenize(STRINGINPUT,',',TOKENIZERESULT),concatList(TOKENIZERESULT,TMPRESULT,RESULT).\n";
 		 
 		strFunctionRules+= "  concatList([],TMPRESULT,RESULT) :- RESULT = TMPRESULT.\n";
-		strFunctionRules+= "  concatList([H|T],TMPRESULT,RESULT):-  (nonvar(TMPRESULT)-> atom_concat(TMPRESULT,H,NEWTMPRESULT);NEWTMPRESULT = H),concatList(T,NEWTMPRESULT,RESULT),!.\n";
+		strFunctionRules+= "  concatList([H|T],TMPRESULT,RESULT):-  (nonvar(TMPRESULT), atom_concat(TMPRESULT,H,NEWTMPRESULT);NEWTMPRESULT = H),concatList(T,NEWTMPRESULT,RESULT),!.\n";
 		 
 		 
 		 
@@ -420,7 +424,7 @@ public class XMLParser extends DocumentParser{
 		strFunctionRules+= " transformCharList([H|T],RESULTCHAR,RESULT) :- atom_chars(STRING,H),addEndList(STRING,RESULTCHAR,NEWRESULTCHAR), transformCharList(T,NEWRESULTCHAR,RESULT),!.\n";
  
 		strFunctionRules+= " tokenizeList([],TOKEN,TMPLIST,TMPRESULT,RESULT):- addEndList(TMPLIST,TMPRESULT,NEWRESULTTMP),RESULT = NEWRESULTTMP,!.\n";
-		strFunctionRules+= " tokenizeList([H|T],TOKEN,TMPLIST,TMPRESULT,RESULT) :- H = TOKEN -> (addEndList(TMPLIST,TMPRESULT,NEWRESULTTMP),tokenizeList(T,TOKEN,NEWTMPLIST,NEWRESULTTMP,RESULT),!) ;addEndList(H,TMPLIST,NEWTMPLIST), tokenizeList(T,TOKEN,NEWTMPLIST,TMPRESULT, RESULT),!.\n";
+		strFunctionRules+= " tokenizeList([H|T],TOKEN,TMPLIST,TMPRESULT,RESULT) :- H == TOKEN , (addEndList(TMPLIST,TMPRESULT,NEWRESULTTMP),tokenizeList(T,TOKEN,NEWTMPLIST,NEWRESULTTMP,RESULT),!) ;addEndList(H,TMPLIST,NEWTMPLIST), tokenizeList(T,TOKEN,NEWTMPLIST,TMPRESULT, RESULT),!.\n";
  
 
 		strFunctionRules+= " tokenize(STRING,TOKEN,RESULT) :- atom_chars(STRING,STR1),tokenizeList(STR1,TOKEN,TMPLIST,TMPRESULT,RESULTLIST), \n";
@@ -438,26 +442,33 @@ public class XMLParser extends DocumentParser{
  
          
 		strFunctionRules+= " compareNumberList([], [],NUMBER):- NUMBER = 0.\n";
-		strFunctionRules+= " compareNumberList([H|T], [H1|T1],NUMBER) :- H=H1 ->(compareNumberList(T,T1,NUMBER),!); (H@>H1->NUMBER = 1; NUMBER = -1).\n";
+		strFunctionRules+= " compareNumberList([H|T], [H1|T1],NUMBER) :- H==H1 ,(compareNumberList(T,T1,NUMBER),!); (H@>H1->NUMBER = 1; NUMBER = -1).\n";
 
 		
-		strFunctionRules+= " substring(STRING1,START,END,RESULT) :- atom_chars(STRING1,STR1),\n";
-		strFunctionRules+= "   NCOUNT is 1, substringList(STR1,START,END,NCOUNT,RESULT).\n";
+		strFunctionRules+= " substring(STRING1,START,END,RESULT) :- atom_chars(STRING1,STR1),substringList(STR1,START,END,2,RESULTLIST),atom_chars(RESULT,RESULTLIST).\n";
+		strFunctionRules+= " substringList([I|L],START,END,COUNT,RESULT):- START ==COUNT,take(END,L,RESULT). \n";
+		strFunctionRules+= " substringList([I|L],START,END,COUNT,RESULT):- COUNT < START,NCOUNT is COUNT +1, substringList(L,START,END,NCOUNT,RESULT). \n";
+		strFunctionRules+= " take(N, _, Xs) :- N =< 0, !, N =:= 0, Xs = []. \n";
+		strFunctionRules+= " take(_, [], []). \n";
+		strFunctionRules+= " take(N, [X|Xs], [X|Ys]) :- M is N-1, take(M, Xs, Ys). \n";
+		
+		//strFunctionRules+= " substring(STRING1,START,END,RESULT) :- atom_chars(STRING1,STR1),\n";
+		//strFunctionRules+= "   NCOUNT is 1, substringList(STR1,START,END,NCOUNT,RESULT).\n";
 
-		strFunctionRules+= " substringList([H|T],START,END,NCOUNT,RESULT) :- START = NCOUNT -> (copyNList([H|T],RESULTAUX,END), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,END,TMPNCOUNT,RESULT)).\n";
+		//strFunctionRules+= " substringList([H|T],START,END,NCOUNT,RESULT) :- START == NCOUNT , (copyNList([H|T],RESULTAUX,END), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,END,TMPNCOUNT,RESULT)).\n";
 
 
-		strFunctionRules+= " substring(STRING1,START,RESULT) :- atom_chars(STRING1,STR1),\n";
-		strFunctionRules+= "    NCOUNT is 1, substringList(STR1,START,NCOUNT,RESULT).\n";
+		//strFunctionRules+= " substring(STRING1,START,RESULT) :- atom_chars(STRING1,STR1),\n";
+		//strFunctionRules+= "    NCOUNT is 1, substringList(STR1,START,NCOUNT,RESULT).\n";
 
-		strFunctionRules+= " substringList([H|T],START,NCOUNT,RESULT) :- START = NCOUNT -> (copyNList([H|T],RESULTAUX,9999), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,TMPNCOUNT,RESULT)).\n";
+		//strFunctionRules+= " substringList([H|T],START,NCOUNT,RESULT) :- START == NCOUNT , (copyNList([H|T],RESULTAUX,9999), atom_chars(RESULT,RESULTAUX),! ); (TMPNCOUNT is NCOUNT +1, substringList(T,START,TMPNCOUNT,RESULT)).\n";
 
 
 
 		strFunctionRules+= " copyNList( COPIEDLIST,RESULTLIST, SIZE) :- copyNList(COPIEDLIST,RESULTLIST,SIZE,0,TMPRESULTLIST).\n";
-		strFunctionRules+= " copyNList([H|T],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :- SIZE = ACTUALSIZE -> (var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST); addEndList(H,TMPRESULTLIST,NEWTMP),TMPACTUALSIZE is ACTUALSIZE +1, copyNList(T,RESULTLIST,SIZE,TMPACTUALSIZE,NEWTMP).\n";
+		strFunctionRules+= " copyNList([H|T],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :- SIZE == ACTUALSIZE , (var(TMPRESULTLIST) , RESULTLIST = []; RESULTLIST = TMPRESULTLIST); addEndList(H,TMPRESULTLIST,NEWTMP),TMPACTUALSIZE is ACTUALSIZE +1, copyNList(T,RESULTLIST,SIZE,TMPACTUALSIZE,NEWTMP).\n";
 		strFunctionRules+= " %copyNList([H|T],RESULTLIST,TMPRESULTLIST) :- addEndList(H,TMPRESULTLIST,NEWTMP), copyList(T,RESULTLIST,NEWTMP).\n";
-		strFunctionRules+= " copyNList([],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :-  var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";
+		strFunctionRules+= " copyNList([],RESULTLIST,SIZE,ACTUALSIZE,TMPRESULTLIST) :-  var(TMPRESULTLIST) , RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";
 		
 		
 		strFunctionRules+= " contains(STRING1, STRING2) :- atom_chars(STRING1,STR1), atom_chars(STRING2,STR2),\n";
@@ -465,20 +476,20 @@ public class XMLParser extends DocumentParser{
 	 
 		strFunctionRules+= " containsList(_,[]) :- false.\n";
 		strFunctionRules+= " containsList([],_) :- false.\n";
-		strFunctionRules+= " containsList([H|T], [H1|T1]) :- H=H1->(compareList(T,T1),!);containsList(T, [H1|T1]). \n";
+		strFunctionRules+= " containsList([H|T], [H1|T1]) :- H==H1,(compareList(T,T1),!);containsList(T, [H1|T1]). \n";
 	 
 	 
 	 
 		strFunctionRules+= " compareList(_, []):- true.\n";
-		strFunctionRules+= " compareList([H|T], [H1|T1]) :- H=H1 ->(compareList(T,T1),!);false.\n";
+		strFunctionRules+= " compareList([H|T], [H1|T1]) :- H==H1 ,(compareList(T,T1),!);false.\n";
 	    
 
 		strFunctionRules+= " compareList([],[]):- true,!.\n";
-	    strFunctionRules+= " compareList([H|T], [H1|T1]):- H=H1 ->(compareList(T,T1));false.\n";
+	    strFunctionRules+= " compareList([H|T], [H1|T1]):- H==H1 ,(compareList(T,T1));false.\n";
 
         strFunctionRules+= " compare(_, []):- true.\n";
     	strFunctionRules+= " compare([], _):- false.\n";
-    	strFunctionRules+= " compare([H|T], [H1|T1]) :- H=H1 ->(compare(T,T1)).\n";
+    	strFunctionRules+= " compare([H|T], [H1|T1]) :- H==H1 ,(compare(T,T1)).\n";
     	
     	//strFunctionRules+= " floor(INPUT, OUTPUT):- atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT.\n";
     	//strFunctionRules+= " myfloor(INPUT, OUTPUT):- atom(INPUT)-> ( atom_number(INPUT,NINPUT), TMPOUTPUT is floor(NINPUT), OUTPUT = TMPOUTPUT); TMPOUTPUT is floor(INPUT), OUTPUT = TMPOUTPUT.\n";
@@ -486,11 +497,12 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " myfloor(INPUT, OUTPUT):- TMPOUTPUT is floor(INPUT), OUTPUT = TMPOUTPUT.\n";
 
     	//strFunctionRules+= " myceiling(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
-    	strFunctionRules+= " myceiling(INPUT, OUTPUT):-   num_atom(NINPUT,INPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	strFunctionRules+= " myceiling(INPUT, OUTPUT):-   mynumber(INPUT,NINPUT), TMPOUTPUT is ceiling(NINPUT), OUTPUT = TMPOUTPUT.\n";
 
 
     	//strFunctionRules+= " myround(INPUT, OUTPUT):-  atom_number(INPUT,NINPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
-    	strFunctionRules+= " myround(INPUT, OUTPUT):-  num_atom(NINPUT,INPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	//strFunctionRules+= " myround(INPUT, OUTPUT):-  mynumber(INPUT,NINPUT), TMPOUTPUT is round(NINPUT), OUTPUT = TMPOUTPUT.\n";
+    	strFunctionRules+= " myround(INPUT, OUTPUT):-   OUTPUT is round(INPUT).\n";
 
 
     	strFunctionRules+= " sum(List, Sum) :-\n";
@@ -500,13 +512,13 @@ public class XMLParser extends DocumentParser{
 
     	strFunctionRules+= " sum([Head|Tail], Accumulator, Result) :-\n";
     	//strFunctionRules+= " 	  atom_number(Head,NHEAD),  NewAccumulator is Accumulator + NHEAD,\n";
-    	strFunctionRules+= " 	  num_atom(NHEAD,Head),  NewAccumulator is Accumulator + NHEAD,\n";
+    	strFunctionRules+= " 	  mynumber(Head,NHEAD),  NewAccumulator is Accumulator + NHEAD,\n";
         strFunctionRules+= " sum(Tail, NewAccumulator, Result). \n"; 
     											
 		strFunctionRules+= " %Copy one List to another \n";
 		strFunctionRules+= " copyList( COPIEDLIST,RESULTLIST) :- copyList(COPIEDLIST,RESULTLIST,TMPRESULTLIST).\n";
 		strFunctionRules+= " copyList([H|T],RESULTLIST,TMPRESULTLIST) :- addEndList(H,TMPRESULTLIST,NEWTMP), copyList(T,RESULTLIST,NEWTMP).\n";
-		strFunctionRules+= " copyList([],RESULTLIST,TMPRESULTLIST) :-  var(TMPRESULTLIST) -> RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";						
+		strFunctionRules+= " copyList([],RESULTLIST,TMPRESULTLIST) :-  var(TMPRESULTLIST) , RESULTLIST = []; RESULTLIST = TMPRESULTLIST.\n";						
 
 		strFunctionRules+= " %addEndList(X,L,L1)\n";
 		strFunctionRules+= " %adds element X to the end of the list L and returns L1\n";
@@ -514,13 +526,21 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " addEndList(X,[A|L],[A|L1]):- \n";
     	strFunctionRules+= " addEndList(X,L,L1). \n";
     	
-    	strFunctionRules+= " mynumber(INPUT, OUTPUT):- atom(INPUT)-> ( num_atom(NINPUT,INPUT), OUTPUT = NINPUT); OUTPUT = INPUT. \n";
+    	//strFunctionRules+= " mynumber(INPUT, OUTPUT):- atom(INPUT)-> ( num_atom(NINPUT,INPUT), OUTPUT = NINPUT); OUTPUT = INPUT. \n";
+    	strFunctionRules+= " mynumber(INPUT, OUTPUT):-  number(INPUT),OUTPUT = INPUT,!.\n";
+    	strFunctionRules+= " mynumber(INPUT, OUTPUT):- num_atom(OUTPUT,INPUT); atom_chars(INPUT,TMP), number_chars(OUTPUT,TMP). \n";
+    	strFunctionRules+= " num_atom(INPUT, OUTPUT):- false. \n";
     	strFunctionRules+= " count(List, Count) :- \n";
     	strFunctionRules+= " 		count(List, 0, Count). \n";
     	strFunctionRules+= " count([], Accumulator, Accumulator). \n";
     	strFunctionRules+= " count([Head|Tail], Accumulator, Result) :- \n";
     	strFunctionRules+= "    NewAccumulator is Accumulator + 1, \n";
     	strFunctionRules+= " count(Tail, NewAccumulator, Result). \n";
+    	//strFunctionRules+= " div(N1,N2,OUT) :- mynumber(N1,NN1), mynumber(N2,NN2), myfloor(NN1,N1FLOOR),myfloor(NN2,N2FLOOR), (N2FLOOR==0,OUT=0,!; OUT is div(N1FLOOR,N2FLOOR)). \n";
+    	//strFunctionRules+= " div(N1,N2,OUT) :- mynumber(N1,NN1), mynumber(N2,NN2), (NN2==0,OUT=0,!; OUT is NN1/NN2). \n";
+    	strFunctionRules+= " div(N1,N2,OUT) :-   N2>0,OUT is N1/N2.%mynumber(N1,NN1), mynumber(N2,NN2), (NN2==0,OUT=0.0,!; OUT is NN1/NN2 ). \n"; 
+    	strFunctionRules+= " div(_,0,0). \n";
+    	
     	
     	
     	strFunctionRules+= "  minus([H|T1],L2,[H|L3]):- \n";
@@ -531,8 +551,10 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= "     minus(T1,L2,L3). \n";
     	strFunctionRules+= " minus([],_,[]). \n";
   
-    	strFunctionRules+= " boolean(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = true ; BOOLOUT = false. \n";		 
-    	strFunctionRules+= " not(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = false ; (BOOLOUT = true). \n";
+    	//strFunctionRules+= " boolean(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = true ; BOOLOUT = false. \n";
+    	strFunctionRules+= " boolean(VARIN,BOOLOUT) :- nonvar(VARIN) , BOOLOUT = true ; BOOLOUT = false. \n";
+    	//strFunctionRules+= " not(VARIN,BOOLOUT) :- nonvar(VARIN) -> BOOLOUT = false ; (BOOLOUT = true). \n";
+    	strFunctionRules+= " not(VARIN,BOOLOUT) :- nonvar(VARIN) , BOOLOUT = false ; (BOOLOUT = true). \n";
     	
     	strFunctionRules+= " quick_sort([X|Xs],Ys) :- \n";
     	strFunctionRules+= " partition(Xs,X,Left,Right), \n";
@@ -552,8 +574,44 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " append([],Ys,Ys). \n";
     	strFunctionRules+= " append([X|Xs],Ys,[X|Zs]) :- append(Xs,Ys,Zs). \n";
     	
-    	strFunctionRules+= " printnl(VAR):- print(VAR),print('\\n'). \n";
+    	strFunctionRules+= " printnl(VAR):- write('\\n'). %print(VAR),print('\\n'). \n";
     	strFunctionRules+= " nlprint(VAR):- print('\\n'),print(VAR). \n";
+    	
+    	
+    	strFunctionRules+= " translate(IN,REP,REPOUT,OUT) :- atom_chars(IN,NIN),atom_chars(REP,NREP),atom_chars(REPOUT,NREPOUT) \n";
+    	strFunctionRules+=  ", replaceAll(NIN,NREP,NREPOUT,NOUT)\n";
+    	strFunctionRules+= ",atom_chars(OUT,NOUT).   \n";
+    	
+    	strFunctionRules+= " replaceAll([],_Pattern,_Replace,[]):-  \n";
+    	strFunctionRules+= "   !. \n";
+    	strFunctionRules+= " replaceAll(OldString,Pattern,Replace,NewString):- \n";
+    	strFunctionRules+= "  startsWith2(OldString,Pattern,Rest), \n";
+    	strFunctionRules+= "  !, \n";
+    	strFunctionRules+= "  replaceAll(Rest,Pattern,Replace,TailNewString), \n";
+    	strFunctionRules+= "   append(Replace,TailNewString,NewString). \n";
+    	strFunctionRules+= " replaceAll([H|TailOldString],Pattern,Replace,[H|TailNewString]):- \n";
+    	strFunctionRules+= "  replaceAll(TailOldString,Pattern,Replace,TailNewString). \n";
+    		
+    	strFunctionRules+= " startsWith2(OldString,[],OldString):-  \n";
+    	strFunctionRules+= "  !. \n";
+    	strFunctionRules+= " startsWith2([H|TOldString],[H|T],Rest):-  \n";
+    	strFunctionRules+= "  !, \n";
+    	strFunctionRules+= "  startsWith2(TOldString,T,Rest). \n";
+    	
+    	strFunctionRules+= " string_concat(STR1,STR2,OUT):- atom_chars(STR1,STR1L), atom_chars(STR2,STR2L) \n";
+    	strFunctionRules+= " ,append(STR1L,STR2L,OUTL), atom_chars(OUT,OUTL).\n";
+    	  
+    	  
+    	/*strFunctionRules+= " replace( T1, S1, S2, T2 ) :- atom_chars(T1,NT1),atom_chars(S1,NS1),atom_chars(S2,NS2), \n";
+    	strFunctionRules+= " segment( NS1, Pre, NT1, Post ), \n";
+    	strFunctionRules+= " append( NS2, Post, S2_plus_Post ), \n";
+    	strFunctionRules+= " append( Pre, S2_plus_Post, NT2 ),atom_chars(T2,NT2). \n";
+
+    	strFunctionRules+= " segment( List, [], [], List ) :- !. \n";
+    	strFunctionRules+= " segment( [H|T_], [], [H|T], Post ) :- \n";
+    	strFunctionRules+= " segment( T_, [], T, Post ), !. \n";
+    	strFunctionRules+= " segment( [H|T_], [H|U], Seg, Post ) :- \n";
+    	strFunctionRules+= " segment( T_, U, Seg, Post ). \n";*/
     	
     	
     	return strFunctionRules;

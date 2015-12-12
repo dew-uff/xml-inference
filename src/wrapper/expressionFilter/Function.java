@@ -29,6 +29,8 @@ public class Function  implements IExpression {
 	 public static final String FUNCTION_BOOLEAN = "boolean";
 	 public static final String FUNCTION_CONCAT = "concat";
 	 public static final String FUNCTION_STRING = "string";
+	 public static final String FUNCTION_CONTAINS = "contains";
+	 public static final String FUNCTION_STARTS_WITH = "startsWith";
 	 public static final String FUNCTION_TRANSLATE = "translate";
 	 public static final String FUNCION_NAMESPACE_URI = "namespaceUri";
 	 public static final String FUNCTION_NOT = "not";
@@ -168,7 +170,11 @@ public class Function  implements IExpression {
     
     static public String mountMathListFunction(String functionName,String tagName,String strPrevisousRules, String tagFatherName, String resultVarName,boolean bHasComplexChilds)
     {
-    	String sumFormula = " findall(ID"+tagName.toUpperCase().trim()+",";
+    	String sumFormula = "";
+    	if(functionName.compareToIgnoreCase("sum")==0 && !bHasComplexChilds)
+    		sumFormula = " findall("+tagName.toUpperCase().trim()+",";
+    	else 
+    		sumFormula = " findall(ID"+tagName.toUpperCase().trim()+",";
     	sumFormula += " (";	
     	sumFormula += strPrevisousRules;
     	sumFormula +=   tagName.toLowerCase().trim(); //Last filter item, or last item 
@@ -180,8 +186,10 @@ public class Function  implements IExpression {
 			sumFormula +=",ID"+tagName.toUpperCase().trim();
 			if(!bHasComplexChilds)
 			{
-				sumFormula += ",";
-				sumFormula +=",_";
+				if(functionName.compareToIgnoreCase("sum")==0)
+					sumFormula += ","+tagName.toUpperCase().trim();
+				else
+					sumFormula +=",_";
 			}
 			
 			//sumFormula += tagName.toUpperCase().trim(); // Value for the search

@@ -210,7 +210,7 @@ public class QueryElement {
 				{
 					String strLeftOp = vetLeftOp[0].trim();
 					nCompareTag++;
-					String strNCompRule = "number("+strLeftOp.toUpperCase()+", "+strLeftOp.toUpperCase()+nCompareTag+"), ";
+					String strNCompRule = "mynumber("+strLeftOp.toUpperCase()+", "+strLeftOp.toUpperCase()+nCompareTag+"), ";
 					strNCompRule += strLeftOp.toUpperCase()+nCompareTag+" ";
 					prologFormula = prologFormula.replace(strLeftOp,strNCompRule);
 				}

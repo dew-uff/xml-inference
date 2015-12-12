@@ -1,4 +1,8 @@
 package br.ufrj.ppgi.prolog;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import jpl.*;
 
 public class SWIPrologDataBase {
@@ -19,9 +23,22 @@ public class SWIPrologDataBase {
 	public boolean executeQuery(String query)
 	{
 		Query q2 = new Query(query);
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		String line = null;
+		String XMl = "";
 		while (q2.hasMoreElements())
 		{
-			System.out.println( ((java.util.Hashtable)q2.nextElement()).toString());
+			
+			try {
+				if((line = br.readLine()) != null)
+				{
+					XMl += line;
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			//System.out.println( ((java.util.Hashtable)q2.nextElement()).toString());
 		}
 		
 		return true;

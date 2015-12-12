@@ -18,6 +18,8 @@ import java.util.ArrayList;
 public class FileManager {
 	private static final String FACTS_FILE_NAME = "BaseFatos.pl";
 	private static final String RULES_FILE_NAME = "BaseRegras.pl";
+	private static final String PRINT_FILE_NAME = "RegrasImpressao.pl";
+	private static final String SWI_FILE_NAME = "BaseSWI.pl";
 	private static final String PERMISSION = "rw";
 	private static final String PATH = "/home/mury/Dropbox/Mestrado/Pesquisa/2011/Avaliacao Experimental/Benchmark/xBench/TCMD/";
 	
@@ -35,6 +37,16 @@ public class FileManager {
 	public String rulesFileName()
 	{
 		return RULES_FILE_NAME;
+	}
+	
+	public String printFileName()
+	{
+		return PRINT_FILE_NAME;
+	}
+	
+	public String SWIFileName()
+	{
+		return SWI_FILE_NAME;
 	}
 	
 	public String factsFilePath()
@@ -72,13 +84,46 @@ public class FileManager {
 		File file = new File(RULES_FILE_NAME);		
 		FileWriter fw;
 		try {
-			fw = new FileWriter(file, true);
+			fw = new FileWriter(file, false);
 			fw.append(text);
 			fw.close();
 		} catch (IOException erro) {  
 			System.out.print("Erro :" + erro.toString());  
 		} catch (SecurityException erro2) {  
 			System.out.print("Erro :" + erro2.toString());  
+		}
+	}
+	
+	
+	public void writePrintRules(String text){	
+		
+		String printRules =  readPrintRules();
+		
+		if(text.compareTo(printRules) != 0)
+		{
+			File file = new File(PRINT_FILE_NAME);		
+			FileWriter fw;
+			try {
+				fw = new FileWriter(file, false);
+				fw.write(text);
+				fw.close();
+			} catch (IOException erro) {  
+				System.out.print("Erro :" + erro.toString());  
+			} catch (SecurityException erro2) {  
+				System.out.print("Erro :" + erro2.toString());  
+			}
+			
+			file = new File(SWI_FILE_NAME);		
+			try {
+				fw = new FileWriter(file, false);
+				fw.append(text);
+				fw.close();
+			} catch (IOException erro) {  
+				System.out.print("Erro :" + erro.toString());  
+			} catch (SecurityException erro2) {  
+				System.out.print("Erro :" + erro2.toString());  
+			}
+			
 		}
 	}
 	
@@ -94,12 +139,56 @@ public class FileManager {
 		} catch (SecurityException erro2) {  
 			System.out.print("Erro :" + erro2.toString());  
 		}
+		
+		file = new File(SWI_FILE_NAME);
+		try {
+			fw = new FileWriter(file, true);
+			fw.append(text);
+			fw.close();
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
 	}
         
         
 	
 	public String readRules(){
 		File file = new File(RULES_FILE_NAME);
+		String texto = "";  
+		StringBuffer temp = new StringBuffer();    
+		
+		try {    
+			FileReader arquivo = new FileReader(file);  
+			BufferedReader ler = new BufferedReader(arquivo);  
+			 
+			boolean fim = false;  
+			  
+			while (!fim) {  
+				String linha = ler.readLine();  
+				if (linha == null)  
+					fim = true;  
+				else  
+					temp.append(linha + "\n");  
+			}  
+			
+			texto = temp.toString(); 
+			ler.close();  
+			arquivo.close();  
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
+		return texto;
+	}
+	
+	
+	public String readPrintRules(){
+		File file = new File(PRINT_FILE_NAME);
 		String texto = "";  
 		StringBuffer temp = new StringBuffer();    
 		

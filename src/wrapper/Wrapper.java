@@ -35,7 +35,7 @@ public abstract class Wrapper {
 		//return true;
 		PrologQueryProcessor engineProlog = new PrologQueryProcessor(queryProlog,engine);
 		//setResult(engineProlog.getResult());
-		setResult(engineProlog.getResult());
+		setResult(engineProlog.getOutputResult());
 		//System.out.println(engineProlog.getOutputResult());		
 		
 		return true;
