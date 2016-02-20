@@ -101,9 +101,12 @@ public class PrologQueryProcessor {
 				 String file = "query";
 				 String cmdFinish = "";
 				 String strBenchMark = "";
-				 
+				 boolean bBechMark = false;
 				 if(query.split("#").length>0)
+				 {
 					 strBenchMark = "true";
+					 bBechMark = true;
+				 }
 				 
 				 if(OS.indexOf("win") >= 0)
 				 {
@@ -122,8 +125,16 @@ public class PrologQueryProcessor {
 					 writer.append("bin\\swipl.dll");
 					 writer.append("\"");
 					 writer.append(" queries.txt ");
-					 writer.append(strBenchMark+" | "); 
-					 writer.append("OutputListen"+extension);
+					 writer.append(strBenchMark); 
+					 if(!bBechMark)
+					 {
+						 writer.append(" | ");
+						 writer.append("OutputListen"+extension);
+					 }
+					 else
+					 {
+						 writer.append(" > NUL");
+					 }
 					 writer.append(" exit");
 					 writer.close();
 				 }
@@ -131,7 +142,7 @@ public class PrologQueryProcessor {
 				 {
 					 exec = "./ ";
 					 fileExtension= ".sh";
-					 cmd = "sh";
+					 cmd = "sh ";
 					 
 					 PrintWriter writer = new PrintWriter(file+fileExtension, "UTF-8");
 					 writer.append("./SWIProlog"+extension);
@@ -143,11 +154,21 @@ public class PrologQueryProcessor {
 					 //writer.append("bin\\swipl.dll");
 					 //writer.append("\"");
 					 writer.append(" queries.txt ");
-					 writer.append(strBenchMark+" | "); 
-					 writer.append("./OutputListen"+extension);
+					 writer.append(strBenchMark); 
+					 if(!bBechMark)
+					 {
+						 writer.append(" | ");
+						 writer.append("./OutputListen"+extension);
+					 }
+					 else
+					 {
+						 writer.append(" > /dev/null");
+					 }
 					 //writer.append(" exit");
 					 writer.close();
 					 
+					 Process p = Runtime.getRuntime().exec("chmod 777 "+file+fileExtension);
+					 p.waitFor();
 				 }
 				 
 				 //Properties props = System.getProperties();
@@ -283,7 +304,7 @@ public class PrologQueryProcessor {
 					public void onOutput(OutputEvent arg0) {
 						// TODO Auto-generated method stub
 						//resultString += arg0.getMsg();
-						outputString = outputString + arg0.getMsg().replace("\\n", "\n");
+						outputString = outputString + arg0.getMsg().replace("\\n", "\n").replace("'", "");
 					}
 				});
 	
@@ -309,7 +330,8 @@ public class PrologQueryProcessor {
 					
 					if(result.isSuccess())
 					{
-						resultString = parser.parseOutputToXML(result.toString());
+						//resultString = parser.parseOutputToXML(result.toString());
+						resultString+=result.toString();
 						//outputString = result.toString();
 					 //##resultString = result.toString();
 					}
@@ -317,10 +339,12 @@ public class PrologQueryProcessor {
 					while(tuPrologEngine.hasOpenAlternatives()) 
 					{
 						result = tuPrologEngine.solveNext();
-						resultString+=parser.parseOutputToXML(result.toString());
+						//resultString+=parser.parseOutputToXML(result.toString());
+						resultString+=result.toString();
 						//resultString = resultString + "\n" + result.toString();
 						//outputString = outputString + "\n" + result.toString();
 					}
+					
 					
 					tuPrologEngine.clearTheory();
 					tuPrologEngine.removeAllExceptionListeners();

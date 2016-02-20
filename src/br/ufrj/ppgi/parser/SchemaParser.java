@@ -214,7 +214,9 @@ public class SchemaParser extends DocumentParser{
 	   {
 		   strPrintComplexRule = "print_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
 		   strPrintComplexRule += " var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
-		   strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   //strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   strPrintComplexRule += " ,setof(X, member(X,LIST), LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   
 		   //##strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), printnl(''),write('<"+_nodeName.toLowerCase()+"'), \n";
 		   strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), write('<"+_nodeName.toLowerCase()+"'), \n";
 		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDSORTED));nonvar(IDTAG),("+normalizedNodeName+"(IDPARENT,IDTAG);"+normalizedNodeName+"(IDPARENT,IDTAG,_)),\n";
@@ -237,7 +239,9 @@ public class SchemaParser extends DocumentParser{
 					   strPrintComplexRule += ";";
 			   }
 			   
-			   strPrintComplexRule +=" ),LISTATTRIBUTE),quick_sort(LISTATTRIBUTE,LISTATTRIBUTESORTED),member(IDCHILDATTRIBUTESORTED,LISTATTRIBUTESORTED), (";
+			   //strPrintComplexRule +=" ),LISTATTRIBUTE),quick_sort(LISTATTRIBUTE,LISTATTRIBUTESORTED),member(IDCHILDATTRIBUTESORTED,LISTATTRIBUTESORTED), (";
+			   strPrintComplexRule +=" ),LISTATTRIBUTE),setof(X, member(X,LISTATTRIBUTE), LISTATTRIBUTESORTED),member(IDCHILDATTRIBUTESORTED,LISTATTRIBUTESORTED), (";
+			   
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
@@ -268,7 +272,9 @@ public class SchemaParser extends DocumentParser{
 			   //if(arrayAttribueNames.size()> 0 && listChildNodes.size() > 0)
 				   //strPrintComplexRule += ";";
 			   
-			   strPrintComplexRule +=" ;xmlMixedElement(IDTAG,IDCHILD,_) ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   //strPrintComplexRule +=" ;xmlMixedElement(IDTAG,IDCHILD,_) ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   strPrintComplexRule +=" ;xmlMixedElement(IDTAG,IDCHILD,_) ),LIST),setof(X, member(X,LIST), LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   
 			   
 			   for(int i=0;i<listChildNodes.size();i++)
 			   {
@@ -332,7 +338,8 @@ public class SchemaParser extends DocumentParser{
 					   strPrintComplexRule += ";";
 			   }
 			   
-			   strPrintComplexRule +=" ),LISTATTRIBUTE),quick_sort(LISTATTRIBUTE,LISTATTRIBUTESORTED),member(IDATTRIBUTECHILDSORTED,LISTATTRIBUTESORTED),(\n";
+			   //strPrintComplexRule +=" ),LISTATTRIBUTE),quick_sort(LISTATTRIBUTE,LISTATTRIBUTESORTED),member(IDATTRIBUTECHILDSORTED,LISTATTRIBUTESORTED),(\n";
+			   strPrintComplexRule +=" ),LISTATTRIBUTE),setof(X, member(X,LISTATTRIBUTE), LISTATTRIBUTESORTED),member(IDATTRIBUTECHILDSORTED,LISTATTRIBUTESORTED),(\n";
 			   
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
@@ -364,7 +371,9 @@ public class SchemaParser extends DocumentParser{
 					   strPrintComplexRule += ";";
 			   }
 			  
-			   strPrintComplexRule +=" ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED),(\n";
+			   //strPrintComplexRule +=" ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED),(\n";
+			   strPrintComplexRule +=" ),LIST),setof(X, member(X,LIST), LISTSORTED),member(IDCHILDSORTED,LISTSORTED),(\n";
+			   
 			   
 			   for(int i=0;i<listChildNodes.size();i++)
 			   {
@@ -402,7 +411,9 @@ public class SchemaParser extends DocumentParser{
 				   strPrintComplexRule += ";";
 		   }
 
-		   strPrintComplexRule += "),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED),  (\n"; 
+		   //strPrintComplexRule += "),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED),  (\n"; 
+		   strPrintComplexRule += "),LIST),setof(X, member(X,LIST), LISTSORTED),member(IDCHILDSORTED,LISTSORTED),  (\n"; 
+		   
 		   //Print Atributos
 		   for(int i=0;i<arrayAttribueNames.size();i++)
 		   {
@@ -439,7 +450,9 @@ public class SchemaParser extends DocumentParser{
 	   {
 		   strPrintComplexRule = "print_wild_card_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
 		   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) ; var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
-		   strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   //strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   strPrintComplexRule += " ,setof(X, member(X,LIST), LISTSORTED),member(IDSORTED,LISTSORTED),\n";
+		   
 		   strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), ";
 		   //if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
 			  // strPrintComplexRule += "print('\n<"+_nodeName.toLowerCase()+"'), \n";
@@ -497,7 +510,9 @@ public class SchemaParser extends DocumentParser{
 			   //if(arrayAttribueNames.size()> 0 && listChildNodes.size() > 0)
 				   //strPrintComplexRule += ";";
 			   
-			   strPrintComplexRule +=" ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   //strPrintComplexRule +=" ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   strPrintComplexRule +=" ),LIST),setof(X, member(X,LIST), LISTSORTED),member(IDCHILDSORTED,LISTSORTED), (";
+			   
 			   
 			   for(int i=0;i<listChildNodes.size();i++)
 			   {
@@ -532,7 +547,9 @@ public class SchemaParser extends DocumentParser{
 					   strPrintComplexRule += ";";
 			   }
 			   
-			   strPrintComplexRule +=" ),LISTWILD),quick_sort(LISTWILD,LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED), (";
+			   //strPrintComplexRule +=" ),LISTWILD),quick_sort(LISTWILD,LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED), (";
+			   strPrintComplexRule +=" ),LISTWILD),setof(X, member(X,LISTWILD), LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED), (";
+			   
 			   
 			   for(int i=0;i<listChildNodes.size();i++)
 			   {
@@ -660,7 +677,9 @@ public class SchemaParser extends DocumentParser{
 					   strPrintComplexRule += ";";
 			   }
 			  
-			   strPrintComplexRule +=" ),LISTWILD),quick_sort(LISTWILD,LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED),(\n";
+			   //strPrintComplexRule +=" ),LISTWILD),quick_sort(LISTWILD,LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED),(\n";
+			   strPrintComplexRule +=" ),LISTWILD),setof(X, member(X,LISTWILD), LISTWILDSORTED),member(IDWILDCHILDSORTED,LISTWILDSORTED),(\n";
+			   
 			   
 			   for(int i=0;i<listChildNodes.size();i++)
 			   {

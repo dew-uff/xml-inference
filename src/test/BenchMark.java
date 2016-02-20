@@ -3,6 +3,7 @@ package test;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ public class BenchMark {
 	private static final String FILE_NAME ="XML1.xsd";
 	
 	private static final String QUERIES_FILE_NAME ="Benchmark.txt";
+	private static final String QUERIES_TRANSLATE_FILE_NAME ="TranslateTimes.txt";
 	
 	private WrapperSchema wrapper = null;
 	
@@ -69,17 +71,39 @@ public class BenchMark {
 			System.out.print("Erro :" + erro2.toString());  
 		}
 		
-		
+		String queriesTranslateFileName = "";
 		for(int i=0;i<listQueries.size();i++)
-		{	 
+		{	
+			long begin = System.nanoTime();
 			queries+=wrapper.convertQuery(listQueries.get(i), false);
+			long elapsedTime = System.nanoTime()-begin;
+			queriesTranslateFileName+=i+ "-"+elapsedTime+";\n";
+			
 			if(i+1 < listQueries.size())
 				queries+="#";
 		}
 		
+		FileWriter fw;
+		File fileQueryTime = new File(QUERIES_TRANSLATE_FILE_NAME);
+		try {
+			fw = new FileWriter(fileQueryTime, true);
+			fw.append(queriesTranslateFileName);
+			fw.close();
+		} 
+		catch (IOException erro) 
+		{  
+			System.out.print("Erro :" + erro.toString());  
+		} 
+		catch (SecurityException erro2) 
+		{  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
+		
 		if(!queries.isEmpty())
 		{
 			PrologQueryProcessor engineProlog = new PrologQueryProcessor(queries,PrologOutputParser.ParseType.SWI);
+			System.out.println(queries);
 		}
 		
 	}

@@ -173,6 +173,8 @@ public class QueryElement {
 						prologFormula+=", "+attributeName.toUpperCase() + " ="+vetAttribute[1];
 					}
 				}
+				else if (prologFormula.toUpperCase().contains("@*") || prologFormula.toUpperCase().contains("@ *"))
+					return prologFormula;
 				else
 				   prologFormula = "nonvar("+prologFormula+") ";
 				

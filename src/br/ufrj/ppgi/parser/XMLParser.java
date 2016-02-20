@@ -601,6 +601,14 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " string_concat(STR1,STR2,OUT):- atom_chars(STR1,STR1L), atom_chars(STR2,STR2L) \n";
     	strFunctionRules+= " ,append(STR1L,STR2L,OUTL), atom_chars(OUT,OUTL).\n";
     	  
+    	
+    	strFunctionRules+= " subtract([], _, []).\n";
+    	strFunctionRules+= " subtract([Head|Tail], L2, L3) :-\n";
+    	strFunctionRules+= "         memberchk(Head, L2),\n";
+    	strFunctionRules+= "         !,\n";
+    	strFunctionRules+= "         subtract(Tail, L2, L3).\n";
+    	strFunctionRules+= " subtract([Head|Tail1], L2, [Head|Tail3]) :-\n";
+    	strFunctionRules+= "         subtract(Tail1, L2, Tail3).\n";
     	  
     	/*strFunctionRules+= " replace( T1, S1, S2, T2 ) :- atom_chars(T1,NT1),atom_chars(S1,NS1),atom_chars(S2,NS2), \n";
     	strFunctionRules+= " segment( NS1, Pre, NT1, Post ), \n";
