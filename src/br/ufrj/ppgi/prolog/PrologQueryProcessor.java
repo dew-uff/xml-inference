@@ -89,7 +89,7 @@ public class PrologQueryProcessor {
 			{
 				if(System.getProperties().getProperty("InstalationPath")==null || System.getProperties().getProperty("InstalationPath").isEmpty())
 				{
-					JOptionPane.showMessageDialog(null, "Configure o path de instalaçao do SWI Prolog");
+					JOptionPane.showMessageDialog(null, "Configure o path de instalacao do SWI Prolog");
 					return;
 				}
 				
@@ -102,7 +102,7 @@ public class PrologQueryProcessor {
 				 String cmdFinish = "";
 				 String strBenchMark = "";
 				 boolean bBechMark = false;
-				 if(query.split("#").length>0)
+				 if(query.split("#").length>1)
 				 {
 					 strBenchMark = "true";
 					 bBechMark = true;
@@ -110,10 +110,11 @@ public class PrologQueryProcessor {
 				 
 				 if(OS.indexOf("win") >= 0)
 				 {
-					 cmd = "cmd /c start ";
+					 cmd = "cmd /c start /wait ";
+                     //cmd = "start /wait ";
 					 extension = ".exe";
 					 fileExtension= ".bat";
-					 cmdFinish = " exit";
+					 cmdFinish = "  && exit";
 					 
 					 PrintWriter writer = new PrintWriter(file+fileExtension, "UTF-8");
 					 writer.append("SWIProlog"+extension);
@@ -135,7 +136,8 @@ public class PrologQueryProcessor {
 					 {
 						 writer.append(" > NUL");
 					 }
-					 writer.append(" exit");
+					 //writer.append(" exit");
+					 writer.append(" && exit");
 					 writer.close();
 				 }
 				 else
@@ -357,7 +359,7 @@ public class PrologQueryProcessor {
 		} 
 		catch (Exception e) {
 			e.printStackTrace();
-			resultString = "CONSULTA INVÁLIDA!!!";
+			resultString = "CONSULTA INVALIDA!!!";
 		}
 	}
 	

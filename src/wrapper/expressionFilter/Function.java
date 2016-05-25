@@ -168,32 +168,51 @@ public class Function  implements IExpression {
     		
     }
     
-    static public String mountMathListFunction(String functionName,String tagName,String strPrevisousRules, String tagFatherName, String resultVarName,boolean bHasComplexChilds)
+    static public String mountMathListFunction(String functionName,String tagName,String strPrevisousRules, String tagFatherName, String resultVarName,boolean bHasChildren,boolean bIsMixed,boolean bHasChoiceChildren)
     {
     	String sumFormula = "";
-    	if(functionName.compareToIgnoreCase("sum")==0 && !bHasComplexChilds)
+    	if(functionName.compareToIgnoreCase("sum")==0 && !bHasChildren)
     		sumFormula = " findall("+tagName.toUpperCase().trim()+",";
     	else 
     		sumFormula = " findall(ID"+tagName.toUpperCase().trim()+",";
+    	
     	sumFormula += " (";	
     	sumFormula += strPrevisousRules;
-    	sumFormula +=   tagName.toLowerCase().trim(); //Last filter item, or last item 
+    	//System.out.println("###"+strCompleteRule);
+    	//sumFormula +=   tagName.toLowerCase().trim(); //Last filter item, or last item 
 			
 		{
-			sumFormula +="(ID"+tagFatherName.toUpperCase().trim();
+			/*sumFormula +="(ID"+tagFatherName.toUpperCase().trim();
 			//sumFormula +=",IDSEARCH"+String.valueOf(nVarId);
 			//sumFormula +=",_";
 			sumFormula +=",ID"+tagName.toUpperCase().trim();
-			if(!bHasComplexChilds)
+			if(!bHasChildren)
 			{
 				if(functionName.compareToIgnoreCase("sum")==0)
 					sumFormula += ","+tagName.toUpperCase().trim();
 				else
 					sumFormula +=",_";
-			}
+			}*/
+            if(bIsMixed && bHasChoiceChildren)
+            {
+            		sumFormula+="("+tagName.toLowerCase()+"(ID"+tagFatherName.toUpperCase().trim()+",ID"+tagName.toUpperCase().trim()
+                       +");"+tagName.toLowerCase()+"(ID"+tagFatherName.toUpperCase().trim()+",ID"+tagName.toUpperCase().trim()+",_))";
+            }
+            else if((bIsMixed && bHasChildren))
+            {
+                    sumFormula+=tagName.toLowerCase()+"(ID"+tagFatherName.toUpperCase().trim()+",ID"+tagName.toUpperCase().trim()+")";
+            }
+            else if(!bIsMixed && bHasChildren)
+   		 	{
+            	sumFormula += tagName.toLowerCase()+"(ID"+tagFatherName.toUpperCase().trim()+",ID"+tagName.toUpperCase().trim()+")";
+   		    }
+            else
+            {
+                sumFormula+=tagName.toLowerCase()+"(ID"+tagFatherName.toUpperCase().trim()+",ID"+tagName.toUpperCase().trim()+","+tagName.toUpperCase().trim()+")";
+            }
 			
 			//sumFormula += tagName.toUpperCase().trim(); // Value for the search
-			sumFormula +=")";
+			//##sumFormula +=")";
 		}
 		sumFormula +=")";
 		sumFormula +=",LIST ) ";

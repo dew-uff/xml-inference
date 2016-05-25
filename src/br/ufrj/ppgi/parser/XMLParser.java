@@ -22,6 +22,7 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.SAXParser; 
 
 import br.ufrj.ppgi.parser.DefaultHandleSAX;
+import java.util.Map;
 
 
 public class XMLParser extends DocumentParser{
@@ -134,7 +135,8 @@ public class XMLParser extends DocumentParser{
             long tempoInicial = System.currentTimeMillis();
             
             /* JAVA PARSER */
-            DefaultHandleSAX handler = new DefaultHandleSAX();
+            //DefaultHandleSAX handler = new DefaultHandleSAX();
+            NewHandleSAX handler = new NewHandleSAX();
             handler.setResetLastId(bResetLastId);
             SAXParserFactory factory = SAXParserFactory.newInstance();
             
@@ -143,8 +145,8 @@ public class XMLParser extends DocumentParser{
     		indexRule +="indexOf(Tail, Element, Index1),!, \n";
     		indexRule +="Index is Index1+1. \n";
     		
-    		
-    		String printRules = buildPrintRules();
+            String occurrenceRules = buildOccurrenceRules();
+            String printRules = buildPrintRules();
             String functions = buildFunctionsRules();
             String axes = buildAxesRules();
             FileManager fileManager = new FileManager();           
@@ -184,6 +186,14 @@ public class XMLParser extends DocumentParser{
                 fileManager.writeFacts(printRules);
                 fileManager.writeFacts(functions);
                 fileManager.writeFacts(axes);
+                fileManager.writeFacts(occurrenceRules);
+                fileManager.writeSWIPrintRules();
+                String print = indexRule;
+                print+= printRules;
+                print+= functions;
+                print+= axes;
+                print+= occurrenceRules;
+                //System.out.println("####"+occurrenceRules);
             }
 
             long tempoFinal = System.currentTimeMillis();  
@@ -194,6 +204,298 @@ public class XMLParser extends DocumentParser{
             
 	}
 	
+    private String buildOccurrenceRules()/**/
+    {
+        String occurrenceRules = "";
+        HashMap<Document,ArrayList<Node>> choiceHash = SchemaParser.getInstance().getChoiceHash();
+        
+        for (Map.Entry<Document, ArrayList<Node>> entry : choiceHash.entrySet()) 
+        {
+            Document doc = entry.getKey();
+            ArrayList<Node> value = entry.getValue();
+            ArrayList<String> listNames = new ArrayList<String>();
+            for (int i = 0; i < value.size(); i++) 
+            {
+                Node node = value.get(i);
+                if (node.getAttributes().getNamedItem("name")!= null)
+                {
+                    String nodeName =  node.getAttributes().getNamedItem("name").getNodeValue();
+                    //if(listNames.contains(nodeName))
+                        //continue;
+                    //System.out.println("###"+nodeName);
+                    //listNames.add(nodeName);
+                    occurrenceRules+=obtainOptionalRules(node,doc,listNames);
+                    
+                    
+                }
+                
+                
+                /*if (node.getAttributes().getNamedItem("name")!= null)
+                {
+                    String nodeName =  node.getAttributes().getNamedItem("name").getNodeValue();
+                    if(listNames.contains(nodeName))
+                        continue;
+                    
+                    listNames.add(nodeName);
+                    String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+                    String nodeRule = "";
+                    String strType = "";
+                    if (node.getAttributes().getNamedItem("type")!= null)
+				strType =  node.getAttributes().getNamedItem("type").getNodeValue();
+                    if(strType.isEmpty())
+                        continue;
+                    
+                    ArrayList<Node> nodeListType  = getComplexNodeByName(doc,strType);
+                    
+                    Node nodeType = null;
+                    
+                    if(nodeListType.size()>0)
+                        nodeType = nodeListType.get(0);
+                    
+                    if(nodeType ==null )
+                    {
+                        nodeRule+=normalizedNodeName+"(_,_,_):-false.\n";
+                        continue;
+                    }
+                    
+                    boolean bHasChoiceChildren = hasChoiceMinOccursChildren(nodeType);
+                    boolean bHasChildren = hasChildren(nodeType);
+                    boolean bIsMixed = false;
+                    if (nodeType.getAttributes().getNamedItem("mixed")!= null)
+                            bIsMixed = nodeType.getAttributes().getNamedItem("mixed").getNodeValue().equalsIgnoreCase("true");
+                    
+                    ArrayList<String> arrayAttribueNames = obtainNodeAttributesNames(nodeType);
+		    boolean bHasAttributes = arrayAttribueNames.size() >0;
+                    
+                    if(bIsMixed && bHasChoiceChildren)
+                    {
+                            nodeRule+=normalizedNodeName+"(_,_):-false.\n"+normalizedNodeName+"(_,_,_):-false.";
+                    }
+                    else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
+                    {
+                            nodeRule+=normalizedNodeName+"(_,_):-false.";
+                    }
+                    else if((bIsMixed && bHasChildren))
+                    {
+                            nodeRule+=normalizedNodeName+"(_,_):-false.";
+                    }
+                    else
+                    {
+                            nodeRule+=normalizedNodeName+"(_,_,_):-false.";
+                    }
+
+                    occurrenceRules+= nodeRule+"\n";
+                }*/
+            }
+        }
+        return occurrenceRules;
+    }
+    
+    private String obtainOptionalRules(Node node,Document doc,ArrayList<String> listNames)
+    {
+        String occurrenceRules = "";
+        //System.out.println(node.getAttributes());
+        if (node.getAttributes().getNamedItem("name")!= null)
+        {
+            //System.out.println("OK");    
+            String nodeName =  node.getAttributes().getNamedItem("name").getNodeValue();
+                
+                if(listNames.contains(nodeName))
+                    return "";
+                listNames.add(nodeName);
+                //System.out.println("OK");
+                String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+                String nodeRule = "";
+                String strType = "";
+                if (node.getAttributes().getNamedItem("type")!= null)
+                            strType =  node.getAttributes().getNamedItem("type").getNodeValue();
+                if(strType.isEmpty())
+                {
+                    //System.out.println("EMPTY");
+                    return occurrenceRules;
+                }
+
+                ArrayList<Node> nodeListType  = getComplexNodeByName(doc,strType);
+
+                Node nodeType = null;
+
+                if(nodeListType.size()>0)
+                    nodeType = nodeListType.get(0);
+
+                if(nodeType ==null )
+                {
+                    //System.out.println("nodeType");
+                    occurrenceRules+=normalizedNodeName+"(_,_,_):-false.\n";
+                    return occurrenceRules;
+                }
+
+                boolean bHasChoiceChildren = hasChoiceMinOccursChildren(nodeType);
+                boolean bHasChildren = hasChildren(nodeType);
+                boolean bIsMixed = false;
+                if (nodeType.getAttributes().getNamedItem("mixed")!= null)
+                        bIsMixed = nodeType.getAttributes().getNamedItem("mixed").getNodeValue().equalsIgnoreCase("true");
+
+                ArrayList<String> arrayAttribueNames = obtainNodeAttributesNames(nodeType);
+                boolean bHasAttributes = arrayAttribueNames.size() >0;
+
+                if(bIsMixed && bHasChoiceChildren)
+                {
+                        nodeRule+=normalizedNodeName+"(_,_):-false.\n"+normalizedNodeName+"(_,_,_):-false.";
+                }
+                else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
+                {
+                        nodeRule+=normalizedNodeName+"(_,_):-false.";
+                }
+                else if((bIsMixed && bHasChildren))
+                {
+                        nodeRule+=normalizedNodeName+"(_,_):-false.";
+                }
+                else
+                {
+                        nodeRule+=normalizedNodeName+"(_,_,_):-false.";
+                }
+                    
+                //System.out.println("XXXXX"+nodeRule);
+                occurrenceRules+= nodeRule+"\n";
+                
+                ArrayList<Node>  listChildNodes = obtainChildElements(nodeType);
+
+                for(int i=0;i<listChildNodes.size();i++)
+                {
+                    Node  childNode = listChildNodes.get(i);
+                    if(childNode == null )
+                            continue;
+                    
+                    occurrenceRules+= obtainOptionalRules(childNode, doc,listNames);
+                }
+        }
+        
+        return occurrenceRules;
+    }
+    
+    private ArrayList<Node> obtainChildElements(Node _nodeType)
+	{
+		ArrayList<Node> returnListChildNodes = new ArrayList<Node>();
+		
+		NodeList listChildNodes =  _nodeType.getChildNodes();
+		for(int i=0;i<listChildNodes.getLength();i++)
+		{
+			Node  childNode = listChildNodes.item(i);
+			if(childNode == null )
+				continue;
+			
+			 String childNodeName = childNode.getNodeName();
+                         //System.out.println(childNodeName);
+                         
+                         
+		    if(childNodeName.compareToIgnoreCase("xs:sequence") == 0)
+		    	returnListChildNodes.addAll(obtainChildElements(childNode));
+		    else if(childNodeName.compareToIgnoreCase("xs:choice") == 0)
+		    	returnListChildNodes.addAll(obtainChildElements(childNode));
+		    else if(childNodeName.compareToIgnoreCase("xs:all") == 0)
+		    	returnListChildNodes.addAll(obtainChildElements(childNode));
+		    else if(childNodeName.compareToIgnoreCase("xs:element") == 0)
+		    	returnListChildNodes.add(childNode);
+		}
+		
+		return returnListChildNodes;
+	}
+    
+    private ArrayList<Node> getComplexNodeByName(Document _doc,String _nameElementType)
+    {
+            NodeList listElements = _doc.getElementsByTagNameNS("*", "complexType");
+            ArrayList<Node> nodeList = new ArrayList<Node>();
+            for (int i = 0; i < listElements.getLength(); i++) 
+            {
+                    Node elementNode = listElements.item(i);
+                    Node nodeReturn = null;
+                    if (elementNode.getAttributes().getNamedItem("name")!= null 
+                                    && elementNode.getAttributes().getNamedItem("name").getNodeValue().equals(_nameElementType))
+                    {
+                            nodeReturn = elementNode;
+
+                    }
+
+                    if(nodeReturn!= null)
+                            nodeList.add(nodeReturn);
+            }
+
+            return nodeList;
+    }
+    
+    private boolean hasChoiceMinOccursChildren(Node _nodeType)
+    {
+            NodeList listChildNodes =  _nodeType.getChildNodes();
+            for(int i=0;i<listChildNodes.getLength();i++)
+            {
+                   Node  childNode = listChildNodes.item(i);
+                   if(childNode == null )
+                           continue;
+
+                    String childNodeName = childNode.getNodeName();
+                    if(childNodeName.compareToIgnoreCase("xs:choice") == 0)
+                    {
+                            if (childNode.getAttributes().getNamedItem("minOccurs")!= null)
+                            {
+                                    if(childNode.getAttributes().getNamedItem("minOccurs").getNodeValue().compareToIgnoreCase("0")==0)
+                                            return true;
+                            }
+                    }
+
+            }
+            return false;
+    }
+    
+    private boolean hasChildren(Node _nodeType)
+    {
+             NodeList listChildNodes =  _nodeType.getChildNodes();
+             for(int i=0;i<listChildNodes.getLength();i++)
+             {
+                     Node  childNode = listChildNodes.item(i);
+                            if(childNode == null )
+                                    continue;
+
+                     String childNodeName = childNode.getNodeName();
+                     if(childNodeName.compareToIgnoreCase("xs:choice") == 0)
+                             return true;
+                     else if(childNodeName.compareToIgnoreCase("xs:sequence") == 0)
+                             return true;
+                     else if(childNodeName.compareToIgnoreCase("xs:all") == 0)
+                             return true;
+                     else if(childNodeName.compareToIgnoreCase("xs:element") == 0)
+                             return true;
+             }
+
+            return false;
+    }
+    
+    private ArrayList<String> obtainNodeAttributesNames(Node _complexNodeType)
+    {
+            ArrayList<String> arrayAttribueNames = new ArrayList<String>();
+
+            NodeList listAttributes =  _complexNodeType.getChildNodes();
+
+            for(int i=0;i<listAttributes.getLength();i++)
+            {
+                    Node  attrNode = listAttributes.item(i);
+                    if(attrNode == null )
+                            continue;
+
+                     String childNodeName = attrNode.getNodeName();
+                    if(childNodeName.compareToIgnoreCase("xs:attribute") != 0)
+                            continue;
+
+                    String attrNodeName = "";
+                    if (attrNode.getAttributes().getNamedItem("name")!= null)
+                            attrNodeName = attrNode.getAttributes().getNamedItem("name").getNodeValue();
+
+                    if(!attrNodeName.isEmpty())
+                            arrayAttribueNames.add(attrNodeName);
+
+            }
+
+            return arrayAttribueNames;
+    }
     
     private String buildPrintRules()
     {
@@ -621,6 +923,47 @@ public class XMLParser extends DocumentParser{
     	strFunctionRules+= " segment( [H|T_], [H|U], Seg, Post ) :- \n";
     	strFunctionRules+= " segment( T_, U, Seg, Post ). \n";*/
     	
+    	strFunctionRules+= " flatten(List, FlatList) :-\n";
+		strFunctionRules+= " flatten(List, [], FlatList0), !,\n";
+		strFunctionRules+= " FlatList = FlatList0.\n";
+
+		strFunctionRules+= " flatten(Var, Tl, [Var|Tl]) :-\n";
+		strFunctionRules+= " var(Var), !.\n";
+		strFunctionRules+= " flatten([], Tl, Tl) :- !.\n";
+		strFunctionRules+= " flatten([Hd|Tl], Tail, List) :- !,\n";
+		strFunctionRules+= " flatten(Hd, FlatHeadTail, List),\n";
+		strFunctionRules+= " flatten(Tl, Tail, FlatHeadTail).\n";
+		strFunctionRules+= " flatten(NonList, Tl, [NonList|Tl]).\n";
+ 
+		strFunctionRules+= " deletelist([], _, []). \n";                 
+		strFunctionRules+= " deletelist([X|Xs], Y, Z) :- member(X, Y), deletelist(Xs, Y, Z), !.\n";
+		strFunctionRules+= " deletelist([X|Xs], Y, [X|Zs]) :- deletelist(Xs, Y, Zs).\n";
+	 
+	    //strFunctionRules+= " addTailList(X,[H|T],[H|L]) :- addTail(X,T,L).\n";
+		//strFunctionRules+= " addTailList(X,[],[X]).\n";
+		//strFunctionRules+= " addTail(X,LIST1,LIST2) :- var(LIST1)-> addTailList(X,[],LIST2); addTailList(X,LIST1,LIST2).\n";
+		//strFunctionRules+= " addTailList(ID,LIST1,LIST2):- var(LIST1)-> add_tail([],ID,LIST2),!;add_tail(LIST1,ID,LIST2).\n";
+		strFunctionRules+= " addTailList(ID,LIST1,LIST2):- (var(LIST1),add_tail([],ID,LIST2),!);(add_tail(LIST1,ID,LIST2)).\n";
+		strFunctionRules+= " add_tail([],X,[X]).\n";
+		strFunctionRules+= " add_tail([H|T],X,[H|L]):- add_tail(T,X,L).\n";
+		strFunctionRules+= " addHeadList(X,L2,[X|L2]).\n";
+		strFunctionRules+= " notMember(ID,LIST) :- \\+member(ID,LIST),!.\n"; 
+		strFunctionRules+= " isString(CONTENT):- atom_chars(CONTENT,LIST), ((member('a',LIST),!); (member('b',LIST),!); (member('c',LIST),!); ";
+		strFunctionRules+= " (member('d',LIST),!);(member('e',LIST),!);(member('f',LIST),!);(member('g',LIST),!);(member('h',LIST),!);(member('i',LIST),!); ";
+		strFunctionRules+= " (member('j',LIST),!);(member('k',LIST),!);(member('l',LIST),!);(member('m',LIST),!);(member('n',LIST),!);(member('o',LIST),!); ";
+		strFunctionRules+= " (member('p',LIST),!);(member('q',LIST),!);(member('r',LIST),!);(member('s',LIST),!);(member('t',LIST),!);(member('u',LIST),!); ";
+		strFunctionRules+= " (member('v',LIST),!);(member('w',LIST),!);(member('x',LIST),!);(member('y',LIST),!);(member('z',LIST),!);(member('A',LIST),!); ";
+		strFunctionRules+= " (member('B',LIST),!);(member('C',LIST),!);(member('D',LIST),!);(member('E',LIST),!);(member('F',LIST),!);(member('G',LIST),!); ";
+		strFunctionRules+= " (member('H',LIST),!) ;(member('I',LIST),!);(member('J',LIST),!);(member('K',LIST),!);(member('L',LIST),!);(member('M',LIST),!); ";
+		strFunctionRules+= " (member('N',LIST),!) ;(member('O',LIST),!);(member('P',LIST),!);(member('Q',LIST),!);(member('R',LIST),!);(member('S',LIST),!); ";
+		strFunctionRules+= " (member('T',LIST),!) ;(member('U',LIST),!);(member('V',LIST),!);(member('W',LIST),!);(member('X',LIST),!);(member('Y',LIST),!); ";
+		strFunctionRules+= " (member('Z',LIST),!) ;(member('>',LIST),!);(member('<',LIST),!);(member('=',LIST),!);(member('+',LIST),!);(member('-',LIST),!); ";
+		strFunctionRules+= " (member('*',LIST),!) ;(member('(',LIST),!);(member(')',LIST),!);(member('&',LIST),!);(member('%',LIST),!);(member('#',LIST),!); ";
+		strFunctionRules+= " (member('@',LIST),!) ;(member('!',LIST),!);(member('|',LIST),!);(member(';',LIST),!);(member('[',LIST),!);(member(']',LIST),!); ";
+		strFunctionRules+= " (member('?',LIST),!) ;(member('{',LIST),!);(member('}',LIST),!);(member('_',LIST),!) ";
+		strFunctionRules+= " ).\n ";
+		strFunctionRules+= " verifyBooleanContent(CONTENT):- (atom_chars(CONTENT,[]),false,!);(isString(CONTENT),!);(atom_chars(CONTENT,L),listSize(L,SIZE),SIZE>0, mynumber(CONTENT,N),(N\\==0) ).\n";
+    	
     	
     	return strFunctionRules;
     }
@@ -647,7 +990,7 @@ public class XMLParser extends DocumentParser{
 			NamedNodeMap attributeList = raiz.getAttributes();
 			
 			for(int j=0; j < attributeList.getLength(); j++){
-				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "("+contadorIdPai+ ", " + ++contadorIdPai +", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 			}
 		}
@@ -727,7 +1070,7 @@ public class XMLParser extends DocumentParser{
 				contadorIdPai++;
 				idProprio = contadorIdPai;
 				
-				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 				factsList.set(index, content + Integer.toString(idProprio)+", " +("'" + node.getFirstChild().getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 			} else if((hasElementChild == false) && hasAttribute && hasTextChild){
@@ -735,11 +1078,11 @@ public class XMLParser extends DocumentParser{
 				
 				contadorIdPai++;
 				idProprio = contadorIdPai;
-				//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+				//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 				factsList.set(index, content + (Integer.toString(idProprio)/*+ ", " /*+ ++contadorIdPai*/ + ", '" + node.getFirstChild().getNodeValue()/*.replace("'", "''").replace("\t", "").replace("\n", "")*/ + "'). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
-					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+					//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+ ", " + ++contadorIdPai +  ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 				}
 				
@@ -753,7 +1096,7 @@ public class XMLParser extends DocumentParser{
 					NamedNodeMap attributeList = node.getAttributes();
 					
 					for(int j=0; j < attributeList.getLength(); j++){
-						//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+						//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 						factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+", " + ++contadorIdPai + ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 					}
 				}
@@ -768,7 +1111,7 @@ public class XMLParser extends DocumentParser{
 				factsList.set(index, content + (Integer.toString(idProprio)+", " + ++contadorIdPai + ", ''). \n"));
 				
 				for(int j=0; j < attributeList.getLength(); j++){
-					//o comentário abaixo no replace é porque não é necessário. Está comentado para caso tenha a necessidade de voltar
+					//o comentï¿½rio abaixo no replace ï¿½ porque nï¿½o ï¿½ necessï¿½rio. Estï¿½ comentado para caso tenha a necessidade de voltar
 					factsList.add(attributeList.item(j).getNodeName().toLowerCase() + "(" + Integer.toString(idProprio)+", " /*+ ++contadorIdPai*/+ ", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "") */+ "'). \n");
 				}
 			}

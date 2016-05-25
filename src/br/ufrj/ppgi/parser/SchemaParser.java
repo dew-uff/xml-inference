@@ -24,13 +24,19 @@ public class SchemaParser extends DocumentParser{
 	
 	private static SchemaParser schemaParser = null;
 	private HashMap<Document,HashMap<String, ArrayList<String>>> ruleHash = new HashMap<Document,HashMap<String, ArrayList<String>>>();
+    private HashMap<Document,ArrayList<Node>> choiceHash = new HashMap<Document,ArrayList<Node>>();
+    private ArrayList<Node> choiceList = new ArrayList<Node>();
 	private ArrayList<String> listPrintRuleDone = new ArrayList<String>();
+	private ArrayList<String> listAscendingRuleDone = new ArrayList<String>();
+	private ArrayList<String> listDescendingRuleDone = new ArrayList<String>();
+	private boolean bSchemaLoaded = false;
 	
 	//TODO: Variaveis criadas para resolver S{C, S}
 	private int initialChoiceSize = 0;
 	private int temp = 0;
 	//TODO: Variaveis criadas para resolver S{C, C}	
 	private boolean flagSequenceChoice = false;
+        private boolean flagChoiceSequence = false;
 	private ArrayList<String> auxRuleList = new ArrayList<String>();
 	
 	private ArrayList<String> bodyRuleList = new ArrayList<String>();
@@ -66,6 +72,11 @@ public class SchemaParser extends DocumentParser{
 		
 		return ruleHash;
 	}
+        
+        public HashMap<Document,ArrayList<Node>> getChoiceHash()
+        {
+		return choiceHash;
+	}
 	
 	
 	public void executeParse(HashMap<String, File> fileList, String nameSet){
@@ -73,16 +84,30 @@ public class SchemaParser extends DocumentParser{
 		Set<String> keyNames = documentList.keySet();
 		
 		StringBuffer translation = new StringBuffer();
-    	
+		//choiceHash.clear();
+		//ruleHash.clear();
+		//choiceList.clear();
     	for(String name : keyNames){
     		String stringProlog = process(documentList.get(name));
     		String printRules = processPrintRules(documentList.get(name));
-    		//System.out.println(stringProlog);
+    		String ascRules = processAscendingRules(documentList.get(name));
+    		String descRules = processDescRules(documentList.get(name));
+    		printRules += ascRules;
+    		printRules += descRules;
+    		System.out.println(printRules);
+                System.out.println(stringProlog);
     		FileManager fileManager = new FileManager();
     		fileManager.writeRules(stringProlog);
     		fileManager.writePrintRules(printRules);
     		translation.append(stringProlog);
     	}
+    	
+    	bSchemaLoaded = true;
+	}
+	
+	public boolean schemaIsLoaded()
+	{
+		return bSchemaLoaded;
 	}
 	
 	private Node getRootElement(Document doc)
@@ -98,6 +123,50 @@ public class SchemaParser extends DocumentParser{
 		}
 		
 		return null;
+	}
+	
+	private String processAscendingRules(Document doc)
+	{
+		listAscendingRuleDone.clear();
+		Node rootNode = getRootElement( doc);
+		String strAscRules = "";
+		
+		if(rootNode==null)
+			return strAscRules;
+		
+		if (rootNode.getAttributes().getNamedItem("name")!= null)
+		{
+			String rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
+			String strType = "";
+			if (rootNode.getAttributes().getNamedItem("type")!= null)
+				strType =  rootNode.getAttributes().getNamedItem("type").getNodeValue();
+			
+			strAscRules+= processAscendingRules(doc,rootNodeName,"",strType);
+		}
+		
+		return strAscRules;
+	}
+	
+	private String processDescRules(Document doc)
+	{
+		listDescendingRuleDone.clear();
+		Node rootNode = getRootElement( doc);
+		String strAscRules = "";
+		
+		if(rootNode==null)
+			return strAscRules;
+		
+		if (rootNode.getAttributes().getNamedItem("name")!= null)
+		{
+			String rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
+			String strType = "";
+			if (rootNode.getAttributes().getNamedItem("type")!= null)
+				strType =  rootNode.getAttributes().getNamedItem("type").getNodeValue();
+			
+			strAscRules+= processDescendingRules(doc,rootNodeName,"",strType);
+		}
+		
+		return strAscRules;
 	}
 	
 	private String processPrintRules(Document doc)
@@ -127,6 +196,134 @@ public class SchemaParser extends DocumentParser{
 	private String createMixedElementPrintRule()
 	{
 		return "print_xmlMixedElement(IDTAG) :- xmlMixedElement(_,IDTAG,VALUE), write(VALUE).\n";
+	}
+	
+	private String processDescendingRules(Document _doc,String _nodeName,String _fatherNodeName,String _nameElementType)
+	{
+		String strDescRules = "";
+		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		ArrayList<Node> nodeListType  = getComplexNodeByName(_doc,_nameElementType);
+		if(_nameElementType.isEmpty())
+			return strDescRules;
+	
+		// Simple Type
+		if(!_nameElementType.isEmpty() && nodeListType.size() <=0 )
+		{
+			if(!listDescendingRuleDone.contains(_nodeName))
+			{
+				strDescRules = createDescendingRule(normalizedNodeName,_fatherNodeName);
+				listDescendingRuleDone.add(_nodeName);
+			}
+			
+			return strDescRules;
+		}
+		
+		Node nodeType = nodeListType.get(0);
+		if(nodeType==null)
+			return strDescRules;
+		
+		boolean bHasChoiceChildren = hasChoiceMinOccursChildren(nodeType);
+		boolean bHasChildren = hasChildren(nodeType);
+		boolean bIsMixed = false;
+		if (nodeType.getAttributes().getNamedItem("mixed")!= null)
+			bIsMixed = nodeType.getAttributes().getNamedItem("mixed").getNodeValue().equalsIgnoreCase("true");
+		
+		
+		ArrayList<String> arrayAttribueNames = obtainNodeAttributesNames(nodeType);
+		boolean bHasAttributes = arrayAttribueNames.size() >0;
+
+		ArrayList<Node>  listChildNodes = obtainChildElements(nodeType);
+		
+		if(!listDescendingRuleDone.contains(_nodeName))
+		{
+			strDescRules+= createDescendingRule(_doc,_nodeName,_fatherNodeName,listChildNodes,bHasChildren, bIsMixed,bHasChoiceChildren,bHasAttributes);
+			listDescendingRuleDone.add(_nodeName);
+		}
+		
+		
+		for(int i=0;i<listChildNodes.size();i++)
+		{
+			Node  childNode = listChildNodes.get(i);
+			if(childNode == null )
+				continue;
+			
+			String nodeName =  childNode.getAttributes().getNamedItem("name").getNodeValue();
+			
+			if(listDescendingRuleDone.contains(nodeName))
+				continue;
+			
+			String strType = "";
+			if (childNode.getAttributes().getNamedItem("type")!= null)
+				strType =  childNode.getAttributes().getNamedItem("type").getNodeValue();
+			
+			strDescRules+= processDescendingRules(_doc, nodeName,_nodeName, strType);
+		}
+		
+		return strDescRules;
+	}
+	
+	private String processAscendingRules(Document _doc,String _nodeName,String _fatherNodeName,String _nameElementType)
+	{
+			String strAscRules = "";
+			String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+			ArrayList<Node> nodeListType  = getComplexNodeByName(_doc,_nameElementType);
+			if(_nameElementType.isEmpty())
+				return strAscRules;
+		
+			// Simple Type
+			if(!_nameElementType.isEmpty() && nodeListType.size() <=0 )
+			{
+				if(!listAscendingRuleDone.contains(_nodeName))
+				{
+					strAscRules = createAscendingRule(normalizedNodeName,_fatherNodeName);
+					listAscendingRuleDone.add(_nodeName);
+				}
+				
+				return strAscRules;
+			}
+			
+			Node nodeType = nodeListType.get(0);
+			if(nodeType==null)
+				return strAscRules;
+			
+			boolean bHasChoiceChildren = hasChoiceMinOccursChildren(nodeType);
+			boolean bHasChildren = hasChildren(nodeType);
+			boolean bIsMixed = false;
+			if (nodeType.getAttributes().getNamedItem("mixed")!= null)
+				bIsMixed = nodeType.getAttributes().getNamedItem("mixed").getNodeValue().equalsIgnoreCase("true");
+			
+			
+			ArrayList<String> arrayAttribueNames = obtainNodeAttributesNames(nodeType);
+			boolean bHasAttributes = arrayAttribueNames.size() >0;
+
+			ArrayList<Node>  listChildNodes = obtainChildElements(nodeType);
+			
+			if(!listAscendingRuleDone.contains(_nodeName)&& !_fatherNodeName.isEmpty())
+			{
+				strAscRules+= createAscendingRule(_doc,_nodeName,_fatherNodeName,bHasChildren, bIsMixed,bHasChoiceChildren,bHasAttributes);
+				listAscendingRuleDone.add(_nodeName);
+			}
+			
+			
+			for(int i=0;i<listChildNodes.size();i++)
+			{
+				Node  childNode = listChildNodes.get(i);
+				if(childNode == null )
+					continue;
+				
+				String nodeName =  childNode.getAttributes().getNamedItem("name").getNodeValue();
+				
+				if(listAscendingRuleDone.contains(nodeName))
+					continue;
+				
+				String strType = "";
+				if (childNode.getAttributes().getNamedItem("type")!= null)
+					strType =  childNode.getAttributes().getNamedItem("type").getNodeValue();
+				
+				strAscRules+= processAscendingRules(_doc, nodeName,_nodeName, strType);
+			}
+			
+			return strAscRules;
 	}
 	
 	private String processPrintRules(Document _doc,String _nodeName,String _nameElementType)
@@ -198,7 +395,6 @@ public class SchemaParser extends DocumentParser{
 		
 		return strPrintRules; 
 	}
-	
 	
 	private String createComplexPrintRule(Document _doc, String _nodeName, 
 			boolean bHasChildren,
@@ -396,6 +592,98 @@ public class SchemaParser extends DocumentParser{
 		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
 		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
 	   }
+           else if(bIsMixed && bHasChildren)
+           {
+                Node rootNode = getRootElement( _doc);
+		   String rootNodeName = "";
+		   if (rootNode.getAttributes().getNamedItem("name")!= null)
+				rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
+		   
+		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDTAG) :- "+normalizedNodeName+"(IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+		   else
+		   {
+			 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), printnl(''),write('<"+_nodeName.toLowerCase()+"'),";
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+		   }
+		   
+		   strPrintComplexRule +="print_"+normalizedNodeName+"_childs(IDTAG).\n";
+		   
+		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDTAG):-";
+		   
+		   if(arrayAttribueNames.size() > 0)
+		   {
+			   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
+				   strPrintComplexRule +=normalizedNodeName+"(IDTAG), findall(IDCHILD,(\n";
+			   else
+				   strPrintComplexRule +=normalizedNodeName+"(_, IDTAG), findall(IDCHILD,(\n";
+			   
+			   for(int i=0;i<arrayAttribueNames.size();i++)
+			   {
+				   strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   strPrintComplexRule +="(IDTAG,IDCHILD,_)";
+				   if(i+1<arrayAttribueNames.size())
+					   strPrintComplexRule += ";";
+			   }
+			   
+			   //strPrintComplexRule +=" ),LISTATTRIBUTE),quick_sort(LISTATTRIBUTE,LISTATTRIBUTESORTED),member(IDATTRIBUTECHILDSORTED,LISTATTRIBUTESORTED),(\n";
+			   strPrintComplexRule +=" ),LISTATTRIBUTE),setof(X, member(X,LISTATTRIBUTE), LISTATTRIBUTESORTED),member(IDATTRIBUTECHILDSORTED,LISTATTRIBUTESORTED),(\n";
+			   
+			   
+			   for(int i=0;i<arrayAttribueNames.size();i++)
+			   {
+				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   strPrintComplexRule +="(IDTAG,IDATTRIBUTECHILDSORTED)";
+				   if(i+1<arrayAttribueNames.size())
+					   strPrintComplexRule += ";";
+			   }
+			   
+			   strPrintComplexRule +=");";
+		   }
+		   
+		   strPrintComplexRule +="write('>')";
+		   
+		   if(listChildNodes.size() > 0)
+		   {
+			   strPrintComplexRule += ";";
+			   
+			   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
+				   strPrintComplexRule +=normalizedNodeName+"(IDTAG), findall(IDCHILD,(\n";
+			   else
+				   strPrintComplexRule +=normalizedNodeName+"(_, IDTAG), findall(IDCHILD,(\n";
+			   
+			   for(int i=0;i<listChildNodes.size();i++)
+			   {
+				   strPrintComplexRule +=obtainBaseRuleNode(_doc,listChildNodes.get(i));
+				   if(i+1<listChildNodes.size())
+					   strPrintComplexRule += ";";
+			   }
+			   strPrintComplexRule +=" ;xmlMixedElement(IDTAG,IDCHILD,_)";
+			   //strPrintComplexRule +=" ),LIST),quick_sort(LIST,LISTSORTED),member(IDCHILDSORTED,LISTSORTED),(\n";
+			   strPrintComplexRule +=" ),LIST),setof(X, member(X,LIST), LISTSORTED),member(IDCHILDSORTED,LISTSORTED),(\n";
+			   
+			   
+			   for(int i=0;i<listChildNodes.size();i++)
+			   {
+				   String childNodeName = "";
+					if (listChildNodes.get(i).getAttributes().getNamedItem("name")!= null)
+						childNodeName =  listChildNodes.get(i).getAttributes().getNamedItem("name").getNodeValue();
+				   
+					if(childNodeName.isEmpty())
+						continue;
+					
+				   strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   
+				   if(i+1<listChildNodes.size())
+					   strPrintComplexRule += ";";
+			   }
+			   strPrintComplexRule += ";print_xmlMixedElement(IDCHILDSORTED)";
+			   strPrintComplexRule +=")";
+		   }
+		   		   
+		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
+		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
+           }
 	   else
 	   {
 		 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),printnl(''),write('<"+_nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
@@ -429,6 +717,66 @@ public class SchemaParser extends DocumentParser{
 	   }
 	   
 	   return strPrintComplexRule;
+	}
+	
+	private String createAscendingRule(Document _doc,String _nodeName,String _fatherNodeName,boolean bHasChildren,boolean bIsMixed,boolean bHasChoiceChildren,boolean bHasAttributes)
+	{
+		   String strAscComplexRule = "";
+		   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		   String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+			
+		   //strAscComplexRule = "obtainAncestrals_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST,LIST2):-";
+		   strAscComplexRule = "obtainAncestrals_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST):-";
+		   
+		   Node rootNode = getRootElement( _doc);
+		   String rootNodeName = "";
+		   if (rootNode.getAttributes().getNamedItem("name")!= null)
+				rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
+		   
+		   /*boolean bRoot =false;
+		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
+		   {
+			   strAscComplexRule+=normalizedNodeName+"(IDELEMENT)";
+			   bRoot = true;
+		   }
+		   else*/ if(bIsMixed && bHasChoiceChildren)
+		   {
+			   strAscComplexRule+="("+normalizedNodeName+"(IDPARENT,IDELEMENT);"+normalizedNodeName+"(IDPARENT,IDELEMENT,_))";
+		   }
+		   else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
+		   {
+			   strAscComplexRule+=normalizedNodeName+"(IDPARENT,IDELEMENT)";
+		   }
+                   else if((bIsMixed && bHasChildren))
+		   {
+			   strAscComplexRule+=normalizedNodeName+"(IDPARENT,IDELEMENT)";
+		   }
+		   else
+		   {
+			   strAscComplexRule+=normalizedNodeName+"(IDPARENT,IDELEMENT,_)";
+		   }
+		   
+		   /*if(bRoot)
+		   {
+			   //strAscComplexRule+=",addTailList(IDELEMENT,LIST,LIST2).\n";
+			   //strAscComplexRule+=".\n";
+			   strAscComplexRule+= ", LIST2 = LIST3.\n";
+		   }
+		   else*/
+		   {
+			   
+			   if(_fatherNodeName.compareToIgnoreCase(rootNodeName) == 0)
+				   strAscComplexRule+=", addTailList(IDPARENT,LIST2,LIST).\n";
+			   else
+			   {
+				   //strAscComplexRule+=", addTailList(IDPARENT,LIST,LIST3)";
+				   //strAscComplexRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST3,LIST2).\n";
+				   strAscComplexRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST2)";
+				   strAscComplexRule+=", addTailList(IDPARENT,LIST2,LIST).\n";
+			   }
+		   }
+		   
+		   return strAscComplexRule;
 	}
 	
 	private String createWildcardComplexPrintRule(Document _doc, String _nodeName, 
@@ -779,6 +1127,10 @@ public class SchemaParser extends DocumentParser{
 		 {
 			 baseRule = normalizedNodeName+"(IDTAG,IDCHILD)";
 		 }
+         else if (bIsMixed && bHasChildren )
+		 {
+			 baseRule = normalizedNodeName+"(IDTAG,IDCHILD)";
+		 }
 		 else
 		 {
 			 baseRule = normalizedNodeName+"(IDTAG,IDCHILD,_) ";
@@ -833,7 +1185,94 @@ public class SchemaParser extends DocumentParser{
 		return false;
 	}
 	
-	
+	 
+	private String createDescendingRule(Document _doc,String _nodeName,String _fatherNodeName,ArrayList<Node>  listChildNodes,boolean bHasChildren,boolean bIsMixed,boolean bHasChoiceChildren,boolean bHasAttributes)
+	{
+		   String strDescComplexRule = "";
+		   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		   String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+			
+		   strDescComplexRule = "obtainDescendents_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST2):-"; 
+		   
+		   Node rootNode = getRootElement( _doc);
+		   String rootNodeName = "";
+		   if (rootNode.getAttributes().getNamedItem("name")!= null)
+				rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
+		   
+		   boolean bRoot =false;
+		   String rule = "";
+		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
+		   {
+			   rule = normalizedNodeName+"(IDELEMENT)";
+			   bRoot = true;
+		   }
+		   else if(bIsMixed && bHasChoiceChildren)
+		   {
+			   rule = "("+normalizedNodeName+"(IDPARENT,IDELEMENT);"+normalizedNodeName+"(IDPARENT,IDELEMENT,_))";
+		   }
+		   else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
+		   {
+			   rule = normalizedNodeName+"(IDPARENT,IDELEMENT)";
+		   }
+                   else if((bIsMixed && bHasChildren) )
+		   {
+			   rule = normalizedNodeName+"(IDPARENT,IDELEMENT)";
+		   }
+		   else
+		   {
+			   rule = normalizedNodeName+"(IDPARENT,IDELEMENT,_)";
+		   }
+		   
+		   
+		   
+		   if(listChildNodes.size() > 0)
+		   {
+			   //strDescComplexRule +=" addTailList(IDELEMENT,LIST3,LIST4), ";
+			   //strDescComplexRule += "findall( LIST6,(" ;
+			   
+			   strDescComplexRule += rule;
+			   
+			   //strDescComplexRule+= " , findall(LIST4,(";
+			   strDescComplexRule+= ", findall(LIST4,(";
+			   
+			   for(int i=0;i<listChildNodes.size();i++)
+			   {
+				   String childNodeName = "";
+					if (listChildNodes.get(i).getAttributes().getNamedItem("name")!= null)
+						childNodeName =  listChildNodes.get(i).getAttributes().getNamedItem("name").getNodeValue();
+				   
+					if(childNodeName.isEmpty())
+						continue;
+				   strDescComplexRule += "( ";
+				   strDescComplexRule += obtainBaseRuleNode(_doc,listChildNodes.get(i)).replace("IDTAG","IDELEMENT");
+				   strDescComplexRule += " ,";
+				   strDescComplexRule += "obtainDescendents_"+childNodeName.toLowerCase().replace(":", "_");
+				   strDescComplexRule +="(IDCHILD,LIST4)";
+				   strDescComplexRule += ") ";
+				   
+				   if(i+1<listChildNodes.size())
+					   strDescComplexRule += ";";
+			   }
+			   
+			   //strDescComplexRule+= " ),LIST5)),LIST7),";
+			   strDescComplexRule+= " ),LIST5)";
+		   
+			   //strDescComplexRule+= " flatten(LIST7,LIST2).\n";
+			   strDescComplexRule+= ", flatten(LIST5,LIST6)";
+			   strDescComplexRule+= ", addHeadList(IDELEMENT,LIST6,LIST2).\n";
+		   }
+		   else
+		   {
+			   //if(!listDescendingRuleDone.contains(_nodeName))
+			   //{
+				   strDescComplexRule += rule;
+				   strDescComplexRule+=",addTailList(IDELEMENT,LIST,LIST2).\n";
+			   //}
+		   }
+		   
+		   return strDescComplexRule;
+	}
+
 	private ArrayList<Node> obtainChildElements(Node _nodeType)
 	{
 		ArrayList<Node> returnListChildNodes = new ArrayList<Node>();
@@ -867,6 +1306,36 @@ public class SchemaParser extends DocumentParser{
 		//##simplePrintRule+="write('</"+_nodeName.toLowerCase().replace("_", ":")+">').\n";
 		simplePrintRule+="write('</"+_nodeName.toLowerCase().replace("_", ":")+">'),printnl('').\n";
 		return simplePrintRule;
+	}
+	
+	private String createAscendingRule(String _nodeName,String _fatherNodeName)
+	{
+		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		
+		//String ascRule = "obtainAncestrals_"+normalizedNodeName+"(IDELEMENT,LIST,LIST2):-";
+		String ascRule = "obtainAncestrals_"+normalizedNodeName+"(IDELEMENT,LIST):-";
+		ascRule+=normalizedNodeName+"(IDPARENT,IDELEMENT,_)"; 
+		//ascRule+=", addTailList(IDPARENT,LIST,LIST3)";
+		//ascRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST3,LIST2).\n";
+		ascRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST2)";
+		ascRule+=", addTailList(IDPARENT,LIST2,LIST).\n";
+		
+		return ascRule;
+	}
+	
+	private String createDescendingRule(String _nodeName,String _fatherNodeName)
+	{
+		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		
+		String ascRule = "obtainDescendents_"+normalizedNodeName+"(IDELEMENT,LIST2):-"; 
+		ascRule+=normalizedNodeName+"(IDPARENT,IDELEMENT,_)"; 
+		ascRule+=",addTailList(IDELEMENT,LIST,LIST2).\n";
+		//ascRule+=", addTailList(IDPARENT,LIST,LIST3)";
+		//ascRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST3,LIST2).\n";
+		
+		return ascRule;
 	}
 	
 	private String createWildCardSimplePrintRule(String _nodeName)
@@ -1058,7 +1527,9 @@ public class SchemaParser extends DocumentParser{
 		
 		HashMap<String,ArrayList<String>> docHash = new HashMap<String,ArrayList<String>>();
 		ruleHash.put(doc, docHash);
-		
+                //ArrayList<String> choiceList = new ArrayList<String>();
+		choiceHash.put(doc, new ArrayList<Node>(choiceList));
+		choiceList.clear();
 		for(Iterator<String> it = rulesList.iterator(); it.hasNext();)
 		{
 			int k = rulesList.indexOf(it.next());
@@ -1108,7 +1579,7 @@ public class SchemaParser extends DocumentParser{
 			{
 				
 				int finalSize = tempRulesList.size();
-				
+                                
 				//#####
 					boolean bMinOccur = (child.getAttributes().getNamedItem("minOccurs") != null &&
 							Integer.parseInt(child.getAttributes().getNamedItem("minOccurs").getNodeValue()) <=0);
@@ -1122,6 +1593,9 @@ public class SchemaParser extends DocumentParser{
 						minOccurBodyRulesList.addAll(bodyRuleList);
 					}
 				//####
+                                
+                                if((flagChoiceSequence || bMinOccur) && !choiceList.contains(child) )
+                                    choiceList.add(child);
 				
 				boolean bComplex = isComplexNode((Element)child);
 				boolean bMixedNode = isMixedNode((Element)child);
@@ -1226,7 +1700,8 @@ public class SchemaParser extends DocumentParser{
 				} 
 				else
 				{
-					
+					if(!choiceList.contains(child))
+                                            choiceList.add(child);
 					if(bComplex && !bMixedNode)
 					{
 						tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
@@ -1246,6 +1721,7 @@ public class SchemaParser extends DocumentParser{
 				tempRulesList.add(partialRule + ", s" + n);
 				bodyRuleList.add(partialBody);
 				n++;
+                                flagChoiceSequence = true;
 				tempRulesList = processSequence(child, tempRulesList,ruleParent);
 			} 
 			else if(child.getNodeName() == xsChoice){
@@ -1253,6 +1729,7 @@ public class SchemaParser extends DocumentParser{
 				bodyRuleList.add(partialBody);
 				tempRulesList = processChoice(child, tempRulesList,ruleParent);
 			} 
+                        flagChoiceSequence = false;
 		}
 		return tempRulesList;
 	}

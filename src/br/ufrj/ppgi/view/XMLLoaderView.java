@@ -106,7 +106,7 @@ public class XMLLoaderView extends JFrame{
     		XMLParser.getInstance().executeParse(fileList);
     	
     	JOptionPane.showMessageDialog(mainPanel, "Base de fatos gerada com sucesso.\n" 
-    												+ "Tempo de execução: "
+    												+ "Tempo de execucao: "
     												+ XMLParser.getInstance().getTotalTime() + " segundo(s)");
 
     	component.setEnabled(true);

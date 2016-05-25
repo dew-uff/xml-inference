@@ -15,6 +15,7 @@ import br.ufrj.ppgi.io.FileManager;
 import br.ufrj.ppgi.io.Serializer;
 import br.ufrj.ppgi.main.XMLInference;
 import br.ufrj.ppgi.parser.PrologOutputParser;
+import br.ufrj.ppgi.parser.SchemaParser;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
 import br.ufrj.ppgi.view.EnvironmentLoaderView;
 
@@ -27,12 +28,15 @@ import wrapper.WrapperSchema;
 
 
 
+
+
 import javax.swing.ButtonGroup;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.GroupLayout;
 import javax.swing.JMenu;
@@ -110,7 +114,9 @@ public class XMLInferenceView extends FrameView {
     
 	@Action
     public void loadAutomaticRules() {
-		if(xmlSchemaLoaderView == null){
+		
+		if(xmlSchemaLoaderView == null)
+		{
 			xmlSchemaLoaderView = new XMLSchemaLoaderView(manualRulesButton, SCHEMA);
 			xmlSchemaLoaderView.setSize(new Dimension(250, 350));
 			xmlSchemaLoaderView.setResizable(false);
@@ -131,7 +137,14 @@ public class XMLInferenceView extends FrameView {
     }
 	
 	@Action
-    public void loadXMLDocument() {
+    public void loadXMLDocument() 
+	{
+		if(!SchemaParser.getInstance().schemaIsLoaded())
+		{
+			JOptionPane.showMessageDialog(null, "É necessário realizar o parse do XMLSchema.");
+			return;
+		}
+		
 		if(xmlLoaderView == null){
 			xmlLoaderView = new XMLLoaderView(queryButtonProlog, XML);
 			xmlLoaderView.setSize(new Dimension(250, 350));
@@ -232,7 +245,7 @@ public class XMLInferenceView extends FrameView {
         
         tuPrologRadio = new JRadioButton("TuProlog");
         swiRadio = new JRadioButton("SWI Prolog");
-        swiRadio.setToolTipText("Necessário a instalação e configuração do SWI Prolog");
+        swiRadio.setToolTipText("Necessario a instalacao e configuracao do SWI Prolog");
         bG = new ButtonGroup();
         bG.add(tuPrologRadio);
         bG.add(swiRadio);

@@ -23,6 +23,7 @@ import javax.swing.JTextField;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -49,7 +50,9 @@ public class SWIInstallPath extends JDialog {
         	BufferedReader br;
         	try 
     		{
-    			 br = new BufferedReader(new FileReader("Configurations.txt"));
+    		    //System.out.println(System.getProperty("user.dir")); 
+                    File file = new File("Configurations.txt");
+                    br = new BufferedReader(new FileReader(file));
     		     String line = null;
     			 while((line =br.readLine())!=null)
     			 {

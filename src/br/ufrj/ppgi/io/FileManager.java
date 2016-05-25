@@ -99,20 +99,20 @@ public class FileManager {
 		
 		String printRules =  readPrintRules();
 		
-		if(text.compareTo(printRules) != 0)
+		File file = new File(PRINT_FILE_NAME);		
+		FileWriter fw;
+		try {
+			fw = new FileWriter(file, false);
+			fw.write(text);
+			fw.close();
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
+		}
+		
+		/*if(text.compareTo(printRules) != 0)
 		{
-			File file = new File(PRINT_FILE_NAME);		
-			FileWriter fw;
-			try {
-				fw = new FileWriter(file, false);
-				fw.write(text);
-				fw.close();
-			} catch (IOException erro) {  
-				System.out.print("Erro :" + erro.toString());  
-			} catch (SecurityException erro2) {  
-				System.out.print("Erro :" + erro2.toString());  
-			}
-			
 			file = new File(SWI_FILE_NAME);		
 			try {
 				fw = new FileWriter(file, false);
@@ -124,6 +124,21 @@ public class FileManager {
 				System.out.print("Erro :" + erro2.toString());  
 			}
 			
+		}*/
+	}
+	
+	public void writeSWIPrintRules()
+	{
+		File file = new File(SWI_FILE_NAME);
+		FileWriter fw;
+		try {
+			fw = new FileWriter(file, true);
+			fw.append(readPrintRules());
+			fw.close();
+		} catch (IOException erro) {  
+			System.out.print("Erro :" + erro.toString());  
+		} catch (SecurityException erro2) {  
+			System.out.print("Erro :" + erro2.toString());  
 		}
 	}
 	
@@ -144,6 +159,7 @@ public class FileManager {
 		try {
 			fw = new FileWriter(file, true);
 			fw.append(text);
+			//fw.append(readPrintRules());
 			fw.close();
 		} catch (IOException erro) {  
 			System.out.print("Erro :" + erro.toString());  
@@ -319,6 +335,11 @@ public class FileManager {
 			file = new RandomAccessFile(FACTS_FILE_NAME, PERMISSION);
 			file.setLength(0);
 			file.close();
+			
+			file = new RandomAccessFile(SWI_FILE_NAME, PERMISSION);
+			file.setLength(0);
+			file.close();
+			
 		}
 		catch(FileNotFoundException fnfe){
 			System.out.println(fnfe.getMessage());
@@ -330,10 +351,15 @@ public class FileManager {
 
 	public void clearDataFacts() {
 		// TODO Auto-generated method stub
-		try{
+		try
+		{
 			RandomAccessFile file = new RandomAccessFile(FACTS_FILE_NAME, PERMISSION);
 			file.setLength(0);
 			file.close();
+			
+			RandomAccessFile fileSWI = new RandomAccessFile(SWI_FILE_NAME, PERMISSION);
+			fileSWI.setLength(0);
+			fileSWI.close();
 		}
 		catch(FileNotFoundException fnfe){
 			System.out.println(fnfe.getMessage());
