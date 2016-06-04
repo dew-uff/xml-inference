@@ -288,6 +288,7 @@ public class XMLParser extends DocumentParser{
                 }*/
             }
         }
+        occurrenceRules+= "xmlMixedElement(_,_,_):-false.\n";
         return occurrenceRules;
     }
     
@@ -338,7 +339,9 @@ public class XMLParser extends DocumentParser{
                 ArrayList<String> arrayAttribueNames = obtainNodeAttributesNames(nodeType);
                 boolean bHasAttributes = arrayAttribueNames.size() >0;
 
-                if(bIsMixed && bHasChoiceChildren)
+                //if(bIsMixed && bHasChoiceChildren)
+				//### 05_16
+				if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && bHasAttributes))
                 {
                         nodeRule+=normalizedNodeName+"(_,_):-false.\n"+normalizedNodeName+"(_,_,_):-false.";
                 }

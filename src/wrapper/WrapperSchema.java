@@ -1112,13 +1112,29 @@ public class WrapperSchema extends Wrapper {
 			  query += ",";
 			 query += nameElement.trim().toUpperCase();
 		   }
+			//### 05_16
+		   /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes)
+		   {
+			   query += ",";
+			   query += nameElement.trim().toUpperCase();
+		   }*/
 			//####
 		   
 		   query += ")";
-		   
-		   if(bHasChoiceChildren)
+		   //### 05_16
+		   /*if(bHasChoiceChildren)
 		   {
 			  boolean bHasValue =  bIsMixed || (!bHasOnlyAttributes && !bHasChildren);
+			  if(bHasValue && !bIsRoot)
+			  {
+				  query  =   "(" +nameElement.trim().toLowerCase().replace(":", "_")+"(ID"+fatherElement.trim().toUpperCase()+",ID"+nameElement.trim().toUpperCase()+", "+nameElement.trim().toUpperCase()+")  ; "
+			      +nameElement.trim().toLowerCase().replace(":", "_")+"(ID"+fatherElement.trim().toUpperCase()+",ID"+nameElement.trim().toUpperCase()+") )";
+			  }
+		   }*/
+		   //### 05_16
+		   if(bHasChoiceChildren || (bHasOnlyAttributes && !bHasChildren))
+		   {
+			  boolean bHasValue =  bIsMixed || (bHasOnlyAttributes && !bHasChildren);
 			  if(bHasValue && !bIsRoot)
 			  {
 				  query  =   "(" +nameElement.trim().toLowerCase().replace(":", "_")+"(ID"+fatherElement.trim().toUpperCase()+",ID"+nameElement.trim().toUpperCase()+", "+nameElement.trim().toUpperCase()+")  ; "
@@ -1657,7 +1673,7 @@ public class WrapperSchema extends Wrapper {
 					
 					if(strBooleanCompare.compareToIgnoreCase(Function.FUNCTION_TRUE)==0)
 					{
-						List<String> finalArgs = obtainFinalFunctionArgs(  functionArgs,document, strFather, 1, sbReturn);
+						List<String> finalArgs = obtainFinalFunctionArgs(  functionArgs,document, strFather, strGrandFather,1, sbReturn);
 						if (finalArgs.size() > 0)
 					    {
 							
@@ -1669,7 +1685,9 @@ public class WrapperSchema extends Wrapper {
 							boolean bIsRoot = isRoot(document, "element", finalArgs.get(0));	  
 							boolean bHasChoiceChildren = hasAllChildrenChoice(document, "element",finalArgs.get(0), strFather,true);
 						 
-						   if(!bHasChildren && bIsMixed && !bIsRoot)
+						   //if(!bHasChildren && bIsMixed && !bIsRoot)
+							//### 05_16
+						   if(((!bHasChildren && bIsMixed) || (!bHasChildren && bHasOnlyAttributes))  && !bIsRoot)
 						   {
 							 //nPositionVet[0]++;
 							 strResult += ",";
@@ -1681,6 +1699,13 @@ public class WrapperSchema extends Wrapper {
 							  strResult += ",";
 							  strResult += "verifyBooleanContent("+finalArgs.get(0).trim().toUpperCase()+")";
 						   }
+							//### 05_16
+						   /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes)
+						   {
+							  //nPositionVet[0]++;
+							   strResult += ",";
+							  strResult += "verifyBooleanContent("+finalArgs.get(0).trim().toUpperCase()+")";
+						   }*/
 						}
 					}
 					else if (strBooleanCompare.compareToIgnoreCase(Function.FUNCTION_FALSE)==0)
@@ -1715,6 +1740,8 @@ public class WrapperSchema extends Wrapper {
 						boolean bHasChoiceChildren = hasAllChildrenChoice(document, "element",simpleArg, strFather,true);
 						
 						if(!bHasChildren && bIsMixed && !bIsRoot)
+						//### 05_16
+						if(((!bHasChildren && bIsMixed) || (!bHasChildren && bHasOnlyAttributes))  && !bIsRoot)
 					    {
 						 //nPositionVet[0]++;
 						  strRule += ",";
@@ -1726,7 +1753,12 @@ public class WrapperSchema extends Wrapper {
 						  strRule += ",";
 						  strRule += "verifyBooleanContent("+simpleArg.trim().toUpperCase()+")";
 					    }
-						
+						//### 05_16
+					    /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes)
+					    {
+					    	strRule += ",";
+							  strRule += "verifyBooleanContent("+simpleArg.trim().toUpperCase()+")";
+					    }*/
 						strResult += strRule+" ), LISTFALSE"+nPositionVet[0]+"), ";
 						
 						
@@ -2045,7 +2077,7 @@ public class WrapperSchema extends Wrapper {
 			{
 				    if(!listArgs.get(0).interpret().contains("("))
 				    {
-						List<String> finalArgs = obtainFinalFunctionArgs(  functionArgs,document, strTagFather, 1, sbReturn);
+						List<String> finalArgs = obtainFinalFunctionArgs(  functionArgs,document, strTagFather,strGrandFather, 1, sbReturn);
 						/*if (finalArgs.size() > 0)
 							sbReturn.toString();*/
 				    }
@@ -2190,7 +2222,7 @@ public class WrapperSchema extends Wrapper {
 				sbReturn.append(strResultValue + ") ");
 			 }*/
 			 
-			 List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			 List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
 			 if(finalArgs.size()>0)
 			 {
 				 String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
@@ -2278,7 +2310,7 @@ public class WrapperSchema extends Wrapper {
 					    
 					}
 				}*/
-				 List<String> finalArgs = obtainFinalFunctionArgs(listArgsDiv,document,strTagFather,2,sbReturn);
+				 List<String> finalArgs = obtainFinalFunctionArgs(listArgsDiv,document,strTagFather,strGrandFather,2,sbReturn);
 				 if(finalArgs.size()>1)
 				 {
 					// Pass Function Name
@@ -2350,7 +2382,7 @@ public class WrapperSchema extends Wrapper {
 		else if(/*functionName.compareToIgnoreCase(Function.FUNCTION_BOOLEAN)==0
 				||*/ functionName.compareToIgnoreCase(Function.FUNCTION_NOT)==0)
 		{
-			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
 			if (finalArgs.size() > 0)
 			{
 				if(sbReturn.length() > 0)
@@ -2429,7 +2461,7 @@ public class WrapperSchema extends Wrapper {
 				sbReturn.append(strResultValue + " = "+ arg.toUpperCase());
 			}*/
 			
-			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
 			if (finalArgs.size() > 0) 
 			{
 				String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
@@ -2468,7 +2500,7 @@ public class WrapperSchema extends Wrapper {
 					 sbReturn.append(", ");
 				 }*/
 				 
-			     List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			     List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
 			     String strResultValue = Function.FUNCTION_RESULT+String.valueOf(nPositionVet[0]);
 			     sbReturn.append(functionName+"( ");
 			     for(int i=0; i<finalArgs.size();i++)
@@ -2481,19 +2513,24 @@ public class WrapperSchema extends Wrapper {
 		}
 		else if(functionName.compareToIgnoreCase(Function.FUNCTION_CONTAINS)==0)
 		{
-			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
-			for(int i=0; i<finalArgs.size();i++)
+			 List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
+			 
+			 sbReturn.append(Function.FUNCTION_CONTAINS+"( ");
+			 for(int i=0; i<finalArgs.size();i++)
 			 {
 		    	 String arg = finalArgs.get(i);
-		    	 sbReturn.append(arg.toUpperCase());
+		    	 if(!arg.contains("'"))
+		    		 arg = arg.toUpperCase();
+		    	 sbReturn.append(arg);
 		    	 if(i+1 <finalArgs.size())
 		    		 sbReturn.append(", ");
 			 }
+			 sbReturn.append(") ");
 			
 		}
 		else if(functionName.replace("-", "").compareToIgnoreCase(Function.FUNCTION_STARTS_WITH)==0)
 		{
-			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,1,sbReturn);
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,1,sbReturn);
 			sbReturn.append(Function.FUNCTION_STARTS_WITH+"( ");
 			for(int i=0; i<finalArgs.size();i++)
 			 {
@@ -2644,7 +2681,7 @@ public class WrapperSchema extends Wrapper {
 				    }
 				    
 			 }*/
-			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,3,sbReturn);
+			List<String> finalArgs = obtainFinalFunctionArgs(functionArgs,document,strTagFather,strGrandFather,3,sbReturn);
 			if(finalArgs.size() > 2)
 		    {
 		    	String strResultValue = Function.FUNCTION_RESULT+ String.valueOf(nPositionVet[0]);
@@ -2662,7 +2699,7 @@ public class WrapperSchema extends Wrapper {
 	}
 	
 	
-	private List<String> obtainFinalFunctionArgs( List<String> argsList,Document document,String strTagFather, int nNeededArgs,StringBuilder sbReturn)
+	private List<String> obtainFinalFunctionArgs( List<String> argsList,Document document,String strTagFather,String strTagGrandFather, int nNeededArgs,StringBuilder sbReturn)
 	{
 		 
 		 List<String> finalArgs = new ArrayList<String>();
@@ -2672,6 +2709,11 @@ public class WrapperSchema extends Wrapper {
 			 	{
 			 		String arg = argsList.get(j);
 					boolean bArgIsresult = arg.toUpperCase().contains(Function.FUNCTION_RESULT);
+					if(arg.compareToIgnoreCase(".")==0)
+					{
+						arg = strTagFather;
+						strTagFather = strTagGrandFather;
+					}
 					String strTempFather = strTagFather;
 					if(arg.toUpperCase().compareTo(strTagFather)!=0
 		 						&& !bArgIsresult)
@@ -2924,7 +2966,8 @@ public class WrapperSchema extends Wrapper {
 				 for(int i=0; i< childNodes.getLength();i++)
 			     {
 					 String childNodeName = childNodes.item(i).getNodeName();
-					if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0)
+					if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0
+							&& (childNodeName.compareToIgnoreCase("#comment")!=0))
 			    	{
 			    		bHasOnlyAttribute = false;
 			    		break;
@@ -2963,7 +3006,7 @@ public class WrapperSchema extends Wrapper {
 					 bHasAllChildrenChoice = true;
 				 
 				 if(!isNodeChoice(childNodes.item(i)) && (childNodeName.compareToIgnoreCase("#text")!=0) 
-						 && (childNodeName.compareToIgnoreCase("xs:attribute") != 0) )
+						 && (childNodeName.compareToIgnoreCase("xs:attribute") != 0) && (childNodeName.compareToIgnoreCase("#comment")!=0))
 					 bHasAllChildrenChoice = false;
 		     }
 			 
@@ -2993,7 +3036,8 @@ public class WrapperSchema extends Wrapper {
 						 bHasAllChildrenChoice = true;
 					 
 					 if(!isNodeChoice(childNodes.item(i)) && (childNodeName.compareToIgnoreCase("#text")!=0) 
-							 && (childNodeName.compareToIgnoreCase("xs:attribute") != 0) )
+							 && (childNodeName.compareToIgnoreCase("xs:attribute") != 0) 
+							 && (childNodeName.compareToIgnoreCase("#comment")!=0))
 						 bHasAllChildrenChoice = false;
 			     }
 				 
@@ -3063,7 +3107,8 @@ public class WrapperSchema extends Wrapper {
 			 for(int i=0; i< childNodes.getLength();i++)
 		     {
 				String childNodeName = childNodes.item(i).getNodeName();
-				if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0)
+				if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0
+						&& (childNodeName.compareToIgnoreCase("#comment")!=0))
 		    	{
 		    		bHasOnlyAttribute = false;
 		    		break;
@@ -3093,7 +3138,8 @@ public class WrapperSchema extends Wrapper {
 				 for(int i=0; i< childNodes.getLength();i++)
 			     {
 					 String childNodeName = childNodes.item(i).getNodeName();
-					if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0)
+					if(childNodeName.compareToIgnoreCase("#text")!=0 && childNodeName.compareToIgnoreCase("xs:attribute") != 0
+							&& (childNodeName.compareToIgnoreCase("#comment")!=0))
 			    	{
 			    		bHasOnlyAttribute = false;
 			    		break;
@@ -4304,6 +4350,7 @@ public class WrapperSchema extends Wrapper {
 							  if(i>0)
 								 strCompleteRule+=";";
 								 
+							  String tmpRule = "";
 							  if(!bIsRoot)
 							  {
 								  if(strLastCommonParent.compareToIgnoreCase("NOPARENT")!=0 && strLastCommonParent.compareToIgnoreCase("IDNOPARENT")!=0)
@@ -4314,31 +4361,42 @@ public class WrapperSchema extends Wrapper {
 									  
 									  //strCompleteRule+="  nonvar(ID"+nodeKey.toUpperCase()+"), ";
                                       if(bHasUsedRefParent)
-                                          strCompleteRule+= "IDNODEORDER = IDREFPARENT,";
+                                          tmpRule+= "IDNODEORDER = IDREFPARENT,";
                                       else
-                                        strCompleteRule+= "IDNODEORDER = ID"+nodeKey.toUpperCase()+", ";
-									  strCompleteRule+=nodeKey+"(ID"+parentName+",IDNODEORDER";
+                                        tmpRule+= "IDNODEORDER = ID"+nodeKey.toUpperCase()+", ";
+									  tmpRule+=nodeKey+"(ID"+parentName+",IDNODEORDER";
 								  }
 								  else
 								  {
 									  //##
                                       //strCompleteRule+="  nonvar(ID"+nodeKey.toUpperCase()+"), ";
                                       if(bHasUsedRefParent)
-                                          strCompleteRule+= "IDNODEORDER = IDREFPARENT,";
+                                          tmpRule+= "IDNODEORDER = IDREFPARENT,";
                                       else
-                                        strCompleteRule+= "IDNODEORDER = ID"+nodeKey.toUpperCase()+", ";
-									  strCompleteRule+=nodeKey+"( _,IDNODEORDER";
+                                        tmpRule+= "IDNODEORDER = ID"+nodeKey.toUpperCase()+", ";
+									  tmpRule+=nodeKey+"( _,IDNODEORDER";
 								  }
 							  }
 							  else
-								  strCompleteRule+=nodeKey+"(IDNODEORDER";
+								  tmpRule+=nodeKey+"(IDNODEORDER";
 							  
 							  
-							  if(!bHasChildren && bIsMixed && !bIsRoot)
-								  strCompleteRule += ",_";
+							  //if(!bHasChildren && bIsMixed && !bIsRoot)
+							  //### 05_16
+							  if((!bHasChildren && bIsMixed) && !bIsRoot)
+								  tmpRule += ",_";
 							  else if(!bHasChildren && !bHasOnlyAttributes && !bIsRoot)
-									 strCompleteRule += ",_";
-								 
+									 tmpRule += ",_";
+							  else if (bHasOnlyAttributes && !bHasChildren) 
+							  {
+							      String tempRule = tmpRule;
+								  tmpRule+= "("+tempRule+",_) ; "+tempRule+")";
+							  }
+							  
+							  strCompleteRule+=tmpRule;
+							  
+							  /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes) 
+								  strCompleteRule += ",_";*/
 							  
 							  strCompleteRule+=") ";
 							  i++;
@@ -4489,17 +4547,29 @@ public class WrapperSchema extends Wrapper {
 				  //##
                   if(bIsMixed && !bHasChildren || (!bHasOnlyAttributes && !bHasChildren))		
 					  strTargetRule += ",_";
+				  //### 05_16
+                  /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes) 
+                	  strTargetRule += ",_";*/
 				  
 				  strTargetRule+=") ";
-				  if(bHasChoiceChildren)
+				  //### 05_16
+				  /*if(bHasChoiceChildren)
 				  {
 					  boolean bHasValue =  bIsMixed || (!bHasOnlyAttributes && !bHasChildren);
 					  if(bHasValue && !bIsRoot)
 					  {
 						  strTargetRule  =   "(" + strLastCommonParent.replace(":", "_")+"(_,IDNODEORDER,_)" +"  ; "+strLastCommonParent.replace(":", "_")+"( _,IDNODEORDER) )";
 					  }
+				  }*/
+				  //### 05_16
+				  if(bHasChoiceChildren || (!bHasChildren && bHasOnlyAttributes))
+				  {
+					  boolean bHasValue =  bIsMixed || (bHasOnlyAttributes && !bHasChildren);
+					  if(bHasValue && !bIsRoot)
+					  {
+						  strTargetRule  =   "(" + strLastCommonParent.replace(":", "_")+"(_,IDNODEORDER,_)" +"  ; "+strLastCommonParent.replace(":", "_")+"( _,IDNODEORDER) )";
+					  }
 				  }
-				  	 
 				  
 				  /*if(!bHasChildren && bIsMixed && !bIsRoot)
 					  strCompleteRule += ",_";
@@ -4986,6 +5056,12 @@ public class WrapperSchema extends Wrapper {
 						strPrintChildrenRule += ",_";
 					 else if(!bHasChildren && !bHasOnlyAttributes)
 						 strPrintChildrenRule += ",_";
+ 					//### 05_16
+					 /*else if(!bHasChildren && !bIsRoot && !bIsMixed && bHasOnlyAttributes)
+					 {
+						   
+						   strPrintChildrenRule += ",_";
+					 }*/
 				}
 				else
 				{
@@ -5030,6 +5106,11 @@ public class WrapperSchema extends Wrapper {
 					 printChild += ",_";
 				 else if(!bHasChildren && !bHasOnlyAttributes)
 					 printChild += ",_";
+ 				//### 05_16
+				 /*else if(!bHasChildren && !bIsMixed && bHasOnlyAttributes)
+				 {
+					  printChild += ",_";
+				 }*/
 				 /*boolean bLastElement  = true;
 				 
 				 if(bIsMixed && bHasChoiceChildren)

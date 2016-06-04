@@ -195,7 +195,7 @@ public class SchemaParser extends DocumentParser{
 	
 	private String createMixedElementPrintRule()
 	{
-		return "print_xmlMixedElement(IDTAG) :- xmlMixedElement(_,IDTAG,VALUE), write(VALUE).\n";
+		return "print_xmlMixedElement(IDTAG) :- nonvar(IDTAG),xmlMixedElement(_,IDTAG,VALUE), write(VALUE).\n";
 	}
 	
 	private String processDescendingRules(Document _doc,String _nodeName,String _fatherNodeName,String _nameElementType)
@@ -406,7 +406,9 @@ public class SchemaParser extends DocumentParser{
 	   String strPrintComplexRule = "";
 	   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
 		
-	   if(bIsMixed && bHasChoiceChildren)
+	   //if(bIsMixed && bHasChoiceChildren)
+	   //### 05_16
+	   if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && arrayAttribueNames.size() >0))
 	   {
 		   strPrintComplexRule = "print_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
 		   strPrintComplexRule += " var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
@@ -499,7 +501,9 @@ public class SchemaParser extends DocumentParser{
 		   //##strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),write(VALUE));write('</"+_nodeName.toLowerCase()+">').\n";
 		   strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),write(VALUE));write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
 	   }
-	   else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 ))
+	   //else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 && bHasChildren))
+		//### 05_16
+		else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 ))
 	   {
            
 		   Node rootNode = getRootElement( _doc);
@@ -592,8 +596,8 @@ public class SchemaParser extends DocumentParser{
 		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
 		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
 	   }
-           else if(bIsMixed && bHasChildren)
-           {
+       else if(bIsMixed && bHasChildren)
+       {
                 Node rootNode = getRootElement( _doc);
 		   String rootNodeName = "";
 		   if (rootNode.getAttributes().getNamedItem("name")!= null)
@@ -683,7 +687,7 @@ public class SchemaParser extends DocumentParser{
 		   		   
 		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
 		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
-           }
+       }
 	   else
 	   {
 		 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),printnl(''),write('<"+_nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
@@ -739,10 +743,15 @@ public class SchemaParser extends DocumentParser{
 			   strAscComplexRule+=normalizedNodeName+"(IDELEMENT)";
 			   bRoot = true;
 		   }
-		   else*/ if(bIsMixed && bHasChoiceChildren)
+		   else*/ 
+		   //if(bIsMixed && bHasChoiceChildren)
+		   //### 05_16
+		   if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && bHasAttributes) )
 		   {
 			   strAscComplexRule+="("+normalizedNodeName+"(IDPARENT,IDELEMENT);"+normalizedNodeName+"(IDPARENT,IDELEMENT,_))";
 		   }
+		   //else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes && bHasChildren ))
+		   //### 05_16
 		   else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
 		   {
 			   strAscComplexRule+=normalizedNodeName+"(IDPARENT,IDELEMENT)";
@@ -794,7 +803,9 @@ public class SchemaParser extends DocumentParser{
 	   if (rootNode.getAttributes().getNamedItem("name")!= null)
 			rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
 		
-	   if(bIsMixed && bHasChoiceChildren)
+	   //if(bIsMixed && bHasChoiceChildren)
+	   //### 05_16
+	   if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && arrayAttribueNames.size() >0))
 	   {
 		   strPrintComplexRule = "print_wild_card_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
 		   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) ; var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
@@ -923,7 +934,9 @@ public class SchemaParser extends DocumentParser{
 		   strPrintComplexRule +=".\n";	   
 		   //strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),print(VALUE));print('</"+_nodeName.toLowerCase()+">').\n";
 	   }
-	   else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 ))
+	   //else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 && bHasChildren))
+	   //### 05_16
+		else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 ))
 	   {
            
 		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
@@ -1115,7 +1128,9 @@ public class SchemaParser extends DocumentParser{
 		if (nodeTypeList.get(0).getAttributes().getNamedItem("mixed")!= null)
 			bIsMixed = nodeTypeList.get(0).getAttributes().getNamedItem("mixed").getNodeValue().equalsIgnoreCase("true");
 		
-		 if(bIsMixed && bHasChoiceChildren)
+		 //if(bIsMixed && bHasChoiceChildren)
+		  //### 05_16
+		 if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && obtainNodeAttributesNames(nodeTypeList.get(0)).size()> 0))
 		 {
 			 baseRule = "("+normalizedNodeName+"(IDTAG,IDCHILD); "+normalizedNodeName+"(IDTAG,IDCHILD,_) )";
 		 }
@@ -1123,6 +1138,8 @@ public class SchemaParser extends DocumentParser{
 		 {
 			 baseRule = normalizedNodeName+"(IDTAG,IDCHILD)";
 		 }
+		 //else if (!bIsMixed && obtainNodeAttributesNames(nodeTypeList.get(0)).size()> 0 && bHasChildren )
+		//### 05_16
 		 else if (!bIsMixed && obtainNodeAttributesNames(nodeTypeList.get(0)).size()> 0 )
 		 {
 			 baseRule = normalizedNodeName+"(IDTAG,IDCHILD)";
@@ -1206,15 +1223,19 @@ public class SchemaParser extends DocumentParser{
 			   rule = normalizedNodeName+"(IDELEMENT)";
 			   bRoot = true;
 		   }
-		   else if(bIsMixed && bHasChoiceChildren)
+		   //else if(bIsMixed && bHasChoiceChildren)
+		   //### 05_16
+		   else if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && bHasAttributes))
 		   {
 			   rule = "("+normalizedNodeName+"(IDPARENT,IDELEMENT);"+normalizedNodeName+"(IDPARENT,IDELEMENT,_))";
 		   }
+		   //else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes && bHasChildren))
+		   //### 05_16
 		   else if((!bIsMixed && bHasChildren) || (!bIsMixed && bHasAttributes ))
 		   {
 			   rule = normalizedNodeName+"(IDPARENT,IDELEMENT)";
 		   }
-                   else if((bIsMixed && bHasChildren) )
+           else if((bIsMixed && bHasChildren) )
 		   {
 			   rule = normalizedNodeName+"(IDPARENT,IDELEMENT)";
 		   }
@@ -1454,17 +1475,41 @@ public class SchemaParser extends DocumentParser{
 			Node complexType = nlComplexTypeList.item(i);	
 			String stringRule = null;
 			String ruleHead = complexTypeSearch(doc, (Element) complexType);
+			if(ruleHead==null)
+			{
+				int x = 1;
+				x++;
+			}
+			
+			String complexTypeName = "";
+			
+			if(complexType.getAttributes().getLength()>0)
+				complexTypeName = complexType.getAttributes().getNamedItem("name").getNodeValue();
+			
 			boolean bRoot = isRootNode(doc, (Element) complexType);
 			
 			ruleHead = ruleHead.replace(":","_");
 						
 			NodeList nlComplexTypeChilds = complexType.getChildNodes();
+			int nCountAttribute = 0;
+			int nCountChilds = 0;
 			
-			for(int j=0; j < nlComplexTypeChilds.getLength(); j++){
+			
+			for(int j=0; j < nlComplexTypeChilds.getLength(); j++)
+			{
 				
 				Node orderIndicator = nlComplexTypeChilds.item(j);
 				
 				String nodeName = orderIndicator.getNodeName();
+				
+				if(nodeName == xsAttribute)
+					nCountAttribute++;
+				else if(nodeName == xsSequence || 
+						nodeName == xsChoice || 
+						nodeName == xsAll  || 
+						nodeName == xsElement)
+					nCountChilds++;
+				
 				
 				if(nodeName == xsSequence || nodeName == xsChoice || nodeName == xsAll  || nodeName == xsAttribute)
 				{
@@ -1520,6 +1565,29 @@ public class SchemaParser extends DocumentParser{
 					}
 				}
 			}
+			
+			if(nCountAttribute>0 && nCountChilds <=0)
+			{
+				for(int j=0; j< nlElementsList.getLength();j++)
+				{
+					Element element = (Element) nlElementsList.item(j);
+                    if ( element.getAttributeNode("type") != null)
+                    {
+                        if ( element.getAttributeNode("type").getNodeValue() != null )
+                        {
+                            if((element.getAttributeNode("type").getNodeValue().equals(complexTypeName)))
+                            {
+                            	if(!choiceList.contains(element) )
+            					{
+            						choiceList.add(element);
+            						break;
+            					}
+                            }
+                        }
+                    }
+				}
+			}
+			
 		}
 		
 		String stringProlog = "";
@@ -1571,15 +1639,23 @@ public class SchemaParser extends DocumentParser{
 		NodeList nlSequenceChilds = sequenceNode.getChildNodes();
 
 		int initialSize = tempRulesList.size();
-
-		for(int i=0; i < nlSequenceChilds.getLength(); i++){
+        //int nCountAttributes = 0;
+        //int nCountElements = 0;
+        //boolean bHasSequenceOrChoice = false;
+		for(int i=0; i < nlSequenceChilds.getLength(); i++)
+		{
 			Node child = nlSequenceChilds.item(i);
 			
 			if(child.getNodeName() == xsElement || child.getNodeName() == xsAttribute)
 			{
-				
+				String name = child.getAttributes().getNamedItem("name").getNodeValue();
 				int finalSize = tempRulesList.size();
-                                
+                
+				/*if(child.getNodeName() == xsElement)
+					nCountElements++;
+				else if(child.getNodeName() == xsAttribute)
+					nCountAttributes++;*/
+				
 				//#####
 					boolean bMinOccur = (child.getAttributes().getNamedItem("minOccurs") != null &&
 							Integer.parseInt(child.getAttributes().getNamedItem("minOccurs").getNodeValue()) <=0);
@@ -1594,8 +1670,8 @@ public class SchemaParser extends DocumentParser{
 					}
 				//####
                                 
-                                if((flagChoiceSequence || bMinOccur) && !choiceList.contains(child) )
-                                    choiceList.add(child);
+                if((flagChoiceSequence || bMinOccur) && !choiceList.contains(child) )
+                    choiceList.add(child);
 				
 				boolean bComplex = isComplexNode((Element)child);
 				boolean bMixedNode = isMixedNode((Element)child);
@@ -1632,12 +1708,14 @@ public class SchemaParser extends DocumentParser{
 			else if(child.getNodeName() == xsSequence){
 				// TODO: Acerto para S{C, S}: Isso aqui esta esquisito
 				temp = initialChoiceSize;
+				//bHasSequenceOrChoice = true;
 				tempRulesList = processSequence(child, tempRulesList,ruleParent);
 				temp = 0;
 				initialChoiceSize = 0;
 			} 
 			else if(child.getNodeName() == xsChoice){
 				initialChoiceSize = tempRulesList.size();
+				//bHasSequenceOrChoice = true;
 				tempRulesList = processChoice(child, tempRulesList,ruleParent);
 				if(flagSequenceChoice){
 					tempRulesList = auxRuleList;
@@ -1646,6 +1724,13 @@ public class SchemaParser extends DocumentParser{
 				flagSequenceChoice = true;
 			} 
 		}
+		
+		/*if(!bHasSequenceOrChoice && nCountElements<=0 && nCountAttributes>0)
+		{
+			if(!choiceList.contains(child) )
+                choiceList.add(child);
+		}*/
+		
 		flagSequenceChoice = false;
 		return tempRulesList;
 	}
