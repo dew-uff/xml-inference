@@ -153,13 +153,22 @@ public class NewHandleSAX extends DefaultHandler {
     		String nomeAtributo = attrs.getQName(i);
 
     		if(nomeAtributo.contains(":"))
-    			nomeAtributo = nomeAtributo.replace(":", "_");
+    		{
+    			//nomeAtributo = nomeAtributo.replace(":", "_");
+    			String [] split =  nomeAtributo.split(":");
+    			nomeAtributo = "-";
+            	for(int j=0; j<split.length-1;j++)
+            	{
+            		nomeAtributo+= split[j] + "-";
+            	}
+            	nomeAtributo+= split[split.length-1];
+    		}
     		
 
     		String novoConteudo = attrs.getValue(i);
     		
     		ElementoXML eleXML = new ElementoXML();
-    		eleXML.setConteudo(novoConteudo);
+    		eleXML.setConteudo(novoConteudo.trim());
     		eleXML.setId(idAtributo);
     		eleXML.setNome(nomeAtributo);
     		vetAtributos.add(eleXML);
@@ -239,7 +248,7 @@ public class NewHandleSAX extends DefaultHandler {
     	if (!conteudoAtual.trim().isEmpty())
     	{
     		int idElementoMisto = ++nContador;
-    		escreveArquivo(constroiStringElementoMisto(stackID.get(stackID.size() - 1), idElementoMisto, conteudoAtual));
+    		escreveArquivo(constroiStringElementoMisto(stackID.get(stackID.size() - 1), idElementoMisto, conteudoAtual.trim()));
     		conteudoAtual = "";
     	}
 
@@ -247,7 +256,16 @@ public class NewHandleSAX extends DefaultHandler {
     	elementIsOpened = true;
     	
     		if(nomeElemento.contains(":"))
-    			nomeElemento = nomeElemento.replace(":", "_");
+    		{
+    			//nomeElemento = nomeElemento.replace(":", "_");
+    			String [] split =  nomeElemento.split(":");
+    			nomeElemento = "-";
+            	for(int j=0; j<split.length-1;j++)
+            	{
+            		nomeElemento+= split[j] + "-";
+            	}
+            	nomeElemento+= split[split.length-1];
+    		}
     	
 
     	ultimoElemento = nomeElemento;
@@ -322,7 +340,16 @@ public class NewHandleSAX extends DefaultHandler {
     	
     	
     	if(nomeElemento.contains(":"))
-    		nomeElemento = nomeElemento.replace(":", "_");
+    	{
+    		//nomeElemento = nomeElemento.replace(":", "_");
+    		String [] split =  nomeElemento.split(":");
+			nomeElemento = "-";
+        	for(int j=0; j<split.length-1;j++)
+        	{
+        		nomeElemento+= split[j] + "-";
+        	}
+        	nomeElemento+= split[split.length-1];
+    	}
     	
 
     	if (nomeElemento.compareTo(ultimoElemento) == 0)
@@ -347,7 +374,7 @@ public class NewHandleSAX extends DefaultHandler {
     	else if (!conteudoAtual.trim().isEmpty())
     	{
     		if (stackID.size()>1)
-    			escreveArquivo(constroiStringElementoMisto(stackID.get(stackID.size() - 1), ++nContador,conteudoAtual));
+    			escreveArquivo(constroiStringElementoMisto(stackID.get(stackID.size() - 1), ++nContador,conteudoAtual.trim()));
     	}
     	
     	elementIsOpened = false;
@@ -395,7 +422,7 @@ public class NewHandleSAX extends DefaultHandler {
     	String conteudo = new String( ch, start, length);
 
     	//std::string str = conteudo;
-    	conteudoAtual = conteudo;
+    	conteudoAtual = conteudo.trim();
     	conteudoAtual = conteudoAtual.replace("\n", "");
     	conteudoAtual = conteudoAtual.replace("\t", "");
     	//conteudoAtual.erase(std::remove_if(conteudoAtual.begin(), conteudoAtual.end(),

@@ -201,7 +201,19 @@ public class SchemaParser extends DocumentParser{
 	private String processDescendingRules(Document _doc,String _nodeName,String _fatherNodeName,String _nameElementType)
 	{
 		String strDescRules = "";
-		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = _nodeName.toLowerCase();
+		if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
+		
 		ArrayList<Node> nodeListType  = getComplexNodeByName(_doc,_nameElementType);
 		if(_nameElementType.isEmpty())
 			return strDescRules;
@@ -265,7 +277,19 @@ public class SchemaParser extends DocumentParser{
 	private String processAscendingRules(Document _doc,String _nodeName,String _fatherNodeName,String _nameElementType)
 	{
 			String strAscRules = "";
-			String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+			//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+			String normalizedNodeName = _nodeName.toLowerCase();
+			if(normalizedNodeName.contains(":"))
+			{
+				String [] split =  normalizedNodeName.split(":");
+				normalizedNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedNodeName+= split[j] + "-";
+		    	}
+		    	normalizedNodeName+= split[split.length-1];
+			}
+			
 			ArrayList<Node> nodeListType  = getComplexNodeByName(_doc,_nameElementType);
 			if(_nameElementType.isEmpty())
 				return strAscRules;
@@ -329,7 +353,19 @@ public class SchemaParser extends DocumentParser{
 	private String processPrintRules(Document _doc,String _nodeName,String _nameElementType)
 	{
 		String strPrintRules = "";
-		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = _nodeName.toLowerCase();
+		if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
+		
 		ArrayList<Node> nodeListType  = getComplexNodeByName(_doc,_nameElementType);
 		
 		if(_nameElementType.isEmpty())
@@ -404,22 +440,45 @@ public class SchemaParser extends DocumentParser{
 			ArrayList<Node> listChildNodes) 
 	{
 	   String strPrintComplexRule = "";
-	   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+	   //String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+	   String normalizedNodeName = _nodeName.toLowerCase();
+	    if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
 		
 	   //if(bIsMixed && bHasChoiceChildren)
 	   //### 05_16
 	   if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && arrayAttribueNames.size() >0))
 	   {
-		   strPrintComplexRule = "print_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
+		   strPrintComplexRule = "print_"+normalizedNodeName+"(IDPARENT,IDTAG):- ";
 		   strPrintComplexRule += " var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
 		   //strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
 		   strPrintComplexRule += " ,setof(X, member(X,LIST), LISTSORTED),member(IDSORTED,LISTSORTED),\n";
 		   
+		    String nodeName = _nodeName;
+		    if(nodeName.startsWith("-"))
+			{
+				String [] split =  nodeName.split("-");
+				nodeName = "";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		nodeName+= split[j] + ":";
+		    	}
+		    	nodeName+= split[split.length-1];
+			}
+		   
 		   //##strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), printnl(''),write('<"+_nodeName.toLowerCase()+"'), \n";
-		   strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), write('<"+_nodeName.toLowerCase()+"'), \n";
+		   strPrintComplexRule += "("+normalizedNodeName+"(IDPARENT,IDSORTED);"+normalizedNodeName+"(IDPARENT,IDSORTED,_)), write('<"+nodeName.toLowerCase()+"'), \n";
 		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDSORTED));nonvar(IDTAG),("+normalizedNodeName+"(IDPARENT,IDTAG);"+normalizedNodeName+"(IDPARENT,IDTAG,_)),\n";
 		 //##strPrintComplexRule +=" printnl(''),write('<"+_nodeName.toLowerCase()+"'),print_"+normalizedNodeName+"_childs(IDTAG).\n";
-		   strPrintComplexRule +=" write('<"+_nodeName.toLowerCase()+"'),print_"+normalizedNodeName+"_childs(IDTAG).\n";
+		   strPrintComplexRule +=" write('<"+nodeName.toLowerCase()+"'),print_"+normalizedNodeName+"_childs(IDTAG).\n";
 		   
 		   
 		   
@@ -431,7 +490,20 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   //strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   String attName = arrayAttribueNames.get(i).toLowerCase();
+				   if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				   strPrintComplexRule += normalizedNodeName+"_attribute_"+attName;
+				   
 				   strPrintComplexRule +="(IDTAG,IDCHILD,_)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
@@ -443,7 +515,21 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   //strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   
+				   String attName = arrayAttribueNames.get(i).toLowerCase();
+				    if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+attName;
+				   
 				   strPrintComplexRule +="(IDTAG,IDCHILDATTRIBUTESORTED)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
@@ -483,7 +569,19 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				    //strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				    String childName = childNodeName.toLowerCase();
+				    if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				    strPrintComplexRule += "print_"+childName+"(IDTAG,IDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -499,29 +597,41 @@ public class SchemaParser extends DocumentParser{
 			   strPrintComplexRule += ")";
 				   
 		   //##strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),write(VALUE));write('</"+_nodeName.toLowerCase()+">').\n";
-		   strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),write(VALUE));write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
+		   strPrintComplexRule +=";("+normalizedNodeName+"(_,IDTAG,VALUE),write(VALUE));write('</"+nodeName.toLowerCase()+">'),printnl('').\n";
 	   }
 	   //else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 && bHasChildren))
 		//### 05_16
 		else if((!bIsMixed && bHasChildren) || (!bIsMixed && arrayAttribueNames.size()> 0 ))
 	   {
-           
+			String nodeName = _nodeName;
+		    if(nodeName.startsWith("-"))
+			{
+				String [] split =  nodeName.split("-");
+				nodeName = "";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		nodeName+= split[j] + ":";
+		    	}
+		    	nodeName+= split[split.length-1];
+			}
+			
+			
 		   Node rootNode = getRootElement( _doc);
 		   String rootNodeName = "";
 		   if (rootNode.getAttributes().getNamedItem("name")!= null)
 				rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
 		   
 		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
-			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDTAG) :- "+normalizedNodeName+"(IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDTAG) :- "+normalizedNodeName+"(IDTAG), write('<"+nodeName.toLowerCase()+"'),";
 		   else
 		   {
 			 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), printnl(''),write('<"+_nodeName.toLowerCase()+"'),";
-			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), write('<"+nodeName.toLowerCase()+"'),";
 		   }
 		   
 		   strPrintComplexRule +="print_"+normalizedNodeName+"_childs(IDTAG).\n";
 		   
-		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDTAG):-";
+		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDTAG):- ";
 		   
 		   if(arrayAttribueNames.size() > 0)
 		   {
@@ -532,8 +642,23 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
-				   strPrintComplexRule +="(IDTAG,IDCHILD,_)";
+				   //strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   
+				    String attName = arrayAttribueNames.get(i).toLowerCase();
+				    if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				    
+				    strPrintComplexRule += normalizedNodeName+"_attribute_"+attName;
+				   
+				    strPrintComplexRule +="(IDTAG,IDCHILD,_)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
 			   }
@@ -544,7 +669,21 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   //strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   
+				    String attName = arrayAttribueNames.get(i).toLowerCase();
+				    if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				    strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+attName;
+				   
 				   strPrintComplexRule +="(IDTAG,IDATTRIBUTECHILDSORTED)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
@@ -584,7 +723,20 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   //strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+					
+					String childName = childNodeName.toLowerCase();
+				    if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				    strPrintComplexRule += "print_"+childName+"(IDTAG,IDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -594,26 +746,38 @@ public class SchemaParser extends DocumentParser{
 		   }
 		   		   
 		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
-		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
+		   strPrintComplexRule +=";write('</"+nodeName.toLowerCase()+">'),printnl('').\n";
 	   }
        else if(bIsMixed && bHasChildren)
        {
-                Node rootNode = getRootElement( _doc);
+    	   String nodeName = _nodeName;
+		    if(nodeName.startsWith("-"))
+			{
+				String [] split =  nodeName.split("-");
+				nodeName = "";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		nodeName+= split[j] + ":";
+		    	}
+		    	nodeName+= split[split.length-1];
+			}
+    	   
+    	   Node rootNode = getRootElement( _doc);
 		   String rootNodeName = "";
 		   if (rootNode.getAttributes().getNamedItem("name")!= null)
 				rootNodeName =  rootNode.getAttributes().getNamedItem("name").getNodeValue();
 		   
 		   if(_nodeName.compareToIgnoreCase(rootNodeName) == 0)
-			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDTAG) :- "+normalizedNodeName+"(IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDTAG) :- "+normalizedNodeName+"(IDTAG), write('<"+nodeName.toLowerCase()+"'),";
 		   else
 		   {
 			 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), printnl(''),write('<"+_nodeName.toLowerCase()+"'),";
-			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), write('<"+_nodeName.toLowerCase()+"'),";
+			   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG), write('<"+nodeName.toLowerCase()+"'),";
 		   }
 		   
 		   strPrintComplexRule +="print_"+normalizedNodeName+"_childs(IDTAG).\n";
 		   
-		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDTAG):-";
+		   strPrintComplexRule +=" print_"+normalizedNodeName+"_childs(IDTAG):- ";
 		   
 		   if(arrayAttribueNames.size() > 0)
 		   {
@@ -624,7 +788,21 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   //strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   
+				   String attName = arrayAttribueNames.get(i).toLowerCase();
+				   if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				   strPrintComplexRule += normalizedNodeName+"_attribute_"+attName;
+				   
 				   strPrintComplexRule +="(IDTAG,IDCHILD,_)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
@@ -636,7 +814,20 @@ public class SchemaParser extends DocumentParser{
 			   
 			   for(int i=0;i<arrayAttribueNames.size();i++)
 			   {
-				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   //strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+				   String attName =arrayAttribueNames.get(i).toLowerCase();
+				   if(attName.contains(":"))
+					{
+						String [] split =  attName.split(":");
+						attName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		attName+= split[j] + "-";
+				    	}
+				    	attName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+attName;
+				   
 				   strPrintComplexRule +="(IDTAG,IDATTRIBUTECHILDSORTED)";
 				   if(i+1<arrayAttribueNames.size())
 					   strPrintComplexRule += ";";
@@ -676,7 +867,19 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   //strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   String childName = childNodeName.toLowerCase();
+				   if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_"+childName+"(IDTAG,IDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -686,18 +889,43 @@ public class SchemaParser extends DocumentParser{
 		   }
 		   		   
 		   //###strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">').\n";
-		   strPrintComplexRule +=";write('</"+_nodeName.toLowerCase()+">'),printnl('').\n";
+		   strPrintComplexRule +=";write('</"+nodeName.toLowerCase()+">'),printnl('').\n";
        }
 	   else
 	   {
-		 //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),printnl(''),write('<"+_nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
-		   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),write('<"+_nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
+		 
+		   String nodeName = _nodeName;
+		    if(nodeName.startsWith("-"))
+			{
+				String [] split =  nodeName.split("-");
+				nodeName = "";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		nodeName+= split[j] + ":";
+		    	}
+		    	nodeName+= split[split.length-1];
+			}
+		   //##strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),printnl(''),write('<"+_nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
+		   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) :- "+normalizedNodeName+"(IDPARENT,IDTAG,_),write('<"+nodeName.toLowerCase()+"'), print_"+normalizedNodeName+"_childs(IDTAG).\n";
 		   strPrintComplexRule += " print_"+normalizedNodeName+"_childs(IDTAG) :- "+normalizedNodeName+"(_,IDTAG,VALUE), findall(IDCHILD,(\n";
 		   
 		   //Atributos
 		   for(int i=0;i<arrayAttribueNames.size();i++)
 		   {
-			   strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+			   //strPrintComplexRule += normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+			   String attName = arrayAttribueNames.get(i).toLowerCase();
+			   if(attName.contains(":"))
+				{
+					String [] split =  attName.split(":");
+					attName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		attName+= split[j] + "-";
+			    	}
+			    	attName+= split[split.length-1];
+				}
+			   strPrintComplexRule += normalizedNodeName+"_attribute_"+attName;
+			   
 			   strPrintComplexRule +="(IDTAG,IDCHILD,_)";
 			   if(i+1<arrayAttribueNames.size())
 				   strPrintComplexRule += ";";
@@ -709,13 +937,26 @@ public class SchemaParser extends DocumentParser{
 		   //Print Atributos
 		   for(int i=0;i<arrayAttribueNames.size();i++)
 		   {
-			   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+arrayAttribueNames.get(i).toLowerCase().replace(":", "_");
+			   
+			   String attName = arrayAttribueNames.get(i).toLowerCase();
+			   if(attName.contains(":"))
+				{
+					String [] split =  attName.split(":");
+					attName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		attName+= split[j] + "-";
+			    	}
+			    	attName+= split[split.length-1];
+				}
+			   
+			   strPrintComplexRule += "print_"+normalizedNodeName+"_attribute_"+attName;
 			   strPrintComplexRule +="(IDTAG,IDCHILDSORTED)";
 			   if(i+1<arrayAttribueNames.size())
 				   strPrintComplexRule += ";";
 		   }
 		   //##strPrintComplexRule += ");write('>') ;("+normalizedNodeName+"(IDPARENT,IDTAG,VALUE),write(VALUE),write('</"+_nodeName.toLowerCase()+">')).\n";
-		   strPrintComplexRule += ");write('>') ;("+normalizedNodeName+"(IDPARENT,IDTAG,VALUE),write(VALUE),write('</"+_nodeName.toLowerCase()+">'),printnl('')).\n";
+		   strPrintComplexRule += ");write('>') ;("+normalizedNodeName+"(IDPARENT,IDTAG,VALUE),write(VALUE),write('</"+nodeName.toLowerCase()+">'),printnl('')).\n";
 		   
 		   
 	   }
@@ -726,11 +967,34 @@ public class SchemaParser extends DocumentParser{
 	private String createAscendingRule(Document _doc,String _nodeName,String _fatherNodeName,boolean bHasChildren,boolean bIsMixed,boolean bHasChoiceChildren,boolean bHasAttributes)
 	{
 		   String strAscComplexRule = "";
-		   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
-		   String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		   //String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		   String normalizedNodeName = _nodeName.toLowerCase();
+		    if(normalizedNodeName.contains(":"))
+			{
+				String [] split =  normalizedNodeName.split(":");
+				normalizedNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedNodeName+= split[j] + "-";
+		    	}
+		    	normalizedNodeName+= split[split.length-1];
+			}
+		   
+		   //String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		    String normalizedFatherNodeName = _fatherNodeName.toLowerCase();
+		   if(normalizedFatherNodeName.contains(":"))
+			{
+				String [] split =  normalizedFatherNodeName.split(":");
+				normalizedFatherNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedFatherNodeName+= split[j] + "-";
+		    	}
+		    	normalizedFatherNodeName+= split[split.length-1];
+			}
 			
 		   //strAscComplexRule = "obtainAncestrals_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST,LIST2):-";
-		   strAscComplexRule = "obtainAncestrals_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST):-";
+		   strAscComplexRule = "obtainAncestrals_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST):- ";
 		   
 		   Node rootNode = getRootElement( _doc);
 		   String rootNodeName = "";
@@ -796,7 +1060,18 @@ public class SchemaParser extends DocumentParser{
 			ArrayList<Node> listChildNodes) 
 	{
 	   String strPrintComplexRule = "";
-	   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+	   //String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+	   String normalizedNodeName = _nodeName.toLowerCase();
+	   if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
 	   
 	   Node rootNode = getRootElement( _doc);
 	   String rootNodeName = "";
@@ -807,7 +1082,7 @@ public class SchemaParser extends DocumentParser{
 	   //### 05_16
 	   if((bIsMixed && bHasChoiceChildren) || (!bHasChildren && arrayAttribueNames.size() >0))
 	   {
-		   strPrintComplexRule = "print_wild_card_"+normalizedNodeName+"(IDPARENT,IDTAG):-";
+		   strPrintComplexRule = "print_wild_card_"+normalizedNodeName+"(IDPARENT,IDTAG):- ";
 		   strPrintComplexRule += " print_"+normalizedNodeName+"(IDPARENT,IDTAG) ; var(IDTAG),(findall(IDORDER,("+normalizedNodeName+"(IDPARENT,IDORDER);"+normalizedNodeName+"(IDPARENT,IDORDER,_)),LIST)\n";
 		   //strPrintComplexRule += " ,quick_sort(LIST,LISTSORTED),member(IDSORTED,LISTSORTED),\n";
 		   strPrintComplexRule += " ,setof(X, member(X,LIST), LISTSORTED),member(IDSORTED,LISTSORTED),\n";
@@ -882,7 +1157,19 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   //strPrintComplexRule += "print_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDCHILDSORTED)";
+				   String childName = childNodeName.toLowerCase();
+				   if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_"+childName+"(IDTAG,IDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -919,7 +1206,19 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_wild_card_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDWILDCHILDSORTED)";
+				   //strPrintComplexRule += "print_wild_card_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDWILDCHILDSORTED)";
+				   String childName = childNodeName.toLowerCase();
+				   if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_wild_card_"+childName+"(IDTAG,IDWILDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -948,7 +1247,7 @@ public class SchemaParser extends DocumentParser{
 		   
 		   strPrintComplexRule +="print_wild_card_"+normalizedNodeName+"_childs(IDTAG).\n";
 		   
-		   strPrintComplexRule +=" print_wild_card_"+normalizedNodeName+"_childs(IDTAG):-";
+		   strPrintComplexRule +=" print_wild_card_"+normalizedNodeName+"_childs(IDTAG):- ";
 		   
 		   /*if(arrayAttribueNames.size() > 0)
 		   {
@@ -1051,7 +1350,19 @@ public class SchemaParser extends DocumentParser{
 					if(childNodeName.isEmpty())
 						continue;
 					
-				   strPrintComplexRule += "print_wild_card_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDWILDCHILDSORTED)";
+				   //strPrintComplexRule += "print_wild_card_"+childNodeName.toLowerCase().replace(":", "_")+"(IDTAG,IDWILDCHILDSORTED)";
+				   String childName = childNodeName.toLowerCase();
+				   if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				   strPrintComplexRule += "print_wild_card_"+childName+"(IDTAG,IDWILDCHILDSORTED)";
 				   
 				   if(i+1<listChildNodes.size())
 					   strPrintComplexRule += ";";
@@ -1112,7 +1423,18 @@ public class SchemaParser extends DocumentParser{
 		if(nodeName.isEmpty())
 			return "";
 		
-		String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = nodeName.toLowerCase();
+		   if(normalizedNodeName.contains(":"))
+			{
+				String [] split =  normalizedNodeName.split(":");
+				normalizedNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedNodeName+= split[j] + "-";
+		    	}
+		    	normalizedNodeName+= split[split.length-1];
+			}
 		
 		ArrayList<Node> nodeTypeList =  getComplexNodeByName(_doc, strType);
 		
@@ -1206,10 +1528,32 @@ public class SchemaParser extends DocumentParser{
 	private String createDescendingRule(Document _doc,String _nodeName,String _fatherNodeName,ArrayList<Node>  listChildNodes,boolean bHasChildren,boolean bIsMixed,boolean bHasChoiceChildren,boolean bHasAttributes)
 	{
 		   String strDescComplexRule = "";
-		   String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
-		   String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		   //String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		   String normalizedNodeName = _nodeName.toLowerCase();
+		   if(normalizedNodeName.contains(":"))
+			{
+				String [] split =  normalizedNodeName.split(":");
+				normalizedNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedNodeName+= split[j] + "-";
+		    	}
+		    	normalizedNodeName+= split[split.length-1];
+			}
+		   //String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		   String normalizedFatherNodeName = _fatherNodeName.toLowerCase();
+		   if(normalizedFatherNodeName.contains(":"))
+			{
+				String [] split =  normalizedFatherNodeName.split(":");
+				normalizedFatherNodeName = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		normalizedFatherNodeName+= split[j] + "-";
+		    	}
+		    	normalizedFatherNodeName+= split[split.length-1];
+			}
 			
-		   strDescComplexRule = "obtainDescendents_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST2):-"; 
+		   strDescComplexRule = "obtainDescendents_"+normalizedNodeName.toLowerCase()+"(IDELEMENT,LIST2):- "; 
 		   
 		   Node rootNode = getRootElement( _doc);
 		   String rootNodeName = "";
@@ -1267,7 +1611,21 @@ public class SchemaParser extends DocumentParser{
 				   strDescComplexRule += "( ";
 				   strDescComplexRule += obtainBaseRuleNode(_doc,listChildNodes.get(i)).replace("IDTAG","IDELEMENT");
 				   strDescComplexRule += " ,";
-				   strDescComplexRule += "obtainDescendents_"+childNodeName.toLowerCase().replace(":", "_");
+				   //strDescComplexRule += "obtainDescendents_"+childNodeName.toLowerCase().replace(":", "_");
+				   
+				   String childName = childNodeName.toLowerCase();
+				    if(childName.contains(":"))
+					{
+						String [] split =  childName.split(":");
+						childName = "-";
+				    	for(int j=0; j<split.length-1;j++)
+				    	{
+				    		childName+= split[j] + "-";
+				    	}
+				    	childName+= split[split.length-1];
+					}
+				    strDescComplexRule += "obtainDescendents_"+childName;
+				   
 				   strDescComplexRule +="(IDCHILD,LIST4)";
 				   strDescComplexRule += ") ";
 				   
@@ -1321,21 +1679,56 @@ public class SchemaParser extends DocumentParser{
 	
 	private String createSimplePrintRule(String _nodeName)
 	{
-		String simplePrintRule =  "print_"+_nodeName+"(IDPARENT,IDTAG):-";
+		String nodeName = _nodeName;
+	    if(nodeName.startsWith("-"))
+		{
+			String [] split =  nodeName.split("-");
+			nodeName = "";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		nodeName+= split[j] + ":";
+	    	}
+	    	nodeName+= split[split.length-1];
+		}
+		
+		
+		String simplePrintRule =  "print_"+_nodeName+"(IDPARENT,IDTAG):- ";
 		//##simplePrintRule+=_nodeName+"(_,IDTAG,VALUE),printnl(''),write('<"+_nodeName.toLowerCase().replace("_", ":")+">') , write(VALUE),\n";
-		simplePrintRule+=_nodeName+"(_,IDTAG,VALUE),write('<"+_nodeName.toLowerCase().replace("_", ":")+">') , write(VALUE),\n";
+		simplePrintRule+=_nodeName+"(_,IDTAG,VALUE),write('<"+nodeName.toLowerCase()+">') , write(VALUE),\n";
 		//##simplePrintRule+="write('</"+_nodeName.toLowerCase().replace("_", ":")+">').\n";
-		simplePrintRule+="write('</"+_nodeName.toLowerCase().replace("_", ":")+">'),printnl('').\n";
+		simplePrintRule+="write('</"+nodeName.toLowerCase()+">'),printnl('').\n";
 		return simplePrintRule;
 	}
 	
 	private String createAscendingRule(String _nodeName,String _fatherNodeName)
 	{
-		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
-		String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = _nodeName.toLowerCase();
+		if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
+		//String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		String normalizedFatherNodeName = _fatherNodeName.toLowerCase();
+		if(normalizedFatherNodeName.contains(":"))
+		{
+			String [] split =  normalizedFatherNodeName.split(":");
+			normalizedFatherNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedFatherNodeName+= split[j] + "-";
+	    	}
+	    	normalizedFatherNodeName+= split[split.length-1];
+		}
 		
 		//String ascRule = "obtainAncestrals_"+normalizedNodeName+"(IDELEMENT,LIST,LIST2):-";
-		String ascRule = "obtainAncestrals_"+normalizedNodeName+"(IDELEMENT,LIST):-";
+		String ascRule = "obtainAncestrals_"+normalizedNodeName+"(IDELEMENT,LIST):- ";
 		ascRule+=normalizedNodeName+"(IDPARENT,IDELEMENT,_)"; 
 		//ascRule+=", addTailList(IDPARENT,LIST,LIST3)";
 		//ascRule+=",obtainAncestrals_"+normalizedFatherNodeName+"(IDPARENT,LIST3,LIST2).\n";
@@ -1347,10 +1740,32 @@ public class SchemaParser extends DocumentParser{
 	
 	private String createDescendingRule(String _nodeName,String _fatherNodeName)
 	{
-		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
-		String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = _nodeName.toLowerCase();
+		if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
+		//String normalizedFatherNodeName = _fatherNodeName.toLowerCase().replace(":", "_");
+		String normalizedFatherNodeName = _fatherNodeName.toLowerCase();
+		if(normalizedFatherNodeName.contains(":"))
+		{
+			String [] split =  normalizedFatherNodeName.split(":");
+			normalizedFatherNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedFatherNodeName+= split[j] + "-";
+	    	}
+	    	normalizedFatherNodeName+= split[split.length-1];
+		}
 		
-		String ascRule = "obtainDescendents_"+normalizedNodeName+"(IDELEMENT,LIST2):-"; 
+		String ascRule = "obtainDescendents_"+normalizedNodeName+"(IDELEMENT,LIST2):- "; 
 		ascRule+=normalizedNodeName+"(IDPARENT,IDELEMENT,_)"; 
 		ascRule+=",addTailList(IDELEMENT,LIST,LIST2).\n";
 		//ascRule+=", addTailList(IDPARENT,LIST,LIST3)";
@@ -1361,7 +1776,7 @@ public class SchemaParser extends DocumentParser{
 	
 	private String createWildCardSimplePrintRule(String _nodeName)
 	{
-		String simplePrintRule =  "print_wild_card_"+_nodeName+"(IDPARENT,IDTAG):-";
+		String simplePrintRule =  "print_wild_card_"+_nodeName+"(IDPARENT,IDTAG):- ";
 		simplePrintRule+=" nonvar(IDTAG), print_"+_nodeName+"(IDPARENT,IDTAG).\n";
 		//simplePrintRule+=_nodeName+"(_,IDTAG,VALUE).\n";
 		
@@ -1371,12 +1786,48 @@ public class SchemaParser extends DocumentParser{
 	
 	private String  createAttributePrintRule(String _nodeName, String _attributeName)
 	{
-		String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
-		String normalizedAttributeName = _attributeName.toLowerCase().replace(":", "_");
+		//String normalizedNodeName = _nodeName.toLowerCase().replace(":", "_");
+		String normalizedNodeName = _nodeName.toLowerCase();
+		if(normalizedNodeName.contains(":"))
+		{
+			String [] split =  normalizedNodeName.split(":");
+			normalizedNodeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedNodeName+= split[j] + "-";
+	    	}
+	    	normalizedNodeName+= split[split.length-1];
+		}
+		//String normalizedAttributeName = _attributeName.toLowerCase().replace(":", "_");
+		String normalizedAttributeName = _attributeName.toLowerCase();
+		if(normalizedAttributeName.contains(":"))
+		{
+			String [] split =  normalizedAttributeName.split(":");
+			normalizedAttributeName = "-";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		normalizedAttributeName+= split[j] + "-";
+	    	}
+	    	normalizedAttributeName+= split[split.length-1];
+		}
 	
 		
-		String simplePrintRule =  "print_"+normalizedNodeName+"_attribute_"+normalizedAttributeName+"(IDPARENT,IDATTRIBUTE):-";
-		simplePrintRule+=normalizedNodeName+"_attribute_"+normalizedAttributeName+"(IDPARENT,IDATTRIBUTE,VALUE),write(' "+_attributeName.replace("_", ":")+"=\"') , write(VALUE),write('\" ').\n";
+		String simplePrintRule =  "print_"+normalizedNodeName+"_attribute_"+normalizedAttributeName+"(IDPARENT,IDATTRIBUTE):- ";
+		//simplePrintRule+=normalizedNodeName+"_attribute_"+normalizedAttributeName+"(IDPARENT,IDATTRIBUTE,VALUE),write(' "+_attributeName.replace("_", ":")+"=\"') , write(VALUE),write('\" ').\n";
+		
+		String attributeName = _attributeName;
+	    if(attributeName.startsWith("-"))
+		{
+			String [] split =  attributeName.split("-");
+			attributeName = "";
+	    	for(int j=0; j<split.length-1;j++)
+	    	{
+	    		attributeName+= split[j] + ":";
+	    	}
+	    	attributeName+= split[split.length-1];
+		}
+		
+		simplePrintRule+=normalizedNodeName+"_attribute_"+normalizedAttributeName+"(IDPARENT,IDATTRIBUTE,VALUE),write(' "+attributeName+"=\"') , write(VALUE),write('\" ').\n";
 		return simplePrintRule;
 	}
 	
@@ -1488,7 +1939,17 @@ public class SchemaParser extends DocumentParser{
 			
 			boolean bRoot = isRootNode(doc, (Element) complexType);
 			
-			ruleHead = ruleHead.replace(":","_");
+			//ruleHead = ruleHead.replace(":","_");
+			if(ruleHead.contains(":"))
+			{
+				String [] split =  ruleHead.split(":");
+				ruleHead = "-";
+		    	for(int j=0; j<split.length-1;j++)
+		    	{
+		    		ruleHead+= split[j] + "-";
+		    	}
+		    	ruleHead+= split[split.length-1];
+			}
 						
 			NodeList nlComplexTypeChilds = complexType.getChildNodes();
 			int nCountAttribute = 0;
@@ -1559,8 +2020,8 @@ public class SchemaParser extends DocumentParser{
 					catch(Exception ex)
 					{
 						ruleHead = complexTypeSearch(doc, (Element) complexType);
-						String a = ex.getMessage();
-						a.toUpperCase();
+						//String a = ex.getMessage();
+						//a.toUpperCase();
 						
 					}
 				}
@@ -1675,6 +2136,31 @@ public class SchemaParser extends DocumentParser{
 				
 				boolean bComplex = isComplexNode((Element)child);
 				boolean bMixedNode = isMixedNode((Element)child);
+				
+				//###
+				String childName = child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase();
+				if(childName.contains(":"))
+				{
+					String [] split =  childName.split(":");
+					childName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		childName+= split[j] + "-";
+			    	}
+			    	childName+= split[split.length-1];
+				}
+				
+				String normalizedRuleParent = ruleParent;
+				if(normalizedRuleParent.contains(":"))
+				{
+					String [] split =  normalizedRuleParent.split(":");
+					normalizedRuleParent = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		normalizedRuleParent+= split[j] + "-";
+			    	}
+			    	normalizedRuleParent+= split[split.length-1];
+				}
 					
 				for(int k = initialSize-1-temp; k < finalSize; k++)
 				{
@@ -1683,14 +2169,21 @@ public class SchemaParser extends DocumentParser{
 					
 					if(bComplex && !bMixedNode)
 					{
-						tempRulesList.set(k, stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
-						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"), "));
+						//tempRulesList.set(k, stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
+						
+						tempRulesList.set(k, stringRule.concat(", ID" + childName));
+						
+						
+						
+						
+						//bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"), "));
+						bodyRuleList.set(k, stringBody.concat(childName.toLowerCase() + "(ID"+normalizedRuleParent.toUpperCase().replace(":", "_")+", " + "ID"+childName+"), "));
 					}
 					else
 					{
 						tempRulesList.set(k, stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 						//bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-						bodyRuleList.set(k, stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+						bodyRuleList.set(k, stringBody.concat(childName.toLowerCase() + "(ID"+normalizedRuleParent.toUpperCase()+", " + "ID"+childName+"," +childName + "), "));
 					}
 										
 				}
@@ -1746,9 +2239,32 @@ public class SchemaParser extends DocumentParser{
 		int n = 1;
 		for(int i=0; i < nlChoiceChilds.getLength(); i++){
 			Node child = nlChoiceChilds.item(i);
-		
+			
 			if(child.getNodeName() == xsElement || child.getNodeName() == xsAttribute)
 			{
+				String childName = child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase();
+				if(childName.contains(":"))
+				{
+					String [] split =  childName.split(":");
+					childName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		childName+= split[j] + "-";
+			    	}
+			    	childName+= split[split.length-1];
+				}
+				String normalizedRuleParent = ruleParent;
+				if(normalizedRuleParent.contains(":"))
+				{
+					String [] split =  normalizedRuleParent.split(":");
+					normalizedRuleParent = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		normalizedRuleParent+= split[j] + "-";
+			    	}
+			    	normalizedRuleParent+= split[split.length-1];
+				}
+				
 				boolean bComplex = isComplexNode((Element)child);
 				boolean bMixedNode = isMixedNode((Element)child);
 				
@@ -1766,16 +2282,16 @@ public class SchemaParser extends DocumentParser{
 						
 						if(bComplex && !bMixedNode)
 						{
-							auxRuleList.add(stringRule.concat(", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
-							auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID"+ruleParent.toUpperCase()+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()+ "), "));
+							auxRuleList.add(stringRule.concat(", ID" + childName));
+							auxBodyRuleList.add(stringBody.concat(childName.toLowerCase() + "(ID"+normalizedRuleParent.toUpperCase()+", " + "ID"+childName.toUpperCase()+ "), "));
 							
 						}
 						else
 						{ 
-							auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
+							auxRuleList.add(stringRule.concat(", " + childName.toUpperCase()));
 							//auxRuleList.add(stringRule.concat(", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase()));
 							//auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-							auxBodyRuleList.add(stringBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+							auxBodyRuleList.add(stringBody.concat(childName.toLowerCase() + "(ID"+normalizedRuleParent.toUpperCase()+", " + "ID"+childName.toUpperCase()+"," + childName.toUpperCase() + "), "));
 							
 							
 						}
@@ -1789,16 +2305,16 @@ public class SchemaParser extends DocumentParser{
                                             choiceList.add(child);
 					if(bComplex && !bMixedNode)
 					{
-						tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
+						tempRulesList.add(partialRule + ", ID" + childName.toUpperCase().replace(":", "_"));
 						//tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase());
-						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+ "), "));	
+						bodyRuleList.add(partialBody.concat(childName.toLowerCase().replace(":", "_") + "(ID"+normalizedRuleParent.toUpperCase().replace(":", "_")+", " + "ID"+childName.toUpperCase().replace(":", "_")+ "), "));	
 					}
 					else
 					{
-						tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
+						tempRulesList.add(partialRule + ", " + childName.toUpperCase().replace(":", "_"));
 						//tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase());
 						//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-						bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+						bodyRuleList.add(partialBody.concat(childName.toLowerCase().replace(":", "_") + "(ID"+normalizedRuleParent.toUpperCase().replace(":", "_")+", " + "ID"+childName.toUpperCase().replace(":", "_")+"," + childName.toUpperCase().replace(":", "_") + "), "));
 					}	
 				}
 			} 
@@ -1827,24 +2343,47 @@ public class SchemaParser extends DocumentParser{
 		
 		for(int i=0; i < nlChoiceChilds.getLength(); i++){
 			Node child = nlChoiceChilds.item(i);
-		
+			
 			if(child.getNodeName() == xsElement || child.getNodeName() == xsAttribute)
 			{
+				
+				String childName = child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase();
+				if(childName.contains(":"))
+				{
+					String [] split =  childName.split(":");
+					childName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		childName+= split[j] + "-";
+			    	}
+			    	childName+= split[split.length-1];
+				}
+				String normalizedRuleParent = ruleParent;
+				if(normalizedRuleParent.contains(":"))
+				{
+					String [] split =  normalizedRuleParent.split(":");
+					normalizedRuleParent = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		normalizedRuleParent+= split[j] + "-";
+			    	}
+			    	normalizedRuleParent+= split[split.length-1];
+				}
 				
 				boolean bComplex = isComplexNode((Element)child);
 				boolean bMixedNode = isMixedNode((Element)child);
 				
 				if(bComplex && !bMixedNode)
 				{
-					tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") );
+					tempRulesList.add(partialRule + ", ID" + childName.toUpperCase().replace(":", "_") );
 					//tempRulesList.add(partialRule + ", ID" + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() );
-					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+ "), "));
+					bodyRuleList.add(partialBody.concat(childName.toLowerCase().replace(":", "_") + "(ID"+normalizedRuleParent.toUpperCase().replace(":", "_")+", " + "ID"+childName.toUpperCase().replace(":", "_")+ "), "));
 				}
 				else
 				{
-					tempRulesList.add(partialRule + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
+					tempRulesList.add(partialRule + ", " + childName.toLowerCase().replace(":", "_") + ", " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_"));
 					//bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase() + "(ID, " + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase() + "), "));
-					bodyRuleList.add(partialBody.concat(child.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase().replace(":", "_")+", " + "ID"+child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," + child.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));	
+					bodyRuleList.add(partialBody.concat(childName.toLowerCase().replace(":", "_") + "(ID"+normalizedRuleParent.toUpperCase().replace(":", "_")+", " + "ID"+childName.toUpperCase().replace(":", "_")+"," + childName.toUpperCase().replace(":", "_") + "), "));	
 				}		
 			} 
 		}
@@ -1868,8 +2407,32 @@ public class SchemaParser extends DocumentParser{
 			
 			if(!a.isEmpty())
 			{
-				tempRulesList.set(k, stringRule.concat(", " + attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")));
-				bodyRuleList.set(k, stringBody.concat(ruleParent.toLowerCase()+"_attribute_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toLowerCase().replace(":", "_") + "(ID"+ruleParent.toUpperCase()+", " + "ID"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_")+"," +"ATTRIBUTE_"+attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase().replace(":", "_") + "), "));
+				
+				String attName = attributeNode.getAttributes().getNamedItem("name").getNodeValue().toUpperCase();
+				if(attName.contains(":"))
+				{
+					String [] split =  attName.split(":");
+					attName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		attName+= split[j] + "-";
+			    	}
+			    	attName+= split[split.length-1];
+				}
+				String normalizedRuleParent = ruleParent;
+				if(normalizedRuleParent.contains(":"))
+				{
+					String [] split =  normalizedRuleParent.split(":");
+					normalizedRuleParent = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		normalizedRuleParent+= split[j] + "-";
+			    	}
+			    	normalizedRuleParent+= split[split.length-1];
+				}
+				
+				tempRulesList.set(k, stringRule.concat(", " + attName.toUpperCase().replace(":", "_")));
+				bodyRuleList.set(k, stringBody.concat(normalizedRuleParent.toLowerCase()+"_attribute_"+attName.toLowerCase().replace(":", "_") + "(ID"+normalizedRuleParent.toUpperCase()+", " + "ID"+attName.toUpperCase().replace(":", "_")+"," +"ATTRIBUTE_"+attName.toUpperCase().replace(":", "_") + "), "));
 			}
 		}
 		

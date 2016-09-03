@@ -1,5 +1,7 @@
 package wrapper;
 
+import java.text.DecimalFormat;
+
 import alice.tuprologx.pj.engine.PrologInvocationKind;
 import br.ufrj.ppgi.parser.PrologOutputParser;
 import br.ufrj.ppgi.prolog.PrologQueryProcessor;
@@ -28,8 +30,12 @@ public abstract class Wrapper {
 		//System.out.println(parser.tuPrologParseTest());
 		
 		//return true;
-		
+		long startTime = System.nanoTime();
 		String queryProlog = convertQuery(query,false);
+		long stopTime = System.nanoTime();
+		long estimatedTime = stopTime - startTime;
+		System.out.println("Translation Time : " + new DecimalFormat("#.##########").format((double)estimatedTime / 1000000000) + " Seconds");
+		
                 //queryProlog = "findall(G, (item(_, PRODUTO, QUANTIDADE, PRECO_UNIT), PRODUTO = 'caneta preta', quantidade(G,QUANTIDADE)), A).";
 		System.out.println(queryProlog);
 		//return true;

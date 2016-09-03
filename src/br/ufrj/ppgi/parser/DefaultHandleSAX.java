@@ -112,7 +112,15 @@ public class DefaultHandleSAX extends DefaultHandler {
             String atributo = atts.getQName(i);
 
             if (atributo.contains(":"))
-            	atributo = atributo.replace(":", "_");
+            {
+            	//atributo = atributo.replace(":", "_");
+            	String [] split =  atributo.split(":");
+            	atributo = "-";
+            	for(int j=0; j<split.length-1;j++)
+            	{
+            		atributo+= split[j] + "-";
+            	}
+            }
             
             novoElemento.setNome(atributo.toLowerCase());
             
@@ -164,7 +172,20 @@ public class DefaultHandleSAX extends DefaultHandler {
     	
     	ElementoXML novoElemento = new ElementoXML();
     	novoElemento.setTipo(ElementoXML.TipoElemento.FILHO);
-    	qName = qName.replace(":", "_");
+    	
+    	if(qName.contains(":"))
+    	{
+    		//qName = qName.replace(":", "_");
+    		String [] split =  qName.split(":");
+    		qName = "-";
+        	for(int j=0; j<split.length-1;j++)
+        	{
+        		qName+= split[j] + "-";
+        	}
+    		
+    	}
+    	
+    	
     	novoElemento.setNome(qName);
     	novoElemento.setId(++contadorIdPai);
     	if ( pilha.size() == 0)

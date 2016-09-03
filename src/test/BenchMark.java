@@ -16,11 +16,11 @@ import wrapper.*;
 
 public class BenchMark {
 
-	private static final String FILE_PATH ="XML1.xsd";
+	private static final String FILE_PATH ="F:/ESTUDOS/MESTRADO/ORIENTACAO/XMLINFERENCE2/xml-inference/XML1.xsd";
 	private static final String FILE_NAME ="XML1.xsd";
 	
-	private static final String QUERIES_FILE_NAME ="Benchmark.txt";
-	private static final String QUERIES_TRANSLATE_FILE_NAME ="TranslateTimes.txt";
+	private static final String QUERIES_FILE_NAME ="F:/ESTUDOS/MESTRADO/ORIENTACAO/XMLINFERENCE2/xml-inference/Benchmark.txt";
+	private static final String QUERIES_TRANSLATE_FILE_NAME ="F:/ESTUDOS/MESTRADO/ORIENTACAO/XMLINFERENCE2/xml-inference/TranslateTimes.txt";
 	
 	private WrapperSchema wrapper = null;
 	

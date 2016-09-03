@@ -22,6 +22,7 @@ import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.SAXParser; 
 
 import br.ufrj.ppgi.parser.DefaultHandleSAX;
+
 import java.util.Map;
 
 
@@ -305,7 +306,20 @@ public class XMLParser extends DocumentParser{
                     return "";
                 listNames.add(nodeName);
                 //System.out.println("OK");
-                String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+                //String normalizedNodeName = nodeName.toLowerCase().replace(":", "_");
+                String normalizedNodeName = nodeName.toLowerCase();
+                if(normalizedNodeName.contains(":"))
+				{
+					String [] split =  normalizedNodeName.split(":");
+					normalizedNodeName = "-";
+			    	for(int j=0; j<split.length-1;j++)
+			    	{
+			    		normalizedNodeName+= split[j] + "-";
+			    	}
+			    	normalizedNodeName+= split[split.length-1];
+				}
+                
+                
                 String nodeRule = "";
                 String strType = "";
                 if (node.getAttributes().getNamedItem("type")!= null)
@@ -994,7 +1008,19 @@ public class XMLParser extends DocumentParser{
 			
 			for(int j=0; j < attributeList.getLength(); j++){
 				//o coment�rio abaixo no replace � porque n�o � necess�rio. Est� comentado para caso tenha a necessidade de voltar
-				factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "("+contadorIdPai+ ", " + ++contadorIdPai +", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
+				String attName = attributeList.item(j).getNodeName().toLowerCase();
+				if(attName.contains(":"))
+				{
+					String [] split =  attName.split(":");
+					attName = "-";
+			    	for(int k=0; k<split.length-1;k++)
+			    	{
+			    		attName+= split[k] + "-";
+			    	}
+			    	attName+= split[split.length-1];
+				}
+				factsList.add(attName + "("+contadorIdPai+ ", " + ++contadorIdPai +", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
+				//factsList.add(attributeList.item(j).getNodeName().toLowerCase().replace(":", "_") + "("+contadorIdPai+ ", " + ++contadorIdPai +", '" + attributeList.item(j).getNodeValue().replace("'", "\"")/*.replace("\t", "").replace("\n", "")*/ + "'). \n");
 			}
 		}
 		
